@@ -5,8 +5,8 @@ Function is a set of reusable statements that are executed on every call, it can
 ```butter
 reverse = { arr =>
     reverse = [];
-    for elem in arr {
-        reverse <- [elem, ..reverse];
+    for i in [arr.len..=0] {
+        reverse <- [..reverse, arr[i]];
     }
     reverse
 };
