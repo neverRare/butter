@@ -5,3 +5,5 @@ A small and simple programming language just for fun. Butter is designed to have
 ```butter
 std::print("hello world\n");
 ```
+
+Very much wip btw.
