@@ -9,11 +9,24 @@ input = {
 };
 ```
 
-TODO `foo == null`
+## Handling Null
+
+You can use `== null` or `!= null` to check whether the value is null or not. One of the operand must be exactly `null`.
+
+```butter
+name = if input != null (input) else {
+    std::println("invalid input");
+    abort -1;
+};
+```
 
 ## Null Coalescing Operator
 
-TODO
+You can use the `??` operator. TODO more explanation.
+
+```butter
+name = input ?? "unnamed";
+```
 
 ## Optional Access
 
