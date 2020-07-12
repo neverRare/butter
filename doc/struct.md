@@ -9,7 +9,7 @@ car = (
 );
 ```
 
-You can create another struct value based on existing struct value or a reference to it and extend it with more fields. You can splat as many struct as you like as long as every fields have unique name.
+You can create another struct value based on existing struct value and extend it with more fields. You can splat as many struct as you like as long as every fields have unique name.
 
 ```butter
 car = (
@@ -20,7 +20,7 @@ car = (
 
 ## Field access
 
-A field from struct or a reference to struct can be accessed via `.`.
+A field from struct can be accessed via `.`.
 
 ```butter
 color = car.color;

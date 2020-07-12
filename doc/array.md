@@ -6,7 +6,7 @@ An array is an ordered collection of other values.
 fruits = ["strawberry", "pineapple"];
 ```
 
-You can splat arrays or a reference to it, this is used to simulate pushing to array. You can splat as many array as you want. Be catious that splatting a reference to an array will splat references to its element.
+You can splat arrays, this is used to simulate pushing to array. You can splat as many array as you want.
 
 ```butter
 fruits <- [..fruits, "banana"];
@@ -26,7 +26,7 @@ range = [0, 1, 2];
 
 ## Indexing
 
-You can access its elements via `[]`. You can also index on reference to array.
+You can access its elements via `[]`.
 
 ```butter
 first_fruit = &fruits[0];
@@ -47,5 +47,3 @@ Through slicing, you can get a portion of the array.
 ```butter
 favorites = &fruits[1..3];
 ```
-
-When slicing a reference to array, it returns a reference to an array with fixed length.
