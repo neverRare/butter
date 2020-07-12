@@ -24,6 +24,8 @@ Pretty straight-forward. The right hand side of division, floor division, and mo
 
 Also pretty straight-forward.
 
+- Equal `A == B`
+- Not Equal `A != B`
 - Greater than `A > B`
 - Greater than or equal to `A >= B`
 - Less than `A < B`
