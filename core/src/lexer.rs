@@ -70,3 +70,13 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
+pub enum TokenTree<'a> {
+    Num(Num),
+    Str(Vec<u8>),
+    Char(u8),
+    Keyword(Keyword),
+    Identifier(&'a str),
+    Separator(Separator),
+    Operator(Operator),
+    Token(Bracket, Box<TokenTree<'a>>),
+}
