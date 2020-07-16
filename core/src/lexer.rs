@@ -23,9 +23,34 @@ pub enum Keyword {
     Loop,
     While,
 }
+impl Keyword {
+    fn from_str(bracket: &str) -> Option<Self> {
+        Some(match bracket {
+            "true" => Self::True,
+            "false" => Self::False,
+            "null" => Self::Null,
+            "if" => Self::If,
+            "else" => Self::Else,
+            "match" => Self::Match,
+            "for" => Self::For,
+            "loop" => Self::Loop,
+            "while" => Self::While,
+            _ => return None,
+        })
+    }
+}
 pub enum Separator {
     Comma,
     Semicolon,
+}
+impl Separator {
+    fn from_str(bracket: &str) -> Option<Self> {
+        Some(match bracket {
+            "," => Self::Comma,
+            ";" => Self::Semicolon,
+            _ => return None,
+        })
+    }
 }
 pub enum Operator {
     Equal,
@@ -59,6 +84,44 @@ pub enum Operator {
     RightThickArrow,
     Question,
     DoubleQuestion,
+}
+impl Operator {
+    fn from_str(operator: &str) -> Option<Self> {
+        Some(match operator {
+            "=" => Self::Equal,
+            "==" => Self::DoubleEqual,
+            "!=" => Self::NotEqual,
+            ":" => Self::Colon,
+            "::" => Self::DoubleColon,
+            "." => Self::Dot,
+            ".." => Self::DoubleDot,
+            "+" => Self::Plus,
+            "-" => Self::Minus,
+            "*" => Self::Asterisk,
+            "/" => Self::Slash,
+            "//" => Self::DoubleSlash,
+            "%" => Self::Percent,
+            "!" => Self::Bang,
+            "&" => Self::Amp,
+            "|" => Self::Pipe,
+            "^" => Self::Caret,
+            "~" => Self::Tilde,
+            "&&" => Self::DoubleAmp,
+            "||" => Self::DoublePipe,
+            ">" => Self::Greater,
+            "<" => Self::Less,
+            ">>" => Self::DoubleGreater,
+            "<<" => Self::DoubleLess,
+            ">=" => Self::GreaterEqual,
+            "<=" => Self::LessEqual,
+            "<-" => Self::LeftArrow,
+            "->" => Self::RightArrow,
+            "=>" => Self::RightThickArrow,
+            "?" => Self::Question,
+            "??" => Self::DoubleQuestion,
+            _ => return None,
+        })
+    }
 }
 pub enum Token<'a> {
     Num(Num),
