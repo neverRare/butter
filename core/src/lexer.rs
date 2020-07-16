@@ -70,8 +70,18 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-impl<'a> Token<'a> {
-    pub fn lex(src: &'a str) -> Vec<Self> {
+pub struct Tokens<'a> {
+    src: &'a str,
+    i: usize,
+}
+impl<'a> Tokens<'a> {
+    pub fn new(src: &'a str) -> Self {
+        Self { src, i: 0 }
+    }
+}
+impl<'a> Iterator for Tokens<'a> {
+    type Item = Token<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
         todo!()
     }
 }
