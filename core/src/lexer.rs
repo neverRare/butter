@@ -70,13 +70,14 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-pub enum TokenTree<'a> {
-    Num(Num),
-    Str(Vec<u8>),
-    Char(u8),
-    Keyword(Keyword),
-    Identifier(&'a str),
-    Separator(Separator),
-    Operator(Operator),
-    Token(Bracket, Box<TokenTree<'a>>),
+pub struct FullToken<'a> {
+    line: usize,
+    col: usize,
+    file: String,
+    token: Token<'a>,
+}
+impl<'a> FullToken<'a> {
+    fn lex(src: &'a str) -> Vec<Self> {
+        todo!()
+    }
 }
