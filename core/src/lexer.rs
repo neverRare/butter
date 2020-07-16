@@ -71,7 +71,7 @@ pub enum Token<'a> {
     Operator(Operator),
 }
 impl<'a> Token<'a> {
-    fn lex(src: &'a str) -> Vec<Self> {
+    pub fn lex(src: &'a str) -> Vec<Self> {
         todo!()
     }
 }
