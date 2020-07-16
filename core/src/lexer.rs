@@ -70,13 +70,7 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-pub struct FullToken<'a> {
-    line: usize,
-    col: usize,
-    file: String,
-    token: Token<'a>,
-}
-impl<'a> FullToken<'a> {
+impl<'a> Token<'a> {
     fn lex(src: &'a str) -> Vec<Self> {
         todo!()
     }
