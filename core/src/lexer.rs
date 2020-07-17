@@ -149,6 +149,50 @@ impl<'a> Tokens<'a> {
 impl<'a> Iterator for Tokens<'a> {
     type Item = Token<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        let mut i = self.i;
+        'outer: loop {
+            let src = &self.src[i..];
+            let mut chars = src.chars();
+            let first = chars.next();
+            let first = match first {
+                Some(val) => val,
+                None => break None,
+            };
+            if first.is_whitespace() {
+                i += first.len_utf8();
+                for ch in chars {
+                    if ch.is_whitespace() {
+                        i += ch.len_utf8();
+                    } else {
+                        continue 'outer;
+                    }
+                }
+                break None;
+            }
+            if first.is_alphabetic() {
+                let mut i = first.len_utf8();
+                for ch in chars {
+                    if ch.is_alphanumeric() {
+                        i += ch.len_utf8();
+                    }
+                }
+                let ident = &src[..i];
+                self.i = i;
+                break Some(match Keyword::from_str(ident) {
+                    Some(keyword) => Token::Keyword(keyword),
+                    None => Token::Identifier(ident),
+                });
+            }
+            if let Some("--") = src.get(0..2) {
+                let rest = &src[2..];
+                match rest.find('\n') {
+                    Some(index) => {
+                        i += 3 + index;
+                        continue;
+                    }
+                    None => break None,
+                }
+            }
+        }
     }
 }
