@@ -42,7 +42,7 @@ Operation in bitwise manner, only works with integer. The right hand side operan
 - Shift left `A << B`
 - Shift right `A >> B`
 
-Bitwise not operator is required to be annotated with traditional type, as the operation depends on it. If we let Butter infer it, it may cause inconsistency.
+Bitwise not operator is required to be annotated with traditional type, as the operation depends on it. If we let Butter infer it, it may cause ambuigity.
 
 ```butter
 foo = ~[u32] bar;
