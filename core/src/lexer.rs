@@ -13,6 +13,7 @@ pub enum Opening {
     Close,
 }
 pub enum Keyword {
+    Move,
     True,
     False,
     Null,
@@ -28,6 +29,7 @@ pub enum Keyword {
 impl Keyword {
     fn from_str(bracket: &str) -> Option<Self> {
         Some(match bracket {
+            "move" => Self::Move,
             "true" => Self::True,
             "false" => Self::False,
             "null" => Self::Null,
