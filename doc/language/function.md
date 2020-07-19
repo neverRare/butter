@@ -1,6 +1,6 @@
 # Function
 
-Function is a set of reusable statements that are executed on every call, it can have input called parameters and output called return.
+Function is a reusable expression that are executed on every call. It is defined by 2 parts, the parameters and the body.
 
 ```butter
 reverse = (arr) => {
@@ -11,6 +11,14 @@ reverse = (arr) => {
     reverse
 };
 ```
+
+## Parameters
+
+The parameter have the same syntax as struct destructuring.
+
+## Body
+
+The body is evaluated on every call, if you wish to include more complex expression, you can use expression group.
 
 ## Calling
 
