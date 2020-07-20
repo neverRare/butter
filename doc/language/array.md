@@ -15,10 +15,6 @@ fruits <- [..fruits, "banana"];
 There are other special syntaxes as well. TODO more explanation.
 
 ```butter
-repeated = ["thing"; 3];
--- this is similar to
-repeated = ["thing", "thing", "thing"];
-
 range = [=0..3];
 -- similar to
 range = [0, 1, 2];
