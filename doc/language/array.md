@@ -12,7 +12,9 @@ You can splat arrays, this is used to simulate pushing to array. You can splat a
 fruits <- [..fruits, "banana"];
 ```
 
-There are other special syntaxes as well. TODO more explanation.
+## Range notation
+
+You can define an array of consecutive integers with `..`. You can use `=` to denote inclusive bound. This is often used with `for` expression. Range can only be used with integeres and in increasing count.
 
 ```butter
 range = [=0..3];
