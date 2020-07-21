@@ -18,6 +18,14 @@ car = (
 );
 ```
 
+You can use field declaration shortcut if the value is stored in a variable with the same name as desired field.
+
+```butter
+color = "red";
+brand = "a nice brand";
+car = (color, brand);
+```
+
 ## Field access
 
 A field from struct can be accessed via `.`.
