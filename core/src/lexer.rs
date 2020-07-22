@@ -139,6 +139,12 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
+fn get_number_str(src: &str) -> &str {
+    todo!()
+}
+fn parse_string(src: &str) -> Vec<u8> {
+    todo!()
+}
 pub struct Tokens<'a> {
     src: &'a str,
     i: usize,
@@ -170,29 +176,34 @@ impl<'a> Iterator for Tokens<'a> {
                     }
                 }
                 break None;
-            }
-            if first.is_alphabetic() {
-                let mut i = first.len_utf8();
+            } else if first.is_alphabetic() {
+                let mut len = first.len_utf8();
                 for ch in chars {
                     if ch.is_alphanumeric() {
-                        i += ch.len_utf8();
+                        len += ch.len_utf8();
+                    } else {
+                        break;
                     }
                 }
-                let ident = &src[..i];
-                self.i = i;
+                let ident = &src[..len];
+                self.i = i + len;
                 break Some(match Keyword::from_str(ident) {
                     Some(keyword) => Token::Keyword(keyword),
                     None => Token::Identifier(ident),
                 });
-            }
-            if let Some("--") = src.get(0..2) {
-                let rest = &src[2..];
-                match rest.find('\n') {
-                    Some(index) => {
-                        i += 3 + index;
-                        continue;
+            } else if let Some(val) = src.get(0..2) {
+                if val == "--" {
+                    let rest = &src[2..];
+                    match rest.find('\n') {
+                        Some(index) => {
+                            i += 3 + index;
+                            continue;
+                        }
+                        None => break None,
                     }
-                    None => break None,
+                } else if let Some(val) = Operator::from_str(val) {
+                    self.i = i + 2;
+                    break Some(Token::Operator(val));
                 }
             }
         }
