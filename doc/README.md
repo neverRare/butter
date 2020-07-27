@@ -1,6 +1,6 @@
 # Butter docs
 
-Butter is still in development, some of the documentation could be outdated.
+Butter is still in development. Some of the documentation could be outdated, some could be incomplete.
 
 ## Language
 
