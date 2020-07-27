@@ -5,6 +5,11 @@ Numbers in butter!
 ```butter
 foo = 12;
 bar = 0.5;
+hex = 0xff;
+bin = 0b11110000;
+oct = 0o127;
+large_number = 1_000_000;
+small_number = 4e-7;
 ```
 
 ## Arithmetic operations
@@ -47,3 +52,14 @@ Bitwise not operator is required to be annotated with traditional type, as the o
 ```butter
 foo = ~[u32] bar;
 ```
+
+The following annotation are available for bitwise not operator.
+
+- `u8`
+- `u16`
+- `u32`
+- `u64`
+- `i8`
+- `i16`
+- `i32`
+- `i64`
