@@ -9,18 +9,14 @@ letter = 'a';
 
 ## Escaping
 
-| Syntax   | Output            |
-| -------- | ----------------- |
-| `\\`     | Backslash         |
-| `\"`     | Double quote      |
-| `\'`     | Single quote      |
-| `\n`     | Line feed         |
-| `\r`     | Catridge return   |
-| `\t`     | Horizontal tab    |
-| `\v`     | Vertical tab      |
-| `\0`     | Null              |
-| `\uXXXX` | Unicode character |
-
-## Raw String
-
-TODO
+| Notation | Output                       |
+| -------- | ---------------------------- |
+| `\\`     | Backslash                    |
+| `\"`     | Double quote                 |
+| `\'`     | Single quote                 |
+| `\n`     | Line feed                    |
+| `\r`     | Catridge return              |
+| `\t`     | Horizontal tab               |
+| `\v`     | Vertical tab                 |
+| `\0`     | Null                         |
+| `\x7A`   | Byte unit ('z' in this case) |
