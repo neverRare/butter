@@ -1,3 +1,5 @@
+use crate::error::ErrorSpan;
+
 pub enum Num {
     UInt(u64),
     Int(i64),
@@ -145,66 +147,91 @@ fn get_number_str(src: &str) -> &str {
 fn parse_string(src: &str) -> Vec<u8> {
     todo!()
 }
+pub enum LexerError {
+    UnknownChar,
+}
 pub struct Tokens<'a> {
     src: &'a str,
     i: usize,
+    erred: bool,
 }
 impl<'a> Tokens<'a> {
     pub fn new(src: &'a str) -> Self {
-        Self { src, i: 0 }
+        Self {
+            src,
+            i: 0,
+            erred: false,
+        }
     }
 }
 impl<'a> Iterator for Tokens<'a> {
-    type Item = Token<'a>;
+    type Item = Result<Token<'a>, ErrorSpan<'a, LexerError>>;
     fn next(&mut self) -> Option<Self::Item> {
-        let mut i = self.i;
-        'outer: loop {
-            let src = &self.src[i..];
-            let mut chars = src.chars();
-            let first = chars.next();
-            let first = match first {
-                Some(val) => val,
-                None => break None,
-            };
-            if first.is_whitespace() {
-                i += first.len_utf8();
-                for ch in chars {
-                    if ch.is_whitespace() {
-                        i += ch.len_utf8();
-                    } else {
-                        continue 'outer;
-                    }
-                }
-                break None;
-            } else if first.is_alphabetic() {
-                let mut len = first.len_utf8();
-                for ch in chars {
-                    if ch.is_alphanumeric() {
-                        len += ch.len_utf8();
-                    } else {
-                        break;
-                    }
-                }
-                let ident = &src[..len];
-                self.i = i + len;
-                break Some(match Keyword::from_str(ident) {
-                    Some(keyword) => Token::Keyword(keyword),
-                    None => Token::Identifier(ident),
-                });
-            } else if let Some(val) = src.get(0..2) {
-                if val == "--" {
-                    let rest = &src[2..];
-                    match rest.find('\n') {
-                        Some(index) => {
-                            i += 3 + index;
-                            continue;
+        if self.erred {
+            None
+        } else {
+            let mut i = self.i;
+            'outer: loop {
+                let src = &self.src[i..];
+                let mut chars = src.chars();
+                let first = chars.next();
+                let first = match first {
+                    Some(val) => val,
+                    None => break None,
+                };
+                if first.is_whitespace() {
+                    i += first.len_utf8();
+                    for ch in chars {
+                        if ch.is_whitespace() {
+                            i += ch.len_utf8();
+                        } else {
+                            continue 'outer;
                         }
-                        None => break None,
                     }
-                } else if let Some(val) = Operator::from_str(val) {
-                    self.i = i + 2;
-                    break Some(Token::Operator(val));
+                    break None;
+                } else if first.is_alphabetic() {
+                    let mut len = first.len_utf8();
+                    for ch in chars {
+                        if ch.is_alphanumeric() {
+                            len += ch.len_utf8();
+                        } else {
+                            break;
+                        }
+                    }
+                    let ident = &src[..len];
+                    self.i = i + len;
+                    break Some(Ok(match Keyword::from_str(ident) {
+                        Some(keyword) => Token::Keyword(keyword),
+                        None => Token::Identifier(ident),
+                    }));
+                } else if let Some(val) = src.get(0..2) {
+                    if val == "--" {
+                        let rest = &src[2..];
+                        match rest.find('\n') {
+                            Some(index) => {
+                                i += 3 + index;
+                                continue;
+                            }
+                            None => break None,
+                        }
+                    } else if let Some(val) = Operator::from_str(val) {
+                        self.i = i + 2;
+                        break Some(Ok(Token::Operator(val)));
+                    }
                 }
+                if let Some(val) = src.get(0..1) {
+                    if let Some(val) = Operator::from_str(val) {
+                        self.i = i + 1;
+                        break Some(Ok(Token::Operator(val)));
+                    }
+                }
+                self.erred = true;
+                break Some(Err(ErrorSpan::new(
+                    LexerError::UnknownChar,
+                    self.src,
+                    i,
+                    i + first.len_utf8(),
+                )));
             }
         }
     }
