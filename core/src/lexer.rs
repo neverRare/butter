@@ -37,6 +37,8 @@ pub enum Keyword {
     In,
     Loop,
     While,
+    Break,
+    Continue,
 }
 impl Keyword {
     fn from_str(bracket: &str) -> Option<Self> {
@@ -52,6 +54,8 @@ impl Keyword {
             "in" => Self::In,
             "loop" => Self::Loop,
             "while" => Self::While,
+            "break" => Self::Break,
+            "continue" => Self::Continue,
             _ => return None,
         })
     }

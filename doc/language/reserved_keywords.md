@@ -13,3 +13,5 @@ The following keywords can't be used as identifier since they either have specia
 - `in`
 - `loop`
 - `while`
+- `break`
+- `continue`
