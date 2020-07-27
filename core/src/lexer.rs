@@ -150,9 +150,6 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-fn get_number_str(src: &str) -> Num {
-    todo!()
-}
 fn parse_string(src: &str) -> Vec<u8> {
     todo!()
 }
@@ -215,6 +212,8 @@ impl<'a> Iterator for Tokens<'a> {
                         Some(keyword) => Token::Keyword(keyword),
                         None => Token::Identifier(ident),
                     }));
+                } else if let '0'..='9' = first {
+                    todo!()
                 } else if let '\'' | '"' = first {
                     let rest = &src[1..];
                     let (rest, last) = match rest.find('\n') {
