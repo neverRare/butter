@@ -212,9 +212,10 @@ impl<'a> Iterator for Tokens<'a> {
                         Some(keyword) => Token::Keyword(keyword),
                         None => Token::Identifier(ident),
                     }));
-                } else if let '0'..='9' = first {
+                } else if let '.' | '0'..='9' = first {
                     todo!()
-                } else if let '\'' | '"' = first {
+                }
+                if let '\'' | '"' = first {
                     let rest = &src[1..];
                     let (rest, last) = match rest.find('\n') {
                         Some(ind) => (&rest[..ind], ind),
@@ -290,7 +291,7 @@ impl<'a> Iterator for Tokens<'a> {
                     if let Some(token) = token {
                         self.i = i + 1;
                         break Some(Ok(token));
-                    };
+                    }
                 }
                 self.erred = true;
                 break Some(Err(ErrorSpan::new(
