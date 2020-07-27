@@ -147,6 +147,8 @@ fn parse_string(src: &str) -> Vec<u8> {
 }
 pub enum LexerError {
     UnknownChar,
+    UnterminatedQuote,
+    CharNotOne,
 }
 pub struct Tokens<'a> {
     src: &'a str,
@@ -202,6 +204,58 @@ impl<'a> Iterator for Tokens<'a> {
                         Some(keyword) => Token::Keyword(keyword),
                         None => Token::Identifier(ident),
                     }));
+                } else if let '\'' | '"' = first {
+                    let rest = &src[1..];
+                    let (rest, last) = match rest.find('\n') {
+                        Some(ind) => (&rest[..ind], ind),
+                        None => (rest, rest.len()),
+                    };
+                    let end = rest
+                        .match_indices(first)
+                        .filter_map(|(ind, _)| {
+                            if let Some("\\") = rest.get(ind - 1..ind) {
+                                None
+                            } else {
+                                Some(ind)
+                            }
+                        })
+                        .next();
+                    break Some(match end {
+                        Some(ind) => {
+                            let content = &rest[..ind];
+                            let len = content.len();
+                            let content = parse_string(content);
+                            match first {
+                                '"' => {
+                                    self.i = i + len + 2;
+                                    Ok(Token::Str(content))
+                                }
+                                '\'' if content.len() == 1 => {
+                                    self.i = i + len + 2;
+                                    Ok(Token::Char(content[0]))
+                                }
+                                '\'' => {
+                                    self.erred = true;
+                                    Err(ErrorSpan::new(
+                                        LexerError::CharNotOne,
+                                        self.src,
+                                        i,
+                                        i + len + 2,
+                                    ))
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        None => {
+                            self.erred = true;
+                            Err(ErrorSpan::new(
+                                LexerError::UnterminatedQuote,
+                                self.src,
+                                i,
+                                i + 1 + last,
+                            ))
+                        }
+                    });
                 } else if let Some(val) = src.get(0..2) {
                     if val == "--" {
                         let rest = &src[2..];
