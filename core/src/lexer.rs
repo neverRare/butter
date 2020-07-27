@@ -230,42 +230,38 @@ impl<'a> Iterator for Tokens<'a> {
                             }
                         })
                         .next();
-                    break Some(match end {
+                    break match end {
                         Some(ind) => {
                             let content = &rest[..ind];
                             let len = content.len();
                             let content = parse_string(content);
-                            match first {
-                                '"' => {
-                                    self.i = i + len + 2;
-                                    Ok(Token::Str(content))
-                                }
-                                '\'' if content.len() == 1 => {
-                                    self.i = i + len + 2;
-                                    Ok(Token::Char(content[0]))
-                                }
+                            let token = match first {
+                                '"' => Token::Str(content),
+                                '\'' if content.len() == 1 => Token::Char(content[0]),
                                 '\'' => {
                                     self.erred = true;
-                                    Err(ErrorSpan::new(
+                                    break Some(Err(ErrorSpan::new(
                                         LexerError::CharNotOne,
                                         self.src,
                                         i,
                                         i + len + 2,
-                                    ))
+                                    )));
                                 }
                                 _ => unreachable!(),
-                            }
+                            };
+                            self.i = i + len + 2;
+                            Some(Ok(token))
                         }
                         None => {
                             self.erred = true;
-                            Err(ErrorSpan::new(
+                            Some(Err(ErrorSpan::new(
                                 LexerError::UnterminatedQuote,
                                 self.src,
                                 i,
                                 i + 1 + last,
-                            ))
+                            )))
                         }
-                    });
+                    };
                 } else if let Some(val) = src.get(0..2) {
                     if val == "--" {
                         let rest = &src[2..];
