@@ -14,6 +14,17 @@ pub enum Opening {
     Open,
     Close,
 }
+fn get_bracket(bracket: &str) -> Option<(Opening, Bracket)> {
+    Some(match bracket {
+        "(" => (Opening::Open, Bracket::Paren),
+        ")" => (Opening::Close, Bracket::Paren),
+        "[" => (Opening::Open, Bracket::Bracket),
+        "]" => (Opening::Close, Bracket::Bracket),
+        "{" => (Opening::Open, Bracket::Brace),
+        "}" => (Opening::Close, Bracket::Brace),
+        _ => return None,
+    })
+}
 pub enum Keyword {
     Move,
     True,
@@ -272,13 +283,19 @@ impl<'a> Iterator for Tokens<'a> {
                     }
                 }
                 if let Some(val) = src.get(0..1) {
-                    if let Some(val) = Operator::from_str(val) {
-                        self.i = i + 1;
-                        break Some(Ok(Token::Operator(val)));
+                    let token = if let Some(val) = Operator::from_str(val) {
+                        Some(Token::Operator(val))
                     } else if let Some(val) = Separator::from_str(val) {
+                        Some(Token::Separator(val))
+                    } else if let Some((opening, bracket)) = get_bracket(val) {
+                        Some(Token::Bracket(opening, bracket))
+                    } else {
+                        None
+                    };
+                    if let Some(token) = token {
                         self.i = i + 1;
-                        break Some(Ok(Token::Separator(val)));
-                    }
+                        break Some(Ok(token));
+                    };
                 }
                 self.erred = true;
                 break Some(Err(ErrorSpan::new(
