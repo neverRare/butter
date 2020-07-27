@@ -1,5 +1,7 @@
 # Butter docs
 
+Butter is still in development, some of the documentation could be outdated.
+
 ## Language
 
 A high level documentation of various operation in Butter. It describes its syntaxes through examples.
