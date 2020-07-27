@@ -68,7 +68,7 @@ pub enum Operator {
     DoubleDot,
     Plus,
     Minus,
-    Asterisk,
+    Star,
     Slash,
     DoubleSlash,
     Percent,
@@ -103,7 +103,7 @@ impl Operator {
             ".." => Self::DoubleDot,
             "+" => Self::Plus,
             "-" => Self::Minus,
-            "*" => Self::Asterisk,
+            "*" => Self::Star,
             "/" => Self::Slash,
             "//" => Self::DoubleSlash,
             "%" => Self::Percent,
@@ -139,7 +139,7 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-fn get_number_str(src: &str) -> &str {
+fn get_number_str(src: &str) -> Num {
     todo!()
 }
 fn parse_string(src: &str) -> Vec<u8> {
@@ -221,6 +221,9 @@ impl<'a> Iterator for Tokens<'a> {
                     if let Some(val) = Operator::from_str(val) {
                         self.i = i + 1;
                         break Some(Ok(Token::Operator(val)));
+                    } else if let Some(val) = Separator::from_str(val) {
+                        self.i = i + 1;
+                        break Some(Ok(Token::Separator(val)));
                     }
                 }
                 self.erred = true;
