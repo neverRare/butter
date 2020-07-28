@@ -173,21 +173,21 @@ pub enum LexerError {
 pub struct Tokens<'a> {
     src: &'a str,
     i: usize,
-    erred: bool,
+    done: bool,
 }
 impl<'a> Tokens<'a> {
     pub fn new(src: &'a str) -> Self {
         Self {
             src,
             i: 0,
-            erred: false,
+            done: false,
         }
     }
 }
 impl<'a> Iterator for Tokens<'a> {
     type Item = Result<Token<'a>, ErrorSpan<'a, LexerError>>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.erred {
+        if self.done {
             None
         } else {
             let mut i = self.i;
@@ -197,7 +197,10 @@ impl<'a> Iterator for Tokens<'a> {
                 let first = chars.next();
                 let first = match first {
                     Some(val) => val,
-                    None => break None,
+                    None => {
+                        self.done = true;
+                        break None;
+                    }
                 };
                 if first.is_whitespace() {
                     i += first.len_utf8();
@@ -252,7 +255,7 @@ impl<'a> Iterator for Tokens<'a> {
                                 '"' => Token::Str(content),
                                 '\'' if content.len() == 1 => Token::Char(content[0]),
                                 '\'' => {
-                                    self.erred = true;
+                                    self.done = true;
                                     break Some(Err(ErrorSpan::new(
                                         LexerError::CharNotOne,
                                         self.src,
@@ -266,7 +269,7 @@ impl<'a> Iterator for Tokens<'a> {
                             Some(Ok(token))
                         }
                         None => {
-                            self.erred = true;
+                            self.done = true;
                             Some(Err(ErrorSpan::new(
                                 LexerError::UnterminatedQuote,
                                 self.src,
@@ -286,7 +289,10 @@ impl<'a> Iterator for Tokens<'a> {
                                 i += 3 + index;
                                 continue;
                             }
-                            None => break None,
+                            None => {
+                                self.done = true;
+                                break None;
+                            }
                         }
                     } else if let Some(val) = Operator::from_str(val) {
                         self.i = i + 2;
@@ -308,7 +314,7 @@ impl<'a> Iterator for Tokens<'a> {
                         break Some(Ok(token));
                     }
                 }
-                self.erred = true;
+                self.done = true;
                 break Some(Err(ErrorSpan::new(
                     LexerError::UnknownChar,
                     self.src,
