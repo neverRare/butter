@@ -161,7 +161,11 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-fn parse_string(src: &str) -> Vec<u8> {
+fn parse_string<'a>(
+    src: &'a str,
+    start: usize,
+    content: &'a str,
+) -> Result<Vec<u8>, ErrorSpan<'a, LexerError>> {
     todo!()
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -250,7 +254,13 @@ impl<'a> Iterator for Tokens<'a> {
                         Some(ind) => {
                             let content = &rest[..ind];
                             let len = content.len();
-                            let content = parse_string(content);
+                            let content = match parse_string(self.src, i + 1, content) {
+                                Ok(val) => val,
+                                Err(err) => {
+                                    self.done = false;
+                                    break Some(Err(err));
+                                }
+                            };
                             let token = match first {
                                 '"' => Token::Str(content),
                                 '\'' if content.len() == 1 => Token::Char(content[0]),
