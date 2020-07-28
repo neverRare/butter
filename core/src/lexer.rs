@@ -161,18 +161,59 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-fn parse_string<'a>(
-    src: &'a str,
-    start: usize,
-    content: &'a str,
-) -> Result<Vec<u8>, ErrorSpan<'a, LexerError>> {
-    todo!()
+fn parse_string(content: &str) -> Result<Vec<u8>, (usize, usize)> {
+    let mut vec: Vec<u8> = match content.find('\\') {
+        Some(ind) => content[..ind].into(),
+        None => return Ok(content.into()),
+    };
+    let escapes = content.match_indices('\\').filter_map(|(ind, _)| {
+        if ind == 0 {
+            Some(ind + 1)
+        } else if let Some("\\") = content.get(ind - 1..ind) {
+            None
+        } else {
+            Some(ind + 1)
+        }
+    });
+    for ind in escapes {
+        let first = match content[ind..].chars().next() {
+            Some(val) => val,
+            None => return Err((ind - 1, ind)),
+        };
+        let (first, rest) = if first == 'x' {
+            match content.get(ind + 1..ind + 3) {
+                Some(code) => todo!(),
+                None => return Err((ind - 1, ind + 1)),
+            }
+        } else {
+            let first = match first {
+                '\\' => b'\\',
+                '\'' => b'\'',
+                '"' => b'"',
+                'n' => b'\n',
+                'r' => b'\r',
+                't' => b'\t',
+                'v' => b'\x30',
+                '0' => b'\0',
+                _ => return Err((ind - 1, ind + first.len_utf8())),
+            };
+            (first, &content[ind + 1..])
+        };
+        let rest = match rest.find('\\') {
+            Some(ind) => &rest[..ind],
+            None => rest,
+        };
+        vec.push(first);
+        vec.append(&mut rest.into());
+    }
+    Ok(vec)
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum LexerError {
     UnknownChar,
     UnterminatedQuote,
     CharNotOne,
+    InvalidEscape,
 }
 pub struct Tokens<'a> {
     src: &'a str,
@@ -234,6 +275,7 @@ impl<'a> Iterator for Tokens<'a> {
                 } else if let '.' | '0'..='9' = first {
                     todo!()
                 }
+                // TODO, this doesn't understand "\\" yet
                 if let '\'' | '"' = first {
                     let rest = &src[1..];
                     let (rest, last) = match rest.find('\n') {
@@ -243,7 +285,9 @@ impl<'a> Iterator for Tokens<'a> {
                     let end = rest
                         .match_indices(first)
                         .filter_map(|(ind, _)| {
-                            if let Some("\\") = rest.get(ind - 1..ind) {
+                            if ind == 0 {
+                                Some(ind)
+                            } else if let Some("\\") = rest.get(ind - 1..ind) {
                                 None
                             } else {
                                 Some(ind)
@@ -254,11 +298,16 @@ impl<'a> Iterator for Tokens<'a> {
                         Some(ind) => {
                             let content = &rest[..ind];
                             let len = content.len();
-                            let content = match parse_string(self.src, i + 1, content) {
+                            let content = match parse_string(content) {
                                 Ok(val) => val,
-                                Err(err) => {
+                                Err((from, to)) => {
                                     self.done = false;
-                                    break Some(Err(err));
+                                    break Some(Err(ErrorSpan::new(
+                                        LexerError::InvalidEscape,
+                                        self.src,
+                                        i + 1 + from,
+                                        i + 1 + to,
+                                    )));
                                 }
                             };
                             let token = match first {
@@ -341,7 +390,13 @@ mod test {
     macro_rules! assert_code {
         (@ $tokens:expr, ignore) => {};
         (@ $tokens:expr, $type:ident) => {
-            assert!(matches!($tokens.next(), Some(Ok(Token::$type{..}))));
+            let next = $tokens.next();
+            assert!(
+                matches!(next, Some(Ok(Token::$type{..}))),
+                "{:?} expected to be {}",
+                next,
+                stringify!($type),
+            );
         };
         (@ $tokens:expr, == $more:literal) => {
             for token in Tokens::new($more) {
@@ -375,9 +430,11 @@ mod test {
     fn lex_string() {
         assert_code! {
             Str: r#""hello world""#;
-            Str: r#""hello \"world"\""#;
+            Str: r#""hello \"world\"""#;
+            Str: r#""hello world \\""#;
             Char: "'a'";
             Char: r"'\''";
+            Char: r"'\\'";
             r#""""""# == r#""" """#;
             "'a''a'" == "'a' 'a'";
         }
