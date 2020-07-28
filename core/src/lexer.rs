@@ -1,15 +1,18 @@
 use crate::error::ErrorSpan;
 
+#[derive(PartialEq, Debug)]
 pub enum Num {
     UInt(u64),
     Int(i64),
     Float(f64),
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum Bracket {
     Paren,
     Bracket,
     Brace,
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum Opening {
     Open,
     Close,
@@ -25,6 +28,7 @@ fn get_bracket(bracket: &str) -> Option<(Opening, Bracket)> {
         _ => return None,
     })
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum Keyword {
     Move,
     True,
@@ -60,6 +64,7 @@ impl Keyword {
         })
     }
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum Separator {
     Comma,
     Semicolon,
@@ -73,6 +78,7 @@ impl Separator {
         })
     }
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum Operator {
     Equal,
     DoubleEqual,
@@ -144,6 +150,7 @@ impl Operator {
         })
     }
 }
+#[derive(PartialEq, Debug)]
 pub enum Token<'a> {
     Num(Num),
     Str(Vec<u8>),
@@ -157,6 +164,7 @@ pub enum Token<'a> {
 fn parse_string(src: &str) -> Vec<u8> {
     todo!()
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum LexerError {
     UnknownChar,
     UnterminatedQuote,
@@ -305,6 +313,72 @@ impl<'a> Iterator for Tokens<'a> {
                     i + first.len_utf8(),
                 )));
             }
+        }
+    }
+}
+#[cfg(test)]
+mod test {
+    use super::{Token, Tokens};
+    macro_rules! assert_code {
+        (@ $tokens:expr, ignore) => {};
+        (@ $tokens:expr, $type:ident) => {
+            assert!(matches!($tokens.next(), Some(Ok(Token::$type{..}))));
+        };
+        (@ $tokens:expr, == $more:literal) => {
+            for token in Tokens::new($more) {
+                assert_eq!($tokens.next(), Some(token));
+            }
+        };
+        ($($($type:ident:)? $token:literal $(== $more:literal)?;)*) => {
+            let mut tokens = Tokens::new(concat!($($token, " "),*));
+            $(
+                assert_code!(@ tokens, $($type)? $(== $more)?);
+            )*
+            assert_eq!(None, tokens.next());
+        };
+    }
+    #[test]
+    fn simple_lex() {
+        assert_code! {
+            ignore: "-- comment\n";
+            Identifier: "identifier";
+            Identifier: "truefalse";
+            Keyword: "null";
+            Operator: "=>";
+            Operator: "+";
+            Bracket: "(";
+            Bracket: ")";
+            Separator: ";";
+            "<--" == "<";
+        }
+    }
+    #[test]
+    fn lex_string() {
+        assert_code! {
+            Str: r#""hello world""#;
+            Str: r#""hello \"world"\""#;
+            Char: "'a'";
+            Char: r"'\''";
+            r#""""""# == r#""" """#;
+            "'a''a'" == "'a' 'a'";
+        }
+    }
+    #[test]
+    fn lex_number() {
+        assert_code! {
+            Num: "12";
+            Num: "0.5";
+            Num: "0xff";
+            Num: "0b11110000";
+            Num: "0o127";
+            Num: "1_000_000";
+            Num: "4e-7";
+            ".5" == "0.5";
+            "0xff" == "255";
+            "0b11110000" == "240";
+            "0o127" == "87";
+            "1_000_000" == "1000000";
+            "4e-7" == ".0000004";
         }
     }
 }

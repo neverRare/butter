@@ -1,3 +1,4 @@
+#[derive(PartialEq, Eq, Debug)]
 pub struct ErrorSpan<'a, T> {
     err: T,
     src: &'a str,
