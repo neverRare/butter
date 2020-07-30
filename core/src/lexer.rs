@@ -161,52 +161,11 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-fn parse_string(content: &str) -> Result<Vec<u8>, (usize, usize)> {
-    let mut vec: Vec<u8> = match content.find('\\') {
-        Some(ind) => content[..ind].into(),
-        None => return Ok(content.into()),
-    };
-    let escapes = content.match_indices('\\').filter_map(|(ind, _)| {
-        if ind == 0 {
-            Some(ind + 1)
-        } else if let Some("\\") = content.get(ind - 1..ind) {
-            None
-        } else {
-            Some(ind + 1)
-        }
-    });
-    for ind in escapes {
-        let first = match content[ind..].chars().next() {
-            Some(val) => val,
-            None => return Err((ind - 1, ind)),
-        };
-        let (first, rest) = if first == 'x' {
-            match content.get(ind + 1..ind + 3) {
-                Some(code) => todo!(),
-                None => return Err((ind - 1, ind + 1)),
-            }
-        } else {
-            let first = match first {
-                '\\' => b'\\',
-                '\'' => b'\'',
-                '"' => b'"',
-                'n' => b'\n',
-                'r' => b'\r',
-                't' => b'\t',
-                'v' => b'\x30',
-                '0' => b'\0',
-                _ => return Err((ind - 1, ind + first.len_utf8())),
-            };
-            (first, &content[ind + 1..])
-        };
-        let rest = match rest.find('\\') {
-            Some(ind) => &rest[..ind],
-            None => rest,
-        };
-        vec.push(first);
-        vec.append(&mut rest.into());
-    }
-    Ok(vec)
+fn parse_string(
+    start: char,
+    content: &str,
+) -> Result<(usize, Vec<u8>), (LexerError, usize, usize)> {
+    todo!()
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum LexerError {
@@ -275,68 +234,32 @@ impl<'a> Iterator for Tokens<'a> {
                 } else if let '.' | '0'..='9' = first {
                     todo!()
                 }
-                // TODO, this doesn't understand "\\" yet
                 if let '\'' | '"' = first {
                     let rest = &src[1..];
-                    let (rest, last) = match rest.find('\n') {
-                        Some(ind) => (&rest[..ind], ind),
-                        None => (rest, rest.len()),
+                    let rest = match rest.find('\n') {
+                        Some(ind) => &rest[..ind],
+                        None => rest,
                     };
-                    let end = rest
-                        .match_indices(first)
-                        .filter_map(|(ind, _)| {
-                            if ind == 0 {
-                                Some(ind)
-                            } else if let Some("\\") = rest.get(ind - 1..ind) {
-                                None
-                            } else {
-                                Some(ind)
-                            }
-                        })
-                        .next();
-                    break match end {
-                        Some(ind) => {
-                            let content = &rest[..ind];
-                            let len = content.len();
-                            let content = match parse_string(content) {
-                                Ok(val) => val,
-                                Err((from, to)) => {
-                                    self.done = false;
-                                    break Some(Err(ErrorSpan::new(
-                                        LexerError::InvalidEscape,
-                                        self.src,
-                                        i + 1 + from,
-                                        i + 1 + to,
-                                    )));
-                                }
-                            };
-                            let token = match first {
-                                '"' => Token::Str(content),
-                                '\'' if content.len() == 1 => Token::Char(content[0]),
-                                '\'' => {
-                                    self.done = true;
-                                    break Some(Err(ErrorSpan::new(
-                                        LexerError::CharNotOne,
-                                        self.src,
-                                        i,
-                                        i + len + 2,
-                                    )));
-                                }
-                                _ => unreachable!(),
-                            };
+                    break Some(match parse_string(first, rest) {
+                        Ok((len, val)) => {
                             self.i = i + len + 2;
-                            Some(Ok(token))
+                            match first {
+                                '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
+                                '\'' => Err(ErrorSpan::new(
+                                    LexerError::CharNotOne,
+                                    self.src,
+                                    i,
+                                    i + len + 2,
+                                )),
+                                '"' => Ok(Token::Str(val)),
+                                _ => unreachable!(),
+                            }
                         }
-                        None => {
+                        Err((kind, from, to)) => {
                             self.done = true;
-                            Some(Err(ErrorSpan::new(
-                                LexerError::UnterminatedQuote,
-                                self.src,
-                                i,
-                                i + 1 + last,
-                            )))
+                            Err(ErrorSpan::new(kind, self.src, i + 1 + from, i + 1 + to))
                         }
-                    };
+                    });
                 } else if let Some("<--") = src.get(0..3) {
                     self.i = i + 1;
                     break Some(Ok(Token::Operator(Operator::Less)));
