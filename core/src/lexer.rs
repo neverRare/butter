@@ -1,4 +1,5 @@
 use crate::error::ErrorSpan;
+use crate::string::{parse_string, ParseError};
 
 #[derive(PartialEq, Debug)]
 pub enum Num {
@@ -161,12 +162,6 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
-fn parse_string(
-    start: char,
-    content: &str,
-) -> Result<(usize, Vec<u8>), (LexerError, usize, usize)> {
-    todo!()
-}
 #[derive(PartialEq, Eq, Debug)]
 pub enum LexerError {
     UnknownChar,
@@ -257,6 +252,10 @@ impl<'a> Iterator for Tokens<'a> {
                         }
                         Err((kind, from, to)) => {
                             self.done = true;
+                            let kind = match kind {
+                                ParseError::InvalidEscape => LexerError::InvalidEscape,
+                                ParseError::UnterminatedQuote => LexerError::UnterminatedQuote,
+                            };
                             Err(ErrorSpan::new(kind, self.src, i + 1 + from, i + 1 + to))
                         }
                     });
