@@ -1,3 +1,5 @@
+use crate::lexer::LexerError;
+
 struct ParseBytes<'a> {
     quote: char,
     src: &'a str,
@@ -16,15 +18,11 @@ impl<'a> ParseBytes<'a> {
         }
     }
 }
-pub enum ParseError {
-    InvalidEscape,
-    UnterminatedQuote,
-}
 enum ParseResult {
     Yield(u8),
     Noop,
     Done(usize),
-    Error(ParseError, usize, usize),
+    Error(LexerError, usize, usize),
 }
 impl<'a> Iterator for ParseBytes<'a> {
     type Item = ParseResult;
@@ -44,7 +42,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                                 Ok(val) => (4, val),
                                 Err(res) => {
                                     return Some(ParseResult::Error(
-                                        ParseError::InvalidEscape,
+                                        LexerError::InvalidEscape,
                                         self.i,
                                         res,
                                     ))
@@ -63,7 +61,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                                 '0' => b'\0',
                                 _ => {
                                     return Some(ParseResult::Error(
-                                        ParseError::InvalidEscape,
+                                        LexerError::InvalidEscape,
                                         self.i,
                                         self.i + 2,
                                     ))
@@ -73,7 +71,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                         }
                         None => {
                             return Some(ParseResult::Error(
-                                ParseError::UnterminatedQuote,
+                                LexerError::UnterminatedQuote,
                                 0,
                                 self.src.len(),
                             ))
@@ -88,7 +86,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                     Some(ParseResult::Noop)
                 }
                 None => Some(ParseResult::Error(
-                    ParseError::UnterminatedQuote,
+                    LexerError::UnterminatedQuote,
                     0,
                     self.src.len(),
                 )),
@@ -103,7 +101,7 @@ impl<'a> Iterator for ParseBytes<'a> {
 pub fn parse_string(
     quote: char,
     rest: &str,
-) -> Result<(usize, Vec<u8>), (ParseError, usize, usize)> {
+) -> Result<(usize, Vec<u8>), (LexerError, usize, usize)> {
     let mut vec = vec![];
     for res in ParseBytes::new(quote, rest) {
         match res {
