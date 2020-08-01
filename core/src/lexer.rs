@@ -240,12 +240,15 @@ impl<'a> Iterator for Tokens<'a> {
                             self.i = i + len + 2;
                             match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
-                                '\'' => Err(ErrorSpan::new(
-                                    LexerError::CharNotOne,
-                                    self.src,
-                                    i,
-                                    i + len + 2,
-                                )),
+                                '\'' => {
+                                    self.done = true;
+                                    Err(ErrorSpan::new(
+                                        LexerError::CharNotOne,
+                                        self.src,
+                                        i,
+                                        i + len + 2,
+                                    ))
+                                }
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
                             }
