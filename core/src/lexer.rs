@@ -195,31 +195,28 @@ impl<'a> Iterator for Tokens<'a> {
             let mut i = self.i;
             'outer: loop {
                 let src = &self.src[i..];
-                let mut chars = src.chars();
-                let first = chars.next();
-                let first = match first {
+                let first = match src.chars().next() {
                     Some(val) => val,
                     None => {
                         self.done = true;
                         break None;
                     }
                 };
+                let first_len = first.len_utf8();
+                let rest = &src[first_len..];
                 if first.is_whitespace() {
-                    i += first.len_utf8();
-                    for ch in chars {
-                        if ch.is_whitespace() {
-                            i += ch.len_utf8();
-                        } else {
+                    for (ind, ch) in rest.char_indices() {
+                        if !ch.is_whitespace() {
+                            i += first_len + ind;
                             continue 'outer;
                         }
                     }
                     break None;
                 } else if first.is_alphabetic() {
-                    let mut len = first.len_utf8();
-                    for ch in chars {
-                        if ch.is_alphanumeric() {
-                            len += ch.len_utf8();
-                        } else {
+                    let mut len = first_len;
+                    for (ind, ch) in rest.char_indices() {
+                        if !ch.is_alphanumeric() {
+                            len = first_len + ind;
                             break;
                         }
                     }
@@ -230,7 +227,7 @@ impl<'a> Iterator for Tokens<'a> {
                         None => Token::Identifier(ident),
                     }));
                 } else if matches!(first, '0'..='9')
-                    || (first == '.' && matches!(chars.next(), Some('0'..='9')))
+                    || (first == '.' && matches!(rest.chars().next(), Some('0'..='9')))
                 {
                     match parse_number(src) {
                         ParseResult::None => (),
@@ -245,7 +242,6 @@ impl<'a> Iterator for Tokens<'a> {
                     }
                 }
                 if let '\'' | '"' = first {
-                    let rest = &src[1..];
                     let rest = match rest.find('\n') {
                         Some(ind) => &rest[..ind],
                         None => rest,
