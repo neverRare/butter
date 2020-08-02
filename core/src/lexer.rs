@@ -1,5 +1,5 @@
 use crate::error::ErrorSpan;
-use crate::number::{parse_number, ParseResult};
+use crate::number::{parse_number};
 use crate::string::parse_string;
 
 #[derive(PartialEq, Debug)]
@@ -169,7 +169,15 @@ pub enum LexerError {
     UnterminatedQuote,
     CharNotOne,
     InvalidEscape,
-    InvalidNumber,
+    InvalidCharOnHex,
+    InvalidCharOnOct,
+    InvalidCharOnBin,
+    DecimalOnInt,
+    DecimalOnMagnitude,
+    InvalidCharOnNum,
+    DoubleMagnitude,
+    DoubleDecimal,
+    MagnitudeOverflow,
     Overflow,
 }
 pub struct Tokens<'a> {
@@ -230,18 +238,16 @@ impl<'a> Iterator for Tokens<'a> {
                     || (first == '.' && matches!(rest.chars().next(), Some('0'..='9')))
                 {
                     match parse_number(src) {
-                        ParseResult::None => (),
-                        ParseResult::Ok(len, num) => {
+                        Ok((len, num)) => {
                             self.i = i + len;
                             return Some(Ok(Token::Num(num)));
                         }
-                        ParseResult::Err(err, from, to) => {
+                        Err((err, from, to)) => {
                             self.done = true;
                             return Some(Err(ErrorSpan::new(err, self.src, i + from, i + to)));
                         }
                     }
-                }
-                if let '\'' | '"' = first {
+                } else if let '\'' | '"' = first {
                     let rest = match rest.find('\n') {
                         Some(ind) => &rest[..ind],
                         None => rest,
