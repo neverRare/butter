@@ -1,4 +1,5 @@
 use crate::error::ErrorSpan;
+use crate::number::{parse_number, ParseResult};
 use crate::string::parse_string;
 
 #[derive(PartialEq, Debug)]
@@ -227,7 +228,17 @@ impl<'a> Iterator for Tokens<'a> {
                         None => Token::Identifier(ident),
                     }));
                 } else if let '.' | '0'..='9' = first {
-                    todo!()
+                    match parse_number(src) {
+                        ParseResult::None => (),
+                        ParseResult::Ok(len, num) => {
+                            self.i = i + len;
+                            return Some(Ok(Token::Num(num)));
+                        }
+                        ParseResult::Err(err, from, to) => {
+                            self.done = true;
+                            return Some(Err(ErrorSpan::new(err, self.src, i + from, i + to)));
+                        }
+                    }
                 }
                 if let '\'' | '"' = first {
                     let rest = &src[1..];
