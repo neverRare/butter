@@ -178,7 +178,7 @@ pub enum LexerError {
     DoubleMagnitude,
     DoubleDecimal,
     MagnitudeOverflow,
-    Overflow,
+    IntegerOverflow,
 }
 pub struct Tokens<'a> {
     src: &'a str,

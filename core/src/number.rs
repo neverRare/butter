@@ -47,7 +47,7 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
                         Ok((len + 2, Num::UInt(val)))
                     }
                 }
-                Err(_) => Err((LexerError::Overflow, 0, len + 2)),
+                Err(_) => Err((LexerError::IntegerOverflow, 0, len + 2)),
             };
         }
     }
@@ -119,11 +119,11 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
     }
     let whole = whole.trim_start_matches('0');
     let decimal = decimal.trim_end_matches('0');
-    let whole = whole.to_string() + decimal;
-    if whole.is_empty() {
+    let absissa = whole.to_string() + decimal;
+    if absissa.is_empty() {
         return Ok((len, Num::UInt(0)));
     }
-    let places = if magnitude.is_empty() {
+    let whole_magnitude = if magnitude.is_empty() {
         -(decimal.len() as i64)
     } else {
         match magnitude.parse::<i64>() {
@@ -137,29 +137,29 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
             Err(_) => return Err((LexerError::MagnitudeOverflow, 0, len)),
         }
     };
-    let whole_places = whole.len() as i64 - 1 + places;
-    if whole_places < i32::MIN as i64 || whole_places > i32::MAX as i64 {
+    let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
+    if magnitude < i32::MIN as i64 || magnitude > i32::MAX as i64 {
         Err((LexerError::MagnitudeOverflow, 0, len))
-    } else if places >= 0 {
-        let mut whole = whole;
-        whole.push_str(&"0".repeat(places as usize));
+    } else if whole_magnitude >= 0 {
+        let mut whole = absissa;
+        whole.push_str(&"0".repeat(whole_magnitude as usize));
         match whole.parse::<u64>() {
             Ok(val) => Ok((len, Num::UInt(val))),
             Err(_) => {
                 if tries_float {
                     Ok((len, Num::Float(whole.parse().unwrap())))
                 } else {
-                    Err((LexerError::Overflow, 0, len))
+                    Err((LexerError::IntegerOverflow, 0, len))
                 }
             }
         }
     } else {
         let mut val = 0f64;
-        let mut mag = whole_places;
-        for ch in whole.chars() {
+        let mut magnitude = magnitude;
+        for ch in absissa.chars() {
             let digit = match ch {
                 '0' => {
-                    mag -= 1;
+                    magnitude -= 1;
                     continue;
                 }
                 '1' => 1f64,
@@ -173,8 +173,8 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
                 '9' => 9f64,
                 _ => unreachable!(),
             };
-            val += digit * 10f64.powf(mag as f64);
-            mag -= 1;
+            val += digit * 10f64.powf(magnitude as f64);
+            magnitude -= 1;
         }
         Ok((len, Num::Float(val)))
     }
