@@ -169,6 +169,8 @@ pub enum LexerError {
     UnterminatedQuote,
     CharNotOne,
     InvalidEscape,
+    InvalidNumber,
+    Overflow,
 }
 pub struct Tokens<'a> {
     src: &'a str,
@@ -227,7 +229,9 @@ impl<'a> Iterator for Tokens<'a> {
                         Some(keyword) => Token::Keyword(keyword),
                         None => Token::Identifier(ident),
                     }));
-                } else if let '.' | '0'..='9' = first {
+                } else if matches!(first, '0'..='9')
+                    || (first == '.' && matches!(chars.next(), Some('0'..='9')))
+                {
                     match parse_number(src) {
                         ParseResult::None => (),
                         ParseResult::Ok(len, num) => {
