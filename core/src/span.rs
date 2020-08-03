@@ -45,7 +45,7 @@ pub struct Spans<'a, T, U> {
 }
 impl<'a, T, U> Spans<'a, T, U> {
     pub fn new(summary: T, src: &'a str, spans: impl IntoIterator<Item = Span<'a, U>>) -> Self {
-        let result = vec![];
+        let mut result = vec![];
         for Span {
             src: span_src,
             note,
