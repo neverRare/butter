@@ -180,34 +180,34 @@ pub enum LexerError {
     MagnitudeOverflow,
     IntegerOverflow,
 }
-pub struct Tokens<'a> {
+pub struct TokenSpans<'a> {
     src: &'a str,
     i: usize,
     done: bool,
 }
-impl<'a> Tokens<'a> {
+impl<'a> TokenSpans<'a> {
     pub fn new(src: &'a str) -> Self {
-        Self {
+        TokenSpans {
             src,
             i: 0,
             done: false,
         }
     }
 }
-impl<'a> Iterator for Tokens<'a> {
-    type Item = Result<Token<'a>, Span<'a, LexerError>>;
+impl<'a> Iterator for TokenSpans<'a> {
+    type Item = Result<Span<'a, Token<'a>>, Span<'a, LexerError>>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
         } else {
             let mut i = self.i;
-            'outer: loop {
+            let result = 'outer: loop {
                 let src = &self.src[i..];
                 let first = match src.chars().next() {
                     Some(val) => val,
                     None => {
                         self.done = true;
-                        break None;
+                        return None;
                     }
                 };
                 let first_len = first.len_utf8();
@@ -219,7 +219,7 @@ impl<'a> Iterator for Tokens<'a> {
                             continue 'outer;
                         }
                     }
-                    break None;
+                    return None;
                 } else if first.is_alphabetic() {
                     let mut len = first_len;
                     for (ind, ch) in rest.char_indices() {
@@ -230,49 +230,42 @@ impl<'a> Iterator for Tokens<'a> {
                     }
                     let ident = &src[..len];
                     self.i = i + len;
-                    break Some(Ok(match Keyword::from_str(ident) {
+                    break Ok(match Keyword::from_str(ident) {
                         Some(keyword) => Token::Keyword(keyword),
                         None => Token::Identifier(ident),
-                    }));
+                    });
                 } else if matches!(first, '0'..='9')
                     || (first == '.' && matches!(rest.chars().next(), Some('0'..='9')))
                 {
                     match parse_number(src) {
                         Ok((len, num)) => {
                             self.i = i + len;
-                            return Some(Ok(Token::Num(num)));
+                            break Ok(Token::Num(num));
                         }
-                        Err(span) => {
-                            self.done = true;
-                            return Some(Err(span.fit_from(src)));
-                        }
+                        Err(span) => break Err(span.fit_from(src)),
                     }
                 } else if let '\'' | '"' = first {
                     let rest = match rest.find('\n') {
                         Some(ind) => &rest[..ind],
                         None => rest,
                     };
-                    break Some(match parse_string(first, rest) {
+                    break match parse_string(first, rest) {
                         Ok((len, val)) => {
                             self.i = i + len + 2;
                             match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
                                 '\'' => {
-                                    self.done = true;
                                     Err(Span::new(self.src, LexerError::CharNotOne, i, i + len + 2))
                                 }
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
                             }
                         }
-                        Err(span) => {
-                            self.done = true;
-                            Err(span.fit_from(src))
-                        }
-                    });
+                        Err(span) => Err(span.fit_from(src)),
+                    };
                 } else if let Some("<--") = src.get(0..3) {
                     self.i = i + 1;
-                    break Some(Ok(Token::Operator(Operator::Less)));
+                    break Ok(Token::Operator(Operator::Less));
                 } else if let Some(val) = src.get(0..2) {
                     if val == "--" {
                         let rest = &src[2..];
@@ -283,12 +276,12 @@ impl<'a> Iterator for Tokens<'a> {
                             }
                             None => {
                                 self.done = true;
-                                break None;
+                                return None;
                             }
                         }
                     } else if let Some(val) = Operator::from_str(val) {
                         self.i = i + 2;
-                        break Some(Ok(Token::Operator(val)));
+                        break Ok(Token::Operator(val));
                     }
                 }
                 if let Some(val) = src.get(0..1) {
@@ -303,18 +296,37 @@ impl<'a> Iterator for Tokens<'a> {
                     };
                     if let Some(token) = token {
                         self.i = i + 1;
-                        break Some(Ok(token));
+                        break Ok(token);
                     }
                 }
-                self.done = true;
-                break Some(Err(Span::new(
+                break Err(Span::new(
                     self.src,
                     LexerError::UnknownChar,
                     i,
                     i + first.len_utf8(),
-                )));
-            }
+                ));
+            };
+            Some(match result {
+                Ok(token) => Ok(Span::new(self.src, token, i, self.i + i)),
+                Err(reason) => {
+                    self.done = true;
+                    Err(reason)
+                }
+            })
         }
+    }
+}
+pub struct Tokens<'a>(TokenSpans<'a>);
+impl<'a> Tokens<'a> {
+    pub fn new(src: &'a str) -> Self {
+        Tokens(TokenSpans::new(src))
+    }
+}
+impl<'a> Iterator for Tokens<'a> {
+    type Item = Result<Token<'a>, Span<'a, LexerError>>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let Self(indices) = self;
+        indices.next().map(|result| result.map(|span| span.note))
     }
 }
 #[cfg(test)]

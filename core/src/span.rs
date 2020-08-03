@@ -1,7 +1,7 @@
 #[derive(Debug, PartialEq, Eq)]
 pub struct Span<'a, T> {
     src: &'a str,
-    note: T,
+    pub note: T,
     from: usize,
     to: usize,
 }
