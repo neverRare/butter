@@ -1,4 +1,7 @@
-use std::fmt::{Display, Error, Formatter};
+use std::{
+    fmt::{Display, Error, Formatter},
+    iter::once,
+};
 
 pub trait ExplainSpan {
     fn explain(&self) -> (&str, Option<&str>);
@@ -15,7 +18,9 @@ impl<'a, T> Span<'a, T> {
     pub fn new(src: &'a str, note: T, from: usize, to: usize) -> Self {
         Self {
             src,
-            line_indices: src.match_indices('\n').map(|(ind, _)| ind + 1).collect(),
+            line_indices: once(0)
+                .chain(src.match_indices('\n').map(|(ind, _)| ind + 1))
+                .collect(),
             note,
             from,
             to,
@@ -50,7 +55,7 @@ impl<'a, T> Span<'a, T> {
         self.line_indices
             .iter()
             .enumerate()
-            .find_map(|(line, ind)| if ind > &i { Some(line) } else { None })
+            .find_map(|(line, ind)| if ind < &i { Some(line + 1) } else { None })
             .unwrap_or_else(|| self.line_indices.len())
     }
     fn line_offset(&self, i: usize) -> usize {
@@ -61,9 +66,9 @@ impl<'a, T> Span<'a, T> {
     fn line_str(&self, line_no: usize) -> &str {
         let from = self.line_indices[line_no - 1];
         if line_no < self.line_indices.len() {
-            &self.src[from..self.line_indices[line_no] - 1]
+            &self.src[from..self.line_indices[line_no]].trim_end()
         } else {
-            &self.src[from..]
+            &self.src[from..].trim_end()
         }
     }
     fn max_line_no(&self) -> usize {
@@ -76,19 +81,14 @@ where
 {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         let (description, note) = self.note.explain();
-        writeln!(f, "{}", description);
+        writeln!(f, "{}", description)?;
         if self.is_multiline() {
             let line_no_from = self.line_no(self.from);
             let line_no_to = self.line_no(self.to);
             let start_line = self.line_str(line_no_from);
             let (before_start, after_start) = start_line.split_at(self.line_offset(self.from));
             if !before_start.chars().all(char::is_whitespace) {
-                writeln!(
-                    f,
-                    "{:>3}  {}",
-                    start_line,
-                    before_start,
-                );
+                writeln!(f, "{:>3}  {}", start_line, before_start)?;
             }
             writeln!(
                 f,
@@ -96,23 +96,13 @@ where
                 start_line,
                 " ".repeat(before_start.len()),
                 after_start,
-            );
+            )?;
             for line_no in line_no_from + 1..line_no_to {
-                writeln!(
-                    f,
-                    "{:>3}| {}",
-                    line_no,
-                    self.line_str(line_no),
-                );
+                writeln!(f, "{:>3}| {}", line_no, self.line_str(line_no))?;
             }
             let end_line = self.line_str(line_no_to);
             let (before_end, after_end) = end_line.split_at(self.line_offset(self.to));
-            writeln!(
-                f,
-                "{:>3}\\ {}",
-                end_line,
-                before_end,
-            );
+            writeln!(f, "{:>3}\\ {}", end_line, before_end)?;
             if !after_end.chars().all(char::is_whitespace) {
                 writeln!(
                     f,
@@ -120,26 +110,26 @@ where
                     end_line,
                     " ".repeat(before_end.len()),
                     after_end,
-                );
+                )?;
             }
         } else {
             let line_no = self.line_no(self.from);
             if line_no > 1 {
-                writeln!(f, "{:>3} {}", line_no - 1, self.line_str(line_no - 1));
+                writeln!(f, "{:>3} {}", line_no - 1, self.line_str(line_no - 1))?;
             }
-            writeln!(f, "{:>3} {}", line_no, self.line_str(line_no));
+            writeln!(f, "{:>3} {}", line_no, self.line_str(line_no))?;
             writeln!(
                 f,
                 "    {}{}",
                 " ".repeat(self.line_offset(self.from)),
                 "-".repeat(self.to - self.from),
-            );
+            )?;
             if line_no < self.max_line_no() {
-                writeln!(f, "{:>3} {}", line_no + 1, self.line_str(line_no + 1));
+                writeln!(f, "{:>3} {}", line_no + 1, self.line_str(line_no + 1))?;
             }
         }
         if let Some(note) = note {
-            writeln!(f, "Note: {}", note);
+            writeln!(f, "Note: {}", note)?;
         }
         Ok(())
     }
