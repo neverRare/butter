@@ -1,5 +1,5 @@
 use crate::number::parse_number;
-use crate::span::Span;
+use crate::span::{ExplainSpan, Span};
 use crate::string::parse_string;
 
 #[derive(PartialEq, Debug)]
@@ -179,6 +179,55 @@ pub enum LexerError {
     DoubleDecimal,
     MagnitudeOverflow,
     IntegerOverflow,
+}
+impl ExplainSpan for LexerError {
+    fn explain(&self) -> (&str, Option<&str>) {
+        match self {
+            Self::UnknownChar => (
+                "Unknown character",
+                Some("If you think this should be valid, the compiler is maybe outdated"),
+            ),
+            Self::UnterminatedQuote => ("Unterminated string literal", None),
+            Self::CharNotOne => (
+                "Non-singular character literal",
+                Some("Character literals must be exactly one character long"),
+            ),
+            Self::InvalidEscape => ("Invalid escape notation", None),
+            Self::InvalidCharOnHex => (
+                "Invalid hexadecimal digit",
+                Some("Digits after 0x must only be 0-9, a-f, or A-F"),
+            ),
+            Self::InvalidCharOnOct => (
+                "Invalid octal digit",
+                Some("Digits after 0o must only be 0-7"),
+            ),
+            Self::InvalidCharOnBin => (
+                "Invalid binary digit",
+                Some("Digits after 0b must only be 0 or 1"),
+            ),
+            Self::DecimalOnInt => (
+                "Decimal on integer",
+                Some(
+                    "Numeric literals that starts with 0x, 0o, or 0b are expected to be an integer",
+                ),
+            ),
+            Self::DecimalOnMagnitude => (
+                "Decimal on magnitude",
+                Some("Magnitude (the E part) must be an integer"),
+            ),
+            Self::InvalidCharOnNum => ("Invalid character on numeric literal", None),
+            Self::DoubleMagnitude => ("Double magnitude", None),
+            Self::DoubleDecimal => (
+                "Double decimal",
+                Some("If you're trying to use visual seperator, use underscore _ instead"),
+            ),
+            Self::MagnitudeOverflow => (
+                "Magnitude overflow",
+                Some("This is a very large or very small number"),
+            ),
+            Self::IntegerOverflow => ("Integer overflow", Some("This is a very large number")),
+        }
+    }
 }
 pub struct TokenSpans<'a> {
     src: &'a str,
