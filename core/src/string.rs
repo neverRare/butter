@@ -1,4 +1,5 @@
 use crate::lexer::LexerError;
+use crate::span::Span;
 
 struct ParseBytes<'a> {
     quote: char,
@@ -18,14 +19,14 @@ impl<'a> ParseBytes<'a> {
         }
     }
 }
-enum ParseResult {
+enum ParseResult<'a> {
     Yield(u8),
     Noop,
     Done(usize),
-    Error(LexerError, usize, usize),
+    Error(Span<'a, LexerError>),
 }
 impl<'a> Iterator for ParseBytes<'a> {
-    type Item = ParseResult;
+    type Item = ParseResult<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.i == self.char_i {
             let src = &self.src[self.i..];
@@ -41,11 +42,12 @@ impl<'a> Iterator for ParseBytes<'a> {
                             match result {
                                 Ok(val) => (4, val),
                                 Err(res) => {
-                                    return Some(ParseResult::Error(
+                                    return Some(ParseResult::Error(Span::new(
+                                        src,
                                         LexerError::InvalidEscape,
                                         self.i,
                                         res,
-                                    ))
+                                    )))
                                 }
                             }
                         }
@@ -60,21 +62,23 @@ impl<'a> Iterator for ParseBytes<'a> {
                                 'v' => b'\x30',
                                 '0' => b'\0',
                                 _ => {
-                                    return Some(ParseResult::Error(
+                                    return Some(ParseResult::Error(Span::new(
+                                        src,
                                         LexerError::InvalidEscape,
                                         self.i,
                                         self.i + 2,
-                                    ))
+                                    )))
                                 }
                             };
                             (2, byte)
                         }
                         None => {
-                            return Some(ParseResult::Error(
+                            return Some(ParseResult::Error(Span::new(
+                                src,
                                 LexerError::UnterminatedQuote,
                                 0,
                                 self.src.len(),
-                            ))
+                            )))
                         }
                     };
                     self.i += len;
@@ -85,11 +89,12 @@ impl<'a> Iterator for ParseBytes<'a> {
                     self.char_i += val.len_utf8();
                     Some(ParseResult::Noop)
                 }
-                None => Some(ParseResult::Error(
+                None => Some(ParseResult::Error(Span::new(
+                    src,
                     LexerError::UnterminatedQuote,
                     0,
                     self.src.len(),
-                )),
+                ))),
             }
         } else {
             let i = self.i;
@@ -98,15 +103,12 @@ impl<'a> Iterator for ParseBytes<'a> {
         }
     }
 }
-pub fn parse_string(
-    quote: char,
-    rest: &str,
-) -> Result<(usize, Vec<u8>), (LexerError, usize, usize)> {
+pub fn parse_string(quote: char, rest: &str) -> Result<(usize, Vec<u8>), Span<LexerError>> {
     let mut vec = vec![];
     for res in ParseBytes::new(quote, rest) {
         match res {
             ParseResult::Yield(val) => vec.push(val),
-            ParseResult::Error(err, from, to) => return Err((err, from, to)),
+            ParseResult::Error(span) => return Err(span),
             ParseResult::Done(len) => return Ok((len, vec)),
             ParseResult::Noop => (),
         }

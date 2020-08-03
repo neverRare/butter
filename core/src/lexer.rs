@@ -1,5 +1,5 @@
-use crate::error::ErrorSpan;
-use crate::number::{parse_number};
+use crate::number::parse_number;
+use crate::span::Span;
 use crate::string::parse_string;
 
 #[derive(PartialEq, Debug)]
@@ -195,7 +195,7 @@ impl<'a> Tokens<'a> {
     }
 }
 impl<'a> Iterator for Tokens<'a> {
-    type Item = Result<Token<'a>, ErrorSpan<'a, LexerError>>;
+    type Item = Result<Token<'a>, Span<'a, LexerError>>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
@@ -242,9 +242,9 @@ impl<'a> Iterator for Tokens<'a> {
                             self.i = i + len;
                             return Some(Ok(Token::Num(num)));
                         }
-                        Err((err, from, to)) => {
+                        Err(span) => {
                             self.done = true;
-                            return Some(Err(ErrorSpan::new(err, self.src, i + from, i + to)));
+                            return Some(Err(span.fit_from(src)));
                         }
                     }
                 } else if let '\'' | '"' = first {
@@ -259,20 +259,15 @@ impl<'a> Iterator for Tokens<'a> {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
                                 '\'' => {
                                     self.done = true;
-                                    Err(ErrorSpan::new(
-                                        LexerError::CharNotOne,
-                                        self.src,
-                                        i,
-                                        i + len + 2,
-                                    ))
+                                    Err(Span::new(self.src, LexerError::CharNotOne, i, i + len + 2))
                                 }
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
                             }
                         }
-                        Err((kind, from, to)) => {
+                        Err(span) => {
                             self.done = true;
-                            Err(ErrorSpan::new(kind, self.src, i + 1 + from, i + 1 + to))
+                            Err(span.fit_from(src))
                         }
                     });
                 } else if let Some("<--") = src.get(0..3) {
@@ -312,9 +307,9 @@ impl<'a> Iterator for Tokens<'a> {
                     }
                 }
                 self.done = true;
-                break Some(Err(ErrorSpan::new(
-                    LexerError::UnknownChar,
+                break Some(Err(Span::new(
                     self.src,
+                    LexerError::UnknownChar,
                     i,
                     i + first.len_utf8(),
                 )));

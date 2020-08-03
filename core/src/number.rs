@@ -1,6 +1,7 @@
 use crate::lexer::{LexerError, Num};
+use crate::span::Span;
 
-pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize)> {
+pub fn parse_number(src: &str) -> Result<(usize, Num), Span<LexerError>> {
     if let Some("0") = src.get(..1) {
         let radix = match src.get(1..2) {
             Some("x") | Some("X") => Some(16),
@@ -28,7 +29,7 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
                             2 => LexerError::InvalidCharOnBin,
                             _ => unreachable!(),
                         };
-                        return Err((err, i, i + ch.len_utf8()));
+                        return Err(Span::new(src, err, i, i + ch.len_utf8()));
                     }
                     code.push(ch);
                 } else {
@@ -42,12 +43,12 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
                         src.get(len..len + 1),
                         src.get(len + 1..).and_then(|val| val.chars().next()),
                     ) {
-                        Err((LexerError::DecimalOnInt, len, len + 1))
+                        Err(Span::new(src, LexerError::DecimalOnInt, len, len + 1))
                     } else {
                         Ok((len + 2, Num::UInt(val)))
                     }
                 }
-                Err(_) => Err((LexerError::IntegerOverflow, 0, len + 2)),
+                Err(_) => Err(Span::new(src, LexerError::IntegerOverflow, 0, len + 2)),
             };
         }
     }
@@ -73,8 +74,17 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
             continue;
         } else if let ('.', Some('0'..='9')) = (ch, src[i + ch_len..].chars().next()) {
             match mode {
-                Mode::Decimal => return Err((LexerError::DoubleDecimal, i, i + ch_len)),
-                Mode::Magnitude(_) => return Err((LexerError::DecimalOnMagnitude, i, i + ch_len)),
+                Mode::Decimal => {
+                    return Err(Span::new(src, LexerError::DoubleDecimal, i, i + ch_len))
+                }
+                Mode::Magnitude(_) => {
+                    return Err(Span::new(
+                        src,
+                        LexerError::DecimalOnMagnitude,
+                        i,
+                        i + ch_len,
+                    ))
+                }
                 Mode::Whole => {
                     mode = Mode::Decimal;
                     continue;
@@ -105,12 +115,12 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
                 },
                 'e' | 'E' => {
                     if let Mode::Magnitude(_) = mode {
-                        return Err((LexerError::DoubleMagnitude, i, i + ch_len));
+                        return Err(Span::new(src, LexerError::DoubleMagnitude, i, i + ch_len));
                     } else {
                         mode = Mode::Magnitude(true);
                     }
                 }
-                _ => return Err((LexerError::InvalidCharOnNum, i, i + ch_len)),
+                _ => return Err(Span::new(src, LexerError::InvalidCharOnNum, i, i + ch_len)),
             }
         } else {
             len = i;
@@ -134,12 +144,12 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
                 };
                 sign * magnitude - (decimal.len() as i64)
             }
-            Err(_) => return Err((LexerError::MagnitudeOverflow, 0, len)),
+            Err(_) => return Err(Span::new(src, LexerError::MagnitudeOverflow, 0, len)),
         }
     };
     let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
     if magnitude < i32::MIN as i64 || magnitude > i32::MAX as i64 {
-        Err((LexerError::MagnitudeOverflow, 0, len))
+        Err(Span::new(src, LexerError::MagnitudeOverflow, 0, len))
     } else if whole_magnitude >= 0 {
         let mut whole = absissa;
         whole.push_str(&"0".repeat(whole_magnitude as usize));
@@ -149,7 +159,7 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), (LexerError, usize, usize
                 if tries_float {
                     Ok((len, Num::Float(whole.parse().unwrap())))
                 } else {
-                    Err((LexerError::IntegerOverflow, 0, len))
+                    Err(Span::new(src, LexerError::IntegerOverflow, 0, len))
                 }
             }
         }

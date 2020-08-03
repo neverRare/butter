@@ -1,5 +1,5 @@
-mod error;
 mod lexer;
+mod number;
+mod span;
 mod string;
 mod token_tree;
-mod number;
