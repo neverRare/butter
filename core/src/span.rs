@@ -46,13 +46,13 @@ pub struct Spans<'a, T, U> {
 impl<'a, T, U> Spans<'a, T, U> {
     pub fn new(summary: T, src: &'a str, spans: Vec<Span<'a, U>>) -> Self {
         let mut result = vec![];
-        for Span {
-            src: span_src,
-            note,
-            from,
-            to,
-        } in spans
-        {
+        for span in spans {
+            let Span {
+                src: span_src,
+                note,
+                from,
+                to,
+            } = span;
             assert_eq!(src, span_src);
             result.push((note, from, to));
         }
