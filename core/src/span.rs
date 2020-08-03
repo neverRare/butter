@@ -26,6 +26,17 @@ impl<'a, T> Span<'a, T> {
             to: delta + self.to,
         }
     }
+    pub fn map<F, U>(self, mapper: F) -> Span<'a, U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        Span {
+            src: self.src,
+            note: mapper(self.note),
+            from: self.from,
+            to: self.to,
+        }
+    }
 }
 pub struct Spans<'a, T, U> {
     summary: T,
@@ -35,7 +46,13 @@ pub struct Spans<'a, T, U> {
 impl<'a, T, U> Spans<'a, T, U> {
     pub fn new(summary: T, src: &'a str, spans: impl IntoIterator<Item = Span<'a, U>>) -> Self {
         let result = vec![];
-        for Span{src: span_src, note, from, to} in spans {
+        for Span {
+            src: span_src,
+            note,
+            from,
+            to,
+        } in spans
+        {
             assert_eq!(src, span_src);
             result.push((note, from, to));
         }
