@@ -23,13 +23,6 @@ impl<'a, T> Span<'a, T> {
         let range = self.range;
         Self::new(src, self.note, delta + range.start..delta + range.end)
     }
-    pub fn map<U>(self, mapper: impl FnOnce(T) -> U) -> Span<'a, U> {
-        Span {
-            src: self.src,
-            note: mapper(self.note),
-            range: self.range,
-        }
-    }
 }
 impl<'a, T> DisplaySpan<'a> for Span<'a, T>
 where
