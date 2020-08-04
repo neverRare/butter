@@ -1,6 +1,9 @@
-use crate::number::parse_number;
 use crate::span::{ExplainSpan, Span};
-use crate::string::parse_string;
+use number::parse_number;
+use string::parse_string;
+
+mod number;
+mod string;
 
 #[derive(PartialEq, Debug)]
 pub enum Num {

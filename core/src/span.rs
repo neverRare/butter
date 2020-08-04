@@ -1,4 +1,5 @@
-use crate::display_span::DisplaySpan;
+pub use display_span::DisplaySpan;
+pub mod display_span;
 
 pub trait ExplainSpan {
     fn explain(&self) -> (&str, Option<&str>);
