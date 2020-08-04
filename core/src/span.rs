@@ -27,10 +27,7 @@ impl<'a, T> Span<'a, T> {
         let delta = inside - outside;
         Self::new(src, self.note, delta + self.from, delta + self.to)
     }
-    pub fn map<F, U>(self, mapper: F) -> Span<'a, U>
-    where
-        F: FnOnce(T) -> U,
-    {
+    pub fn map<U>(self, mapper: impl FnOnce(T) -> U) -> Span<'a, U> {
         Span {
             src: self.src,
             note: mapper(self.note),
