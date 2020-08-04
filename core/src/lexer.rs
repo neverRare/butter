@@ -307,7 +307,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                             match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
                                 '\'' => {
-                                    Err(Span::new(self.src, LexerError::CharNotOne, i, i + len + 2))
+                                    Err(Span::new(self.src, LexerError::CharNotOne, i..i + len + 2))
                                 }
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
@@ -354,12 +354,11 @@ impl<'a> Iterator for TokenSpans<'a> {
                 break Err(Span::new(
                     self.src,
                     LexerError::UnknownChar,
-                    i,
-                    i + first.len_utf8(),
+                    i..i + first.len_utf8(),
                 ));
             };
             Some(match result {
-                Ok(token) => Ok(Span::new(self.src, token, i, self.i + i)),
+                Ok(token) => Ok(Span::new(self.src, token, i..self.i + i)),
                 Err(reason) => {
                     self.done = true;
                     Err(reason)

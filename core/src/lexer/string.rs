@@ -45,8 +45,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                                     return Some(ParseResult::Error(Span::new(
                                         src,
                                         LexerError::InvalidEscape,
-                                        self.i,
-                                        res,
+                                        self.i..res,
                                     )))
                                 }
                             }
@@ -65,8 +64,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                                     return Some(ParseResult::Error(Span::new(
                                         src,
                                         LexerError::InvalidEscape,
-                                        self.i,
-                                        self.i + 2,
+                                        self.i..self.i + 2,
                                     )))
                                 }
                             };
@@ -76,8 +74,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                             return Some(ParseResult::Error(Span::new(
                                 src,
                                 LexerError::UnterminatedQuote,
-                                0,
-                                self.src.len(),
+                                0..self.src.len(),
                             )))
                         }
                     };
@@ -92,8 +89,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                 None => Some(ParseResult::Error(Span::new(
                     src,
                     LexerError::UnterminatedQuote,
-                    0,
-                    self.src.len(),
+                    0..self.src.len(),
                 ))),
             }
         } else {
