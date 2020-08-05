@@ -253,7 +253,7 @@ impl<'a> Iterator for TokenSpans<'a> {
             None
         } else {
             let mut i = self.i;
-            let result = 'outer: loop {
+            let result = loop {
                 let src = &self.src[i..];
                 let first = match src.chars().next() {
                     Some(val) => val,
@@ -265,37 +265,33 @@ impl<'a> Iterator for TokenSpans<'a> {
                 let first_len = first.len_utf8();
                 let rest = &src[first_len..];
                 if first.is_whitespace() {
-                    for (ind, ch) in rest.char_indices() {
-                        if !ch.is_whitespace() {
+                    match rest.find(|ch: char| !ch.is_whitespace()) {
+                        Some(ind) => {
                             i += first_len + ind;
-                            continue 'outer;
+                            continue;
                         }
+                        None => return None,
                     }
-                    return None;
                 } else if first.is_alphabetic() {
-                    let mut len = first_len;
-                    for (ind, ch) in rest.char_indices() {
-                        if !ch.is_alphanumeric() {
-                            len = first_len + ind;
-                            break;
-                        }
-                    }
+                    let len = first_len
+                        + rest
+                            .find(|ch: char| !ch.is_alphanumeric())
+                            .unwrap_or_default();
                     let ident = &src[..len];
                     self.i = i + len;
                     break Ok(match Keyword::from_str(ident) {
                         Some(keyword) => Token::Keyword(keyword),
                         None => Token::Identifier(ident),
                     });
-                } else if matches!(first, '0'..='9')
-                    || (first == '.' && matches!(rest.chars().next(), Some('0'..='9')))
+                } else if let ('0'..='9', _) | ('.', Some('0'..='9')) = (first, rest.chars().next())
                 {
-                    match parse_number(src) {
+                    break match parse_number(src) {
                         Ok((len, num)) => {
                             self.i = i + len;
-                            break Ok(Token::Num(num));
+                            Ok(Token::Num(num))
                         }
-                        Err(span) => break Err(span.fit_from(src)),
-                    }
+                        Err(span) => Err(span.fit_from(src)),
+                    };
                 } else if let '\'' | '"' = first {
                     let rest = match rest.find('\n') {
                         Some(ind) => &rest[..ind],
