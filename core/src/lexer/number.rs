@@ -65,7 +65,7 @@ pub enum OverflowError {
 }
 pub enum NumError<'a> {
     InvalidChar(Vec<(Span<'a>, InvalidChar)>),
-    Overflow(Span<'a>, OverflowError),
+    Overflow(OverflowError),
 }
 struct RegularNumber {
     whole: String,
@@ -239,7 +239,6 @@ pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
                 Err(_) => (
                     len,
                     Err(NumError::Overflow(
-                        Span::new(src, 0..len),
                         OverflowError::Integer,
                     )),
                 ),
@@ -252,7 +251,7 @@ pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
         let val = match num {
             Ok(num) => match num.to_num() {
                 Ok(val) => (Ok(val)),
-                Err(err) => (Err(NumError::Overflow(Span::new(src, 0..len), err))),
+                Err(err) => (Err(NumError::Overflow(err))),
             },
         };
         (len, val)
