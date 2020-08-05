@@ -66,7 +66,7 @@ struct RegularNumber {
     tries_float: bool,
 }
 impl RegularNumber {
-    fn parse(src: &str) -> Result<(usize, Self), Span<LexerError>> {
+    fn parse(src: &str) -> Result<(usize, Self), (Span, LexerError)> {
         #[derive(Clone, Copy)]
         enum Mode {
             Whole,
@@ -125,7 +125,7 @@ impl RegularNumber {
                 len = i;
                 break;
             };
-            return Err(Span::new(src, err, i..i + ch_len));
+            return Err((Span::new(src, i..i + ch_len), err));
         }
         Ok((
             len,
@@ -198,7 +198,7 @@ impl RegularNumber {
         }
     }
 }
-pub fn parse_number(src: &str) -> Result<(usize, Num), Span<LexerError>> {
+pub fn parse_number(src: &str) -> Result<(usize, Num), (Span, LexerError)> {
     if let (Some("0"), Some(radix)) = (src.get(..1), src.get(1..2).and_then(Radix::from_str)) {
         let mut code = String::new();
         let mut len = 0;
@@ -207,7 +207,7 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), Span<LexerError>> {
                 continue;
             } else if ch.is_alphanumeric() {
                 if let Some(err) = radix.invalid_digit_err(ch) {
-                    return Err(Span::new(src, err, i..i + ch.len_utf8()));
+                    return Err((Span::new(src, i..i + ch.len_utf8()), err));
                 } else {
                     code.push(ch);
                 }
@@ -222,18 +222,18 @@ pub fn parse_number(src: &str) -> Result<(usize, Num), Span<LexerError>> {
                     src.get(len..len + 1),
                     src.get(len + 1..).and_then(|val| val.chars().next()),
                 ) {
-                    Err(Span::new(src, LexerError::DecimalOnInt, len..len + 1))
+                    Err((Span::new(src, len..len + 1), LexerError::DecimalOnInt))
                 } else {
                     Ok((len + 2, Num::UInt(val)))
                 }
             }
-            Err(_) => Err(Span::new(src, LexerError::IntegerOverflow, 0..len + 2)),
+            Err(_) => Err((Span::new(src, 0..len + 2), LexerError::IntegerOverflow)),
         }
     } else {
         let (len, num) = RegularNumber::parse(src)?;
         match num.to_num() {
             Ok(num) => Ok((len, num)),
-            Err(err) => Err(Span::new(src, err, 0..len)),
+            Err(err) => Err((Span::new(src, 0..len), err)),
         }
     }
 }

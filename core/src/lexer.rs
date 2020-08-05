@@ -198,7 +198,7 @@ impl<'a> TokenSpans<'a> {
     }
 }
 impl<'a> Iterator for TokenSpans<'a> {
-    type Item = Result<Span<'a, Token<'a>>, Span<'a, LexerError>>;
+    type Item = Result<(Span<'a>, Token<'a>), (Span<'a>, LexerError)>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
@@ -241,7 +241,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                             self.i = i + len;
                             Ok(Token::Num(num))
                         }
-                        Err(span) => Err(span.fit_from(src)),
+                        Err((span, err)) => Err((span.fit_from(src), err)),
                     };
                 } else if let '\'' | '"' = first {
                     let rest = match rest.find('\n') {
@@ -253,14 +253,15 @@ impl<'a> Iterator for TokenSpans<'a> {
                             self.i = i + len + 2;
                             match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
-                                '\'' => {
-                                    Err(Span::new(self.src, LexerError::CharNotOne, i..i + len + 2))
-                                }
+                                '\'' => Err((
+                                    Span::new(self.src, i..i + len + 2),
+                                    LexerError::CharNotOne,
+                                )),
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
                             }
                         }
-                        Err(span) => Err(span.fit_from(src)),
+                        Err((span, err)) => Err((span.fit_from(src), err)),
                     };
                 } else if let Some("<--") = src.get(0..3) {
                     self.i = i + 1;
@@ -298,14 +299,13 @@ impl<'a> Iterator for TokenSpans<'a> {
                         break Ok(token);
                     }
                 }
-                break Err(Span::new(
-                    self.src,
+                break Err((
+                    Span::new(self.src, i..i + first.len_utf8()),
                     LexerError::UnknownChar,
-                    i..i + first.len_utf8(),
                 ));
             };
             Some(match result {
-                Ok(token) => Ok(Span::new(self.src, token, i..self.i + i)),
+                Ok(token) => Ok((Span::new(self.src, i..self.i + i), token)),
                 Err(reason) => {
                     self.done = true;
                     Err(reason)
@@ -314,13 +314,13 @@ impl<'a> Iterator for TokenSpans<'a> {
         }
     }
 }
-pub fn lex(src: &str) -> Result<Vec<Token>, Vec<Span<LexerError>>> {
-    let mut res: Result<_, Vec<Span<LexerError>>> = Ok(vec![]);
+pub fn lex(src: &str) -> Result<Vec<Token>, Vec<(Span, LexerError)>> {
+    let mut res: Result<_, Vec<(Span, LexerError)>> = Ok(vec![]);
     for token in TokenSpans::new(src) {
         match token {
-            Ok(val) => {
+            Ok((_, val)) => {
                 if let Ok(mut vec) = res {
-                    vec.push(val.note);
+                    vec.push(val);
                     res = Ok(vec);
                 }
             }

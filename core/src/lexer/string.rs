@@ -23,7 +23,7 @@ enum ParseResult<'a> {
     Yield(u8),
     Noop,
     Done(usize),
-    Error(Span<'a, LexerError>),
+    Error(Span<'a>, LexerError),
 }
 impl<'a> Iterator for ParseBytes<'a> {
     type Item = ParseResult<'a>;
@@ -42,11 +42,10 @@ impl<'a> Iterator for ParseBytes<'a> {
                             match result {
                                 Ok(val) => (4, val),
                                 Err(res) => {
-                                    return Some(ParseResult::Error(Span::new(
-                                        src,
+                                    return Some(ParseResult::Error(
+                                        Span::new(src, self.i..res),
                                         LexerError::InvalidEscape,
-                                        self.i..res,
-                                    )))
+                                    ))
                                 }
                             }
                         }
@@ -61,21 +60,19 @@ impl<'a> Iterator for ParseBytes<'a> {
                                 'v' => b'\x30',
                                 '0' => b'\0',
                                 _ => {
-                                    return Some(ParseResult::Error(Span::new(
-                                        src,
+                                    return Some(ParseResult::Error(
+                                        Span::new(src, self.i..self.i + 2),
                                         LexerError::InvalidEscape,
-                                        self.i..self.i + 2,
-                                    )))
+                                    ))
                                 }
                             };
                             (2, byte)
                         }
                         None => {
-                            return Some(ParseResult::Error(Span::new(
-                                src,
+                            return Some(ParseResult::Error(
+                                Span::new(src, 0..self.src.len()),
                                 LexerError::UnterminatedQuote,
-                                0..self.src.len(),
-                            )))
+                            ))
                         }
                     };
                     self.i += len;
@@ -86,11 +83,10 @@ impl<'a> Iterator for ParseBytes<'a> {
                     self.char_i += val.len_utf8();
                     Some(ParseResult::Noop)
                 }
-                None => Some(ParseResult::Error(Span::new(
-                    src,
+                None => Some(ParseResult::Error(
+                    Span::new(src, 0..self.src.len()),
                     LexerError::UnterminatedQuote,
-                    0..self.src.len(),
-                ))),
+                )),
             }
         } else {
             let i = self.i;
@@ -99,12 +95,12 @@ impl<'a> Iterator for ParseBytes<'a> {
         }
     }
 }
-pub fn parse_string(quote: char, rest: &str) -> Result<(usize, Vec<u8>), Span<LexerError>> {
+pub fn parse_string(quote: char, rest: &str) -> Result<(usize, Vec<u8>), (Span, LexerError)> {
     let mut vec = vec![];
     for res in ParseBytes::new(quote, rest) {
         match res {
             ParseResult::Yield(val) => vec.push(val),
-            ParseResult::Error(span) => return Err(span),
+            ParseResult::Error(span, err) => return Err((span, err)),
             ParseResult::Done(len) => return Ok((len, vec)),
             ParseResult::Noop => (),
         }
