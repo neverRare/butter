@@ -169,20 +169,21 @@ pub enum Token<'a> {
 impl<'a> Token<'a> {
     pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<(Span, LexerError)>> {
         let mut res: Result<_, Vec<(Span, LexerError)>> = Ok(vec![]);
-        for token in TokenSpans::new(src) {
+        for (span, token) in TokenSpans::new(src) {
             match token {
-                Ok((_, val)) => {
+                Ok(token) => {
                     if let Ok(mut vec) = res {
-                        vec.push(val);
+                        vec.push(token);
                         res = Ok(vec);
                     }
                 }
-                Err(reason) => {
+                Err(err) => {
+                    let err = (span, err);
                     if let Err(mut vec) = res {
-                        vec.push(reason);
+                        vec.push(err);
                         res = Err(vec);
                     } else {
-                        res = Err(vec![reason]);
+                        res = Err(vec![err]);
                     }
                 }
             }
@@ -222,7 +223,7 @@ impl<'a> TokenSpans<'a> {
     }
 }
 impl<'a> Iterator for TokenSpans<'a> {
-    type Item = Result<(Span<'a>, Token<'a>), (Span<'a>, LexerError)>;
+    type Item = (Span<'a>, Result<Token<'a>, LexerError>);
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
