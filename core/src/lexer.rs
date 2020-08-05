@@ -396,6 +396,8 @@ mod test {
 0o127
 1_000_000
 4e-7
+4e7
+4e70
 2.
 .5
 "#),
@@ -407,6 +409,8 @@ mod test {
                 Num::UInt(0o127),
                 Num::UInt(1_000_000),
                 Num::Float(4e-7),
+                Num::UInt(40_000_000),
+                Num::Float(4e70),
                 Num::UInt(2),
             ]
             .into_iter()
