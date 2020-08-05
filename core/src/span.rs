@@ -2,9 +2,6 @@ pub use display_span::DisplaySpan;
 use std::ops::Range;
 pub mod display_span;
 
-pub trait ExplainSpan {
-    fn explain(&self) -> (&str, Option<&str>);
-}
 #[derive(Debug, PartialEq, Eq)]
 pub struct Span<'a, T> {
     src: &'a str,
@@ -22,25 +19,5 @@ impl<'a, T> Span<'a, T> {
         let delta = inside - outside;
         let range = self.range;
         Self::new(src, self.note, delta + range.start..delta + range.end)
-    }
-}
-impl<'a, T> DisplaySpan<'a> for Span<'a, T>
-where
-    T: ExplainSpan,
-{
-    fn src(&self) -> &'a str {
-        self.src
-    }
-    fn summarize(&self) -> String {
-        self.note.explain().0.to_string()
-    }
-    fn explain(&self) -> Option<String> {
-        self.note.explain().1.map(|val| val.to_string())
-    }
-    fn main_span(&self) -> &Range<usize> {
-        &self.range
-    }
-    fn spans(&self) -> Vec<&Range<usize>> {
-        vec![]
     }
 }
