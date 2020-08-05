@@ -1,8 +1,9 @@
-use crate::lexer::{LexerError, Num};
+use crate::lexer::Num;
 use crate::span::Span;
 
 enum Radix {
     Hex,
+    Dec,
     Oct,
     Bin,
 }
@@ -15,27 +16,20 @@ impl Radix {
             _ => None,
         }
     }
-    fn to_radix(&self) -> u32 {
+    fn to_num(&self) -> u32 {
         match self {
             Self::Hex => 16,
+            Self::Dec => 10,
             Self::Oct => 8,
             Self::Bin => 2,
         }
     }
-    fn invalid_digit_err(&self, ch: char) -> Option<LexerError> {
-        let valid = match self {
+    fn is_valid(&self, ch: char) -> bool {
+        match self {
             Self::Hex => matches!(ch, '0'..='9' | 'a'..='f' | 'A'..='F'),
+            Self::Dec => matches!(ch, '0'..='9'),
             Self::Oct => matches!(ch, '0'..='7'),
             Self::Bin => matches!(ch, '0' | '1'),
-        };
-        if valid {
-            None
-        } else {
-            Some(match self {
-                Self::Hex => LexerError::InvalidCharOnHex,
-                Self::Oct => LexerError::InvalidCharOnOct,
-                Self::Bin => LexerError::InvalidCharOnBin,
-            })
         }
     }
 }
@@ -58,6 +52,21 @@ impl Sign {
         }
     }
 }
+pub enum InvalidChar {
+    Invalid(Radix),
+    DoubleDecimal,
+    DoubleMagnitude,
+    DecimalOnMagnitude,
+    DecimalOnInteger,
+}
+pub enum OverflowError {
+    Magnitude,
+    Integer,
+}
+pub enum NumError<'a> {
+    InvalidChar(Vec<(Span<'a>, InvalidChar)>),
+    Overflow(Span<'a>, OverflowError),
+}
 struct RegularNumber {
     whole: String,
     decimal: String,
@@ -66,7 +75,7 @@ struct RegularNumber {
     tries_float: bool,
 }
 impl RegularNumber {
-    fn parse(src: &str) -> Result<(usize, Self), (Span, LexerError)> {
+    fn parse(src: &str) -> (usize, Result<Self, NumError>) {
         #[derive(Clone, Copy)]
         enum Mode {
             Whole,
@@ -80,14 +89,15 @@ impl RegularNumber {
         let mut magnitude_sign = Sign::Plus;
         let mut tries_float = false;
         let mut len = src.len();
+        let mut invalid = vec![];
         for (i, ch) in src.char_indices() {
             let ch_len = ch.len_utf8();
             let err = if let '_' = ch {
                 continue;
             } else if let ('.', Some('0'..='9')) = (ch, src[i + ch_len..].chars().next()) {
                 match mode {
-                    Mode::Decimal => LexerError::DoubleDecimal,
-                    Mode::Magnitude(_) => LexerError::DecimalOnMagnitude,
+                    Mode::Decimal => InvalidChar::DoubleDecimal,
+                    Mode::Magnitude(_) => InvalidChar::DecimalOnMagnitude,
                     Mode::Whole => {
                         mode = Mode::Decimal;
                         continue;
@@ -113,32 +123,34 @@ impl RegularNumber {
                     }
                     'e' | 'E' => {
                         if let Mode::Magnitude(_) = mode {
-                            LexerError::DoubleMagnitude
+                            InvalidChar::DoubleMagnitude
                         } else {
                             mode = Mode::Magnitude(true);
                             continue;
                         }
                     }
-                    _ => LexerError::InvalidCharOnNum,
+                    _ => InvalidChar::Invalid(Radix::Dec),
                 }
             } else {
                 len = i;
                 break;
             };
-            return Err((Span::new(src, i..i + ch_len), err));
+            invalid.push((Span::new(src, i..i + ch_len), err));
         }
-        Ok((
-            len,
-            RegularNumber {
+        let val = if invalid.is_empty() {
+            Ok(RegularNumber {
                 whole,
                 decimal,
                 magnitude,
                 magnitude_sign,
                 tries_float,
-            },
-        ))
+            })
+        } else {
+            Err(NumError::InvalidChar(invalid))
+        };
+        (len, val)
     }
-    fn to_num(&self) -> Result<Num, LexerError> {
+    fn to_num(&self) -> Result<Num, OverflowError> {
         let RegularNumber {
             whole,
             decimal,
@@ -157,19 +169,19 @@ impl RegularNumber {
         } else {
             match magnitude.parse::<i64>() {
                 Ok(magnitude) => magnitude_sign.to_num() as i64 * magnitude - decimal.len() as i64,
-                Err(_) => return Err(LexerError::MagnitudeOverflow),
+                Err(_) => return Err(OverflowError::Magnitude),
             }
         };
         let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
         if magnitude < i32::MIN as i64 || magnitude > i32::MAX as i64 {
-            Err(LexerError::MagnitudeOverflow)
+            Err(OverflowError::Magnitude)
         } else if whole_magnitude >= 0 {
             let mut whole = absissa;
             whole.push_str(&"0".repeat(whole_magnitude as usize));
             match whole.parse::<u64>() {
                 Ok(val) => Ok(Num::UInt(val)),
                 Err(_) if *tries_float => Ok(Num::Float(whole.parse().unwrap())),
-                Err(_) => Err(LexerError::IntegerOverflow),
+                Err(_) => Err(OverflowError::Integer),
             }
         } else {
             let mut val = 0f64;
@@ -198,42 +210,51 @@ impl RegularNumber {
         }
     }
 }
-pub fn parse_number(src: &str) -> Result<(usize, Num), (Span, LexerError)> {
+pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
     if let (Some("0"), Some(radix)) = (src.get(..1), src.get(1..2).and_then(Radix::from_str)) {
         let mut code = String::new();
         let mut len = 0;
+        let mut invalid = vec![];
         for (i, ch) in src[2..].char_indices() {
-            if let '_' = ch {
+            let err = if let '_' = ch {
                 continue;
             } else if ch.is_alphanumeric() {
-                if let Some(err) = radix.invalid_digit_err(ch) {
-                    return Err((Span::new(src, i..i + ch.len_utf8()), err));
-                } else {
+                if radix.is_valid(ch) {
                     code.push(ch);
+                    continue;
+                } else {
+                    InvalidChar::Invalid(radix)
                 }
+            } else if let ('.', Some('0'..='9')) = (ch, src[i + ch.len_utf8()..].chars().next()) {
+                InvalidChar::DecimalOnInteger
             } else {
                 len = i;
                 break;
-            }
+            };
+            invalid.push((Span::new(src, i..i + ch.len_utf8()), err));
         }
-        match u64::from_str_radix(&code, radix.to_radix()) {
-            Ok(val) => {
-                if let (Some("."), Some('0'..='9')) = (
-                    src.get(len..len + 1),
-                    src.get(len + 1..).and_then(|val| val.chars().next()),
-                ) {
-                    Err((Span::new(src, len..len + 1), LexerError::DecimalOnInt))
-                } else {
-                    Ok((len + 2, Num::UInt(val)))
-                }
+        if invalid.is_empty() {
+            match u64::from_str_radix(&code, radix.to_num()) {
+                Ok(val) => (len, Ok(Num::UInt(val))),
+                Err(_) => (
+                    len,
+                    Err(NumError::Overflow(
+                        Span::new(src, 0..len),
+                        OverflowError::Integer,
+                    )),
+                ),
             }
-            Err(_) => Err((Span::new(src, 0..len + 2), LexerError::IntegerOverflow)),
+        } else {
+            (len, Err(NumError::InvalidChar(invalid)))
         }
     } else {
-        let (len, num) = RegularNumber::parse(src)?;
-        match num.to_num() {
-            Ok(num) => Ok((len, num)),
-            Err(err) => Err((Span::new(src, 0..len), err)),
-        }
+        let (len, num) = RegularNumber::parse(src);
+        let val = match num {
+            Ok(num) => match num.to_num() {
+                Ok(val) => (Ok(val)),
+                Err(err) => (Err(NumError::Overflow(Span::new(src, 0..len), err))),
+            },
+        };
+        (len, val)
     }
 }
