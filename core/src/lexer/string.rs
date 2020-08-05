@@ -1,109 +1,14 @@
-use crate::lexer::LexerError;
 use crate::span::Span;
 
-struct ParseBytes<'a> {
-    quote: char,
-    src: &'a str,
-    byte_src: &'a [u8],
-    i: usize,
-    char_i: usize,
+pub enum EscapeError {
+    InvalidChar,
+    InvalidHex,
 }
-impl<'a> ParseBytes<'a> {
-    fn new(quote: char, src: &'a str) -> Self {
-        Self {
-            quote,
-            src,
-            byte_src: src.as_bytes(),
-            i: 0,
-            char_i: 0,
-        }
-    }
+pub enum StrError<'a> {
+    InvalidEscape(Vec<(Span<'a>, EscapeError)>),
+    Unterminated,
 }
-enum ParseResult<'a> {
-    Yield(u8),
-    Noop,
-    Done(usize),
-    Error(Span<'a>, LexerError),
-}
-impl<'a> Iterator for ParseBytes<'a> {
-    type Item = ParseResult<'a>;
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.i == self.char_i {
-            let src = &self.src[self.i..];
-            match src.chars().next() {
-                Some(quote) if quote == self.quote => Some(ParseResult::Done(self.i)),
-                Some('\\') => {
-                    let (len, byte) = match src[1..].chars().next() {
-                        Some('x') | Some('X') => {
-                            let result = match src.get(2..4) {
-                                Some(code) => u8::from_str_radix(code, 16).map_err(|_| self.i + 4),
-                                None => Err(self.i + 2),
-                            };
-                            match result {
-                                Ok(val) => (4, val),
-                                Err(res) => {
-                                    return Some(ParseResult::Error(
-                                        Span::new(src, self.i..res),
-                                        LexerError::InvalidEscape,
-                                    ))
-                                }
-                            }
-                        }
-                        Some(code) => {
-                            let byte = match code {
-                                '\\' => b'\\',
-                                '\'' => b'\'',
-                                '"' => b'"',
-                                'n' => b'\n',
-                                'r' => b'\r',
-                                't' => b'\t',
-                                'v' => b'\x30',
-                                '0' => b'\0',
-                                _ => {
-                                    return Some(ParseResult::Error(
-                                        Span::new(src, self.i..self.i + 2),
-                                        LexerError::InvalidEscape,
-                                    ))
-                                }
-                            };
-                            (2, byte)
-                        }
-                        None => {
-                            return Some(ParseResult::Error(
-                                Span::new(src, 0..self.src.len()),
-                                LexerError::UnterminatedQuote,
-                            ))
-                        }
-                    };
-                    self.i += len;
-                    self.char_i += len;
-                    Some(ParseResult::Yield(byte))
-                }
-                Some(val) => {
-                    self.char_i += val.len_utf8();
-                    Some(ParseResult::Noop)
-                }
-                None => Some(ParseResult::Error(
-                    Span::new(src, 0..self.src.len()),
-                    LexerError::UnterminatedQuote,
-                )),
-            }
-        } else {
-            let i = self.i;
-            self.i += 1;
-            Some(ParseResult::Yield(self.byte_src[i]))
-        }
-    }
-}
-pub fn parse_string(quote: char, rest: &str) -> Result<(usize, Vec<u8>), (Span, LexerError)> {
+pub fn parse_string(quote: char, rest: &str) -> (usize, Result<Vec<u8>, Vec<StrError>>) {
     let mut vec = vec![];
-    for res in ParseBytes::new(quote, rest) {
-        match res {
-            ParseResult::Yield(val) => vec.push(val),
-            ParseResult::Error(span, err) => return Err((span, err)),
-            ParseResult::Done(len) => return Ok((len, vec)),
-            ParseResult::Noop => (),
-        }
-    }
-    unreachable!()
+    todo!()
 }
