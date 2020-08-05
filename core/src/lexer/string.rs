@@ -34,7 +34,7 @@ impl<'a> Iterator for ParseBytes<'a> {
                 Some(quote) if quote == self.quote => Some(ParseResult::Done(self.i)),
                 Some('\\') => {
                     let (len, byte) = match src[1..].chars().next() {
-                        Some(code) if code == 'x' || code == 'X' => {
+                        Some('x') | Some('X') => {
                             let result = match src.get(2..4) {
                                 Some(code) => u8::from_str_radix(code, 16).map_err(|_| self.i + 4),
                                 None => Err(self.i + 2),
