@@ -166,6 +166,30 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
+impl<'a> Token<'a> {
+    pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<(Span, LexerError)>> {
+        let mut res: Result<_, Vec<(Span, LexerError)>> = Ok(vec![]);
+        for token in TokenSpans::new(src) {
+            match token {
+                Ok((_, val)) => {
+                    if let Ok(mut vec) = res {
+                        vec.push(val);
+                        res = Ok(vec);
+                    }
+                }
+                Err(reason) => {
+                    if let Err(mut vec) = res {
+                        vec.push(reason);
+                        res = Err(vec);
+                    } else {
+                        res = Err(vec![reason]);
+                    }
+                }
+            }
+        }
+        res
+    }
+}
 #[derive(PartialEq, Eq, Debug)]
 pub enum LexerError {
     UnknownChar,
@@ -314,35 +338,13 @@ impl<'a> Iterator for TokenSpans<'a> {
         }
     }
 }
-pub fn lex(src: &str) -> Result<Vec<Token>, Vec<(Span, LexerError)>> {
-    let mut res: Result<_, Vec<(Span, LexerError)>> = Ok(vec![]);
-    for token in TokenSpans::new(src) {
-        match token {
-            Ok((_, val)) => {
-                if let Ok(mut vec) = res {
-                    vec.push(val);
-                    res = Ok(vec);
-                }
-            }
-            Err(reason) => {
-                if let Err(mut vec) = res {
-                    vec.push(reason);
-                    res = Err(vec);
-                } else {
-                    res = Err(vec![reason]);
-                }
-            }
-        }
-    }
-    res
-}
 #[cfg(test)]
 mod test {
-    use super::{lex, Bracket, Keyword, Num, Opening, Operator, Separator, Token};
+    use super::{Bracket, Keyword, Num, Opening, Operator, Separator, Token};
     #[test]
     fn simple_lex() {
         assert_eq!(
-            lex("-- comment\n identifier truefalse null => + ( ) ; <--"),
+            Token::lex("-- comment\n identifier truefalse null => + ( ) ; <--"),
             Ok(vec![
                 Token::Identifier("identifier"),
                 Token::Identifier("truefalse"),
@@ -359,7 +361,8 @@ mod test {
     #[test]
     fn lex_string() {
         assert_eq!(
-            lex(r#"
+            Token::lex(
+                r#"
 "hello world"
 "hello \"world\""
 "hello world \\"
@@ -369,7 +372,8 @@ mod test {
 '\x7A'
 """"
 'a''a'
-"#),
+"#
+            ),
             Ok(vec![
                 Token::Str(b"hello world".to_vec()),
                 Token::Str(b"hello \"world\"".to_vec()),
@@ -388,7 +392,8 @@ mod test {
     #[test]
     fn lex_number() {
         assert_eq!(
-            lex(r#"
+            Token::lex(
+                r#"
 12
 0.5
 0xff
@@ -400,7 +405,8 @@ mod test {
 4e70
 2.
 .5
-"#),
+"#
+            ),
             Ok(vec![
                 Num::UInt(12),
                 Num::Float(0.5),
