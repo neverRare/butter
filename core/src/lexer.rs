@@ -363,92 +363,108 @@ impl<'a> Iterator for TokenSpans<'a> {
         }
     }
 }
-pub struct Tokens<'a>(TokenSpans<'a>);
-impl<'a> Tokens<'a> {
-    pub fn new(src: &'a str) -> Self {
-        Tokens(TokenSpans::new(src))
+pub fn lex(src: &str) -> Result<Vec<Token>, Vec<Span<LexerError>>> {
+    let mut res: Result<_, Vec<Span<LexerError>>> = Ok(vec![]);
+    for token in TokenSpans::new(src) {
+        match token {
+            Ok(val) => {
+                if let Ok(mut vec) = res {
+                    vec.push(val.note);
+                    res = Ok(vec);
+                }
+            }
+            Err(reason) => {
+                if let Err(mut vec) = res {
+                    vec.push(reason);
+                    res = Err(vec);
+                } else {
+                    res = Err(vec![reason]);
+                }
+            }
+        }
     }
-}
-impl<'a> Iterator for Tokens<'a> {
-    type Item = Result<Token<'a>, Span<'a, LexerError>>;
-    fn next(&mut self) -> Option<Self::Item> {
-        let Self(indices) = self;
-        indices.next().map(|result| result.map(|span| span.note))
-    }
+    res
 }
 #[cfg(test)]
 mod test {
-    use super::{Token, Tokens};
-    macro_rules! assert_code {
-        (@ $tokens:expr, ignore) => {};
-        (@ $tokens:expr, $type:ident) => {
-            let next = $tokens.next();
-            assert!(
-                matches!(next, Some(Ok(Token::$type{..}))),
-                "{:?} expected to be {}",
-                next,
-                stringify!($type),
-            );
-        };
-        (@ $tokens:expr, == $more:literal) => {
-            for token in Tokens::new($more) {
-                assert_eq!($tokens.next(), Some(token));
-            }
-        };
-        ($($($type:ident:)? $token:literal $(== $more:literal)?;)*) => {
-            let mut tokens = Tokens::new(concat!($($token, " "),*));
-            $(
-                assert_code!(@ tokens, $($type)? $(== $more)?);
-            )*
-            assert_eq!(None, tokens.next());
-        };
-    }
+    use super::{lex, Bracket, Keyword, Num, Opening, Operator, Separator, Token};
     #[test]
     fn simple_lex() {
-        assert_code! {
-            ignore: "-- comment\n";
-            Identifier: "identifier";
-            Identifier: "truefalse";
-            Keyword: "null";
-            Operator: "=>";
-            Operator: "+";
-            Bracket: "(";
-            Bracket: ")";
-            Separator: ";";
-            "<--" == "<";
-        }
+        assert_eq!(
+            lex("-- comment\n identifier truefalse null => + ( ) ; <--"),
+            Ok(vec![
+                Token::Identifier("identifier"),
+                Token::Identifier("truefalse"),
+                Token::Keyword(Keyword::Null),
+                Token::Operator(Operator::RightThickArrow),
+                Token::Operator(Operator::Plus),
+                Token::Bracket(Opening::Open, Bracket::Paren),
+                Token::Bracket(Opening::Close, Bracket::Paren),
+                Token::Separator(Separator::Semicolon),
+                Token::Operator(Operator::Less),
+            ]),
+        );
     }
     #[test]
     fn lex_string() {
-        assert_code! {
-            Str: r#""hello world""#;
-            Str: r#""hello \"world\"""#;
-            Str: r#""hello world \\""#;
-            Char: "'a'";
-            Char: r"'\''";
-            Char: r"'\\'";
-            r#"'\x7A'"# == r#"'z'"#;
-            r#""""""# == r#""" """#;
-            "'a''a'" == "'a' 'a'";
-        }
+        assert_eq!(
+            lex(r#"
+"hello world"
+"hello \"world\""
+"hello world \\"
+'a'
+'\''
+'\\'
+'\x7A'
+""""
+'a''a'
+"#),
+            Ok(vec![
+                Token::Str(b"hello world".to_vec()),
+                Token::Str(b"hello \"world\"".to_vec()),
+                Token::Str(b"hello world \\".to_vec()),
+                Token::Char(b'a'),
+                Token::Char(b'\''),
+                Token::Char(b'\\'),
+                Token::Char(b'\x7A'),
+                Token::Str(vec![]),
+                Token::Str(vec![]),
+                Token::Char(b'a'),
+                Token::Char(b'a'),
+            ]),
+        );
     }
     #[test]
     fn lex_number() {
-        assert_code! {
-            Num: "12";
-            Num: "0.5";
-            Num: "0xff";
-            Num: "0b11110000";
-            Num: "0o127";
-            Num: "1_000_000";
-            Num: "4e-7";
-            "2." == "2 .";
-            ".5" == "0.5";
-            "0xff" == "255";
-            "0b11110000" == "240";
-            "0o127" == "87";
-            "1_000_000" == "1000000";
-            "4e-7" == ".0000004";
-        }
+        assert_eq!(
+            lex(r#"
+12
+0.5
+0xff
+0b11110000
+0o127
+1_000_000
+4e-7
+2.
+.5
+"#),
+            Ok(vec![
+                Num::UInt(12),
+                Num::Float(0.5),
+                Num::UInt(0xff),
+                Num::UInt(0b11110000),
+                Num::UInt(0o127),
+                Num::UInt(1_000_000),
+                Num::Float(4e-7),
+                Num::UInt(2),
+            ]
+            .into_iter()
+            .map(Token::Num)
+            .chain(vec![
+                Token::Operator(Operator::Dot),
+                Token::Num(Num::Float(0.5)),
+            ])
+            .collect()),
+        );
     }
 }
