@@ -1,3 +1,8 @@
+use crate::lexer::number::InvalidChar;
+use crate::lexer::number::NumError;
+use crate::lexer::number::OverflowError;
+use crate::lexer::string::EscapeError;
+use crate::lexer::string::StrError;
 use crate::span::Span;
 use number::parse_number;
 use string::parse_string;
@@ -192,21 +197,13 @@ impl<'a> Token<'a> {
     }
 }
 #[derive(PartialEq, Eq, Debug)]
-pub enum LexerError {
-    UnknownChar,
-    UnterminatedQuote,
-    CharNotOne,
-    InvalidEscape,
-    InvalidCharOnHex,
-    InvalidCharOnOct,
-    InvalidCharOnBin,
-    DecimalOnInt,
-    DecimalOnMagnitude,
-    InvalidCharOnNum,
-    DoubleMagnitude,
-    DoubleDecimal,
-    MagnitudeOverflow,
-    IntegerOverflow,
+pub enum LexerError<'a> {
+    UnknownChar(Span<'a>),
+    UnterminatedQuote(Span<'a>, char),
+    InvalidEscape(Vec<(Span<'a>, EscapeError)>),
+    CharNotOne(Span<'a>),
+    InvalidChar(Vec<(Span<'a>, InvalidChar)>),
+    Overflow(Span<'a>, OverflowError),
 }
 pub struct TokenSpans<'a> {
     src: &'a str,
@@ -223,13 +220,13 @@ impl<'a> TokenSpans<'a> {
     }
 }
 impl<'a> Iterator for TokenSpans<'a> {
-    type Item = (Span<'a>, Result<Token<'a>, LexerError>);
+    type Item = (Span<'a>, Result<Token<'a>, LexerError<'a>>);
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
         } else {
             let mut i = self.i;
-            let result = loop {
+            let (len, result) = loop {
                 let src = &self.src[i..];
                 let first = match src.chars().next() {
                     Some(val) => val,
@@ -254,43 +251,68 @@ impl<'a> Iterator for TokenSpans<'a> {
                             .find(|ch: char| !ch.is_alphanumeric())
                             .unwrap_or_default();
                     let ident = &src[..len];
-                    self.i = i + len;
-                    break Ok(match Keyword::from_str(ident) {
-                        Some(keyword) => Token::Keyword(keyword),
-                        None => Token::Identifier(ident),
-                    });
+                    break (
+                        len,
+                        Ok(match Keyword::from_str(ident) {
+                            Some(keyword) => Token::Keyword(keyword),
+                            None => Token::Identifier(ident),
+                        }),
+                    );
                 } else if let ('0'..='9', _) | ('.', Some('0'..='9')) = (first, rest.chars().next())
                 {
-                    break match parse_number(src) {
-                        Ok((len, num)) => {
-                            self.i = i + len;
-                            Ok(Token::Num(num))
-                        }
-                        Err((span, err)) => Err((span.fit_from(src), err)),
-                    };
+                    let (len, num) = parse_number(src);
+                    break (
+                        len,
+                        match num {
+                            Ok(num) => Ok(Token::Num(num)),
+                            Err(err) => Err(match err {
+                                NumError::InvalidChar(spans) => LexerError::InvalidChar(
+                                    spans
+                                        .into_iter()
+                                        .map(|(span, err)| (span.fit_from(self.src), err))
+                                        .collect(),
+                                ),
+                                NumError::Overflow(err) => {
+                                    LexerError::Overflow(Span::new(self.src, i..i + len), err)
+                                }
+                            }),
+                        },
+                    );
                 } else if let '\'' | '"' = first {
                     let rest = match rest.find('\n') {
                         Some(ind) => &rest[..ind],
                         None => rest,
                     };
-                    break match parse_string(first, rest) {
-                        Ok((len, val)) => {
-                            self.i = i + len + 2;
-                            match first {
+                    let (len, token) = parse_string(first, rest);
+                    break (
+                        len + 2,
+                        match token {
+                            Ok(val) => match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
-                                '\'' => Err((
-                                    Span::new(self.src, i..i + len + 2),
-                                    LexerError::CharNotOne,
-                                )),
+                                '\'' => {
+                                    Err(LexerError::CharNotOne(Span::new(self.src, i..i + len + 2)))
+                                }
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
-                            }
-                        }
-                        Err((span, err)) => Err((span.fit_from(src), err)),
-                    };
+                            },
+                            Err(err) => match err {
+                                StrError::InvalidEscape(vec) => Err(LexerError::InvalidEscape(
+                                    vec.into_iter()
+                                        .map(|(span, err)| (span.fit_from(self.src), err))
+                                        .collect(),
+                                )),
+                                StrError::Unterminated => {
+                                    self.done = true;
+                                    Err(LexerError::UnterminatedQuote(
+                                        Span::new(self.src, i..i + len + 2),
+                                        first,
+                                    ))
+                                }
+                            },
+                        },
+                    );
                 } else if let Some("<--") = src.get(0..3) {
-                    self.i = i + 1;
-                    break Ok(Token::Operator(Operator::Less));
+                    break (1, Ok(Token::Operator(Operator::Less)));
                 } else if let Some(val) = src.get(0..2) {
                     if val == "--" {
                         let rest = &src[2..];
@@ -305,8 +327,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                             }
                         }
                     } else if let Some(val) = Operator::from_str(val) {
-                        self.i = i + 2;
-                        break Ok(Token::Operator(val));
+                        break (2, Ok(Token::Operator(val)));
                     }
                 }
                 if let Some(val) = src.get(0..1) {
@@ -320,22 +341,19 @@ impl<'a> Iterator for TokenSpans<'a> {
                         None
                     };
                     if let Some(token) = token {
-                        self.i = i + 1;
-                        break Ok(token);
+                        break (i, Ok(token));
                     }
                 }
-                break Err((
-                    Span::new(self.src, i..i + first.len_utf8()),
-                    LexerError::UnknownChar,
-                ));
+                break (
+                    first_len,
+                    Err(LexerError::UnknownChar(Span::new(
+                        self.src,
+                        i..i + first_len,
+                    ))),
+                );
             };
-            Some(match result {
-                Ok(token) => Ok((Span::new(self.src, i..self.i + i), token)),
-                Err(reason) => {
-                    self.done = true;
-                    Err(reason)
-                }
-            })
+            self.i = i + len;
+            Some((Span::new(self.src, i..i + len), result))
         }
     }
 }

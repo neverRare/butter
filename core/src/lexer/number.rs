@@ -1,7 +1,8 @@
 use crate::lexer::Num;
 use crate::span::Span;
 
-enum Radix {
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum Radix {
     Hex,
     Dec,
     Oct,
@@ -52,6 +53,7 @@ impl Sign {
         }
     }
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum InvalidChar {
     Invalid(Radix),
     DoubleDecimal,
@@ -59,10 +61,12 @@ pub enum InvalidChar {
     DecimalOnMagnitude,
     DecimalOnInteger,
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum OverflowError {
     Magnitude,
     Integer,
 }
+#[derive(PartialEq, Eq, Debug)]
 pub enum NumError<'a> {
     InvalidChar(Vec<(Span<'a>, InvalidChar)>),
     Overflow(OverflowError),
@@ -236,24 +240,17 @@ pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
         if invalid.is_empty() {
             match u64::from_str_radix(&code, radix.to_num()) {
                 Ok(val) => (len, Ok(Num::UInt(val))),
-                Err(_) => (
-                    len,
-                    Err(NumError::Overflow(
-                        OverflowError::Integer,
-                    )),
-                ),
+                Err(_) => (len, Err(NumError::Overflow(OverflowError::Integer))),
             }
         } else {
             (len, Err(NumError::InvalidChar(invalid)))
         }
     } else {
         let (len, num) = RegularNumber::parse(src);
-        let val = match num {
-            Ok(num) => match num.to_num() {
-                Ok(val) => (Ok(val)),
-                Err(err) => (Err(NumError::Overflow(err))),
-            },
-        };
+        let val = num.and_then(|num| match num.to_num() {
+            Ok(val) => Ok(val),
+            Err(err) => Err(NumError::Overflow(err)),
+        });
         (len, val)
     }
 }
