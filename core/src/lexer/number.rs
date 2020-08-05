@@ -1,190 +1,239 @@
 use crate::lexer::{LexerError, Num};
 use crate::span::Span;
 
-pub fn parse_number(src: &str) -> Result<(usize, Num), Span<LexerError>> {
-    if let Some("0") = src.get(..1) {
-        let radix = match src.get(1..2) {
-            Some("x") | Some("X") => Some(16),
-            Some("o") | Some("O") => Some(8),
-            Some("b") | Some("B") => Some(2),
+enum Radix {
+    Hex,
+    Oct,
+    Bin,
+}
+impl Radix {
+    fn from_str(src: &str) -> Option<Self> {
+        match src {
+            "x" | "X" => Some(Self::Hex),
+            "o" | "O" => Some(Self::Oct),
+            "b" | "B" => Some(Self::Bin),
             _ => None,
-        };
-        if let Some(radix) = radix {
-            let mut code = String::new();
-            let mut len = 0;
-            for (i, ch) in src[2..].char_indices() {
-                if let '_' = ch {
-                    continue;
-                } else if ch.is_alphanumeric() {
-                    let valid = match radix {
-                        16 => matches!(ch, '0'..='9' | 'a'..='f' | 'A'..='F'),
-                        8 => matches!(ch, '0'..='7'),
-                        2 => matches!(ch, '0' | '1'),
-                        _ => unreachable!(),
-                    };
-                    if !valid {
-                        let err = match radix {
-                            16 => LexerError::InvalidCharOnHex,
-                            8 => LexerError::InvalidCharOnOct,
-                            2 => LexerError::InvalidCharOnBin,
-                            _ => unreachable!(),
-                        };
-                        return Err(Span::new(src, err, i..i + ch.len_utf8()));
-                    }
-                    code.push(ch);
-                } else {
-                    len = i;
-                    break;
-                }
-            }
-            return match u64::from_str_radix(&code, radix) {
-                Ok(val) => {
-                    if let (Some("."), Some('0'..='9')) = (
-                        src.get(len..len + 1),
-                        src.get(len + 1..).and_then(|val| val.chars().next()),
-                    ) {
-                        Err(Span::new(src, LexerError::DecimalOnInt, len..len + 1))
-                    } else {
-                        Ok((len + 2, Num::UInt(val)))
-                    }
-                }
-                Err(_) => Err(Span::new(src, LexerError::IntegerOverflow, 0..len + 2)),
-            };
         }
     }
-    enum Mode {
-        Whole,
-        Decimal,
-        Magnitude(bool),
+    fn to_radix(&self) -> u32 {
+        match self {
+            Self::Hex => 16,
+            Self::Oct => 8,
+            Self::Bin => 2,
+        }
     }
-    enum Sign {
-        Plus,
-        Minus,
+    fn invalid_digit_err(&self, ch: char) -> Option<LexerError> {
+        let valid = match self {
+            Self::Hex => matches!(ch, '0'..='9' | 'a'..='f' | 'A'..='F'),
+            Self::Oct => matches!(ch, '0'..='7'),
+            Self::Bin => matches!(ch, '0' | '1'),
+        };
+        if valid {
+            None
+        } else {
+            Some(match self {
+                Self::Hex => LexerError::InvalidCharOnHex,
+                Self::Oct => LexerError::InvalidCharOnOct,
+                Self::Bin => LexerError::InvalidCharOnBin,
+            })
+        }
     }
-    let mut mode = Mode::Whole;
-    let mut whole = String::new();
-    let mut decimal = String::new();
-    let mut magnitude = String::new();
-    let mut magnitude_sign = Sign::Plus;
-    let mut tries_float = false;
-    let mut len = src.len();
-    for (i, ch) in src.char_indices() {
-        let ch_len = ch.len_utf8();
-        if let '_' = ch {
-            continue;
-        } else if let ('.', Some('0'..='9')) = (ch, src[i + ch_len..].chars().next()) {
-            match mode {
-                Mode::Decimal => {
-                    return Err(Span::new(src, LexerError::DoubleDecimal, i..i + ch_len))
+}
+enum Sign {
+    Plus,
+    Minus,
+}
+impl Sign {
+    fn from_char(ch: char) -> Option<Self> {
+        match ch {
+            '+' => Some(Self::Plus),
+            '-' => Some(Self::Minus),
+            _ => None,
+        }
+    }
+    fn to_num(&self) -> i32 {
+        match self {
+            Self::Plus => 1,
+            Self::Minus => -1,
+        }
+    }
+}
+struct RegularNumber {
+    whole: String,
+    decimal: String,
+    magnitude: String,
+    magnitude_sign: Sign,
+    tries_float: bool,
+}
+impl RegularNumber {
+    fn parse(src: &str) -> Result<(usize, Self), Span<LexerError>> {
+        #[derive(Clone, Copy)]
+        enum Mode {
+            Whole,
+            Decimal,
+            Magnitude(bool),
+        }
+        let mut mode = Mode::Whole;
+        let mut whole = String::new();
+        let mut decimal = String::new();
+        let mut magnitude = String::new();
+        let mut magnitude_sign = Sign::Plus;
+        let mut tries_float = false;
+        let mut len = src.len();
+        for (i, ch) in src.char_indices() {
+            let ch_len = ch.len_utf8();
+            let err = if let '_' = ch {
+                continue;
+            } else if let ('.', Some('0'..='9')) = (ch, src[i + ch_len..].chars().next()) {
+                match mode {
+                    Mode::Decimal => LexerError::DoubleDecimal,
+                    Mode::Magnitude(_) => LexerError::DecimalOnMagnitude,
+                    Mode::Whole => {
+                        mode = Mode::Decimal;
+                        continue;
+                    }
                 }
-                Mode::Magnitude(_) => {
-                    return Err(Span::new(
-                        src,
-                        LexerError::DecimalOnMagnitude,
-                        i..i + ch_len,
-                    ))
-                }
-                Mode::Whole => {
-                    mode = Mode::Decimal;
-                    continue;
-                }
-            }
-        } else if let Mode::Magnitude(true) = mode {
-            let sign = match ch {
-                '-' => Some(Sign::Minus),
-                '+' => Some(Sign::Plus),
-                _ => None,
-            };
-            if let Some(sign) = sign {
+            } else if let (Mode::Magnitude(true), Some(sign)) = (mode, Sign::from_char(ch)) {
                 magnitude_sign = sign;
                 mode = Mode::Magnitude(false);
                 continue;
-            }
-        }
-        if ch.is_alphanumeric() {
-            match ch {
-                '0'..='9' => match mode {
-                    Mode::Whole => whole.push(ch),
-                    Mode::Decimal => decimal.push(ch),
-                    Mode::Magnitude(_) => {
-                        tries_float = true;
-                        mode = Mode::Magnitude(false);
-                        magnitude.push(ch);
+            } else if ch.is_alphanumeric() {
+                match ch {
+                    '0'..='9' => {
+                        match mode {
+                            Mode::Whole => whole.push(ch),
+                            Mode::Decimal => decimal.push(ch),
+                            Mode::Magnitude(_) => {
+                                tries_float = true;
+                                mode = Mode::Magnitude(false);
+                                magnitude.push(ch);
+                            }
+                        }
+                        continue;
                     }
-                },
-                'e' | 'E' => {
-                    if let Mode::Magnitude(_) = mode {
-                        return Err(Span::new(src, LexerError::DoubleMagnitude, i..i + ch_len));
-                    } else {
-                        mode = Mode::Magnitude(true);
+                    'e' | 'E' => {
+                        if let Mode::Magnitude(_) = mode {
+                            LexerError::DoubleMagnitude
+                        } else {
+                            mode = Mode::Magnitude(true);
+                            continue;
+                        }
                     }
+                    _ => LexerError::InvalidCharOnNum,
                 }
-                _ => return Err(Span::new(src, LexerError::InvalidCharOnNum, i..i + ch_len)),
+            } else {
+                len = i;
+                break;
+            };
+            return Err(Span::new(src, err, i..i + ch_len));
+        }
+        Ok((
+            len,
+            RegularNumber {
+                whole,
+                decimal,
+                magnitude,
+                magnitude_sign,
+                tries_float,
+            },
+        ))
+    }
+    fn to_num(&self) -> Result<Num, LexerError> {
+        let RegularNumber {
+            whole,
+            decimal,
+            magnitude,
+            magnitude_sign,
+            tries_float,
+        } = self;
+        let whole = whole.trim_start_matches('0');
+        let decimal = decimal.trim_end_matches('0');
+        let absissa = whole.to_string() + decimal;
+        if absissa.is_empty() {
+            return Ok(Num::UInt(0));
+        }
+        let whole_magnitude = if magnitude.is_empty() {
+            -(decimal.len() as i64)
+        } else {
+            match magnitude.parse::<i64>() {
+                Ok(magnitude) => magnitude_sign.to_num() as i64 * magnitude - decimal.len() as i64,
+                Err(_) => return Err(LexerError::MagnitudeOverflow),
+            }
+        };
+        let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
+        if magnitude < i32::MIN as i64 || magnitude > i32::MAX as i64 {
+            Err(LexerError::MagnitudeOverflow)
+        } else if whole_magnitude >= 0 {
+            let mut whole = absissa;
+            whole.push_str(&"0".repeat(whole_magnitude as usize));
+            match whole.parse::<u64>() {
+                Ok(val) => Ok(Num::UInt(val)),
+                Err(_) if *tries_float => Ok(Num::Float(whole.parse().unwrap())),
+                Err(_) => Err(LexerError::IntegerOverflow),
             }
         } else {
-            len = i;
-            break;
-        }
-    }
-    let whole = whole.trim_start_matches('0');
-    let decimal = decimal.trim_end_matches('0');
-    let absissa = whole.to_string() + decimal;
-    if absissa.is_empty() {
-        return Ok((len, Num::UInt(0)));
-    }
-    let whole_magnitude = if magnitude.is_empty() {
-        -(decimal.len() as i64)
-    } else {
-        match magnitude.parse::<i64>() {
-            Ok(magnitude) => {
-                let sign = match magnitude_sign {
-                    Sign::Plus => 1,
-                    Sign::Minus => -1,
+            let mut val = 0f64;
+            let mut magnitude = magnitude;
+            for ch in absissa.chars() {
+                let digit = match ch {
+                    '0' => {
+                        magnitude -= 1;
+                        continue;
+                    }
+                    '1' => 1f64,
+                    '2' => 2f64,
+                    '3' => 3f64,
+                    '4' => 4f64,
+                    '5' => 5f64,
+                    '6' => 6f64,
+                    '7' => 7f64,
+                    '8' => 8f64,
+                    '9' => 9f64,
+                    _ => unreachable!(),
                 };
-                sign * magnitude - (decimal.len() as i64)
+                val += digit * 10f64.powf(magnitude as f64);
+                magnitude -= 1;
             }
-            Err(_) => return Err(Span::new(src, LexerError::MagnitudeOverflow, 0..len)),
+            Ok(Num::Float(val))
         }
-    };
-    let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
-    if magnitude < i32::MIN as i64 || magnitude > i32::MAX as i64 {
-        Err(Span::new(src, LexerError::MagnitudeOverflow, 0..len))
-    } else if whole_magnitude >= 0 {
-        let mut whole = absissa;
-        whole.push_str(&"0".repeat(whole_magnitude as usize));
-        match whole.parse::<u64>() {
-            Ok(val) => Ok((len, Num::UInt(val))),
-            Err(_) => {
-                if tries_float {
-                    Ok((len, Num::Float(whole.parse().unwrap())))
+    }
+}
+pub fn parse_number(src: &str) -> Result<(usize, Num), Span<LexerError>> {
+    if let (Some("0"), Some(radix)) = (src.get(..1), src.get(1..2).and_then(Radix::from_str)) {
+        let mut code = String::new();
+        let mut len = 0;
+        for (i, ch) in src[2..].char_indices() {
+            if let '_' = ch {
+                continue;
+            } else if ch.is_alphanumeric() {
+                if let Some(err) = radix.invalid_digit_err(ch) {
+                    return Err(Span::new(src, err, i..i + ch.len_utf8()));
                 } else {
-                    Err(Span::new(src, LexerError::IntegerOverflow, 0..len))
+                    code.push(ch);
+                }
+            } else {
+                len = i;
+                break;
+            }
+        }
+        match u64::from_str_radix(&code, radix.to_radix()) {
+            Ok(val) => {
+                if let (Some("."), Some('0'..='9')) = (
+                    src.get(len..len + 1),
+                    src.get(len + 1..).and_then(|val| val.chars().next()),
+                ) {
+                    Err(Span::new(src, LexerError::DecimalOnInt, len..len + 1))
+                } else {
+                    Ok((len + 2, Num::UInt(val)))
                 }
             }
+            Err(_) => Err(Span::new(src, LexerError::IntegerOverflow, 0..len + 2)),
         }
     } else {
-        let mut val = 0f64;
-        let mut magnitude = magnitude;
-        for ch in absissa.chars() {
-            let digit = match ch {
-                '0' => {
-                    magnitude -= 1;
-                    continue;
-                }
-                '1' => 1f64,
-                '2' => 2f64,
-                '3' => 3f64,
-                '4' => 4f64,
-                '5' => 5f64,
-                '6' => 6f64,
-                '7' => 7f64,
-                '8' => 8f64,
-                '9' => 9f64,
-                _ => unreachable!(),
-            };
-            val += digit * 10f64.powf(magnitude as f64);
-            magnitude -= 1;
+        let (len, num) = RegularNumber::parse(src)?;
+        match num.to_num() {
+            Ok(num) => Ok((len, num)),
+            Err(err) => Err(Span::new(src, err, 0..len)),
         }
-        Ok((len, Num::Float(val)))
     }
 }
