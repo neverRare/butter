@@ -1,7 +1,8 @@
 #[derive(PartialEq, Eq, Debug)]
 pub enum EscapeError {
     InvalidChar,
-    InvalidHex,
+    InvalidHexChar,
+    HexCharTerminated,
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum StrError<'a> {
