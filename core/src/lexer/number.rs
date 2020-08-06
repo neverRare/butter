@@ -87,12 +87,13 @@ impl RegularNumber {
         let mut mantissa_sign = Sign::Plus;
         let mut tries_float = false;
         let mut len = src.len();
-        let mut invalid = vec![];
+        let mut errors = vec![];
         for (i, ch) in src.char_indices() {
             let ch_len = ch.len_utf8();
             let err = if let '_' = ch {
                 continue;
             } else if let ('.', Some('0'..='9')) = (ch, src[i + ch_len..].chars().next()) {
+                tries_float = true;
                 match mode {
                     Mode::Decimal => InvalidChar::DoubleDecimal,
                     Mode::Mantissa(_) => InvalidChar::DecimalOnMantissa,
@@ -109,17 +110,27 @@ impl RegularNumber {
                 match ch {
                     '0'..='9' => {
                         match mode {
-                            Mode::Whole => whole.push(ch),
-                            Mode::Decimal => decimal.push(ch),
+                            Mode::Whole => {
+                                if errors.is_empty() {
+                                    whole.push(ch)
+                                }
+                            }
+                            Mode::Decimal => {
+                                if errors.is_empty() {
+                                    decimal.push(ch)
+                                }
+                            }
                             Mode::Mantissa(_) => {
-                                tries_float = true;
                                 mode = Mode::Mantissa(false);
-                                mantissa.push(ch);
+                                if errors.is_empty() {
+                                    mantissa.push(ch)
+                                }
                             }
                         }
                         continue;
                     }
                     'e' | 'E' => {
+                        tries_float = true;
                         if let Mode::Mantissa(_) = mode {
                             InvalidChar::DoubleMantissa
                         } else {
@@ -133,9 +144,9 @@ impl RegularNumber {
                 len = i;
                 break;
             };
-            invalid.push((&src[i..i + ch_len], err));
+            errors.push((&src[i..i + ch_len], err));
         }
-        let val = if invalid.is_empty() {
+        let val = if errors.is_empty() {
             Ok(RegularNumber {
                 whole: whole.trim_start_matches('0').to_string(),
                 decimal: decimal.trim_end_matches('0').to_string(),
@@ -144,7 +155,7 @@ impl RegularNumber {
                 tries_float,
             })
         } else {
-            Err(NumError::InvalidChar(invalid))
+            Err(NumError::InvalidChar(errors))
         };
         (len, val)
     }
@@ -181,11 +192,7 @@ impl RegularNumber {
         };
         let mantissa = absissa.len() as i128 - 1 + whole_mantissa;
         if mantissa < f64::MIN_10_EXP as i128 {
-            if *tries_float {
-                Some(Num::Float(f64::MIN_POSITIVE))
-            } else {
-                None
-            }
+            Some(Num::Float(f64::MIN_POSITIVE))
         } else if mantissa > f64::MAX_10_EXP as i128 {
             if *tries_float {
                 Some(Num::Float(f64::MAX))
