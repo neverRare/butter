@@ -179,14 +179,10 @@ impl RegularNumber {
                     mantissa_sign.to_num() as i128 * mantissa as i128 - decimal.len() as i128
                 }
                 Err(_) => {
-                    return if *tries_float {
-                        Some(Num::Float(match mantissa_sign {
-                            Sign::Plus => f64::MAX,
-                            Sign::Minus => f64::MIN_POSITIVE,
-                        }))
-                    } else {
-                        None
-                    }
+                    return Some(Num::Float(match mantissa_sign {
+                        Sign::Plus => f64::MAX,
+                        Sign::Minus => f64::MIN_POSITIVE,
+                    }))
                 }
             }
         };
