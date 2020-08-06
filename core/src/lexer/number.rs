@@ -137,8 +137,8 @@ impl RegularNumber {
         }
         let val = if invalid.is_empty() {
             Ok(RegularNumber {
-                whole,
-                decimal,
+                whole: whole.trim_start_matches('0').to_string(),
+                decimal: decimal.trim_end_matches('0').to_string(),
                 magnitude,
                 magnitude_sign,
                 tries_float,
@@ -156,8 +156,6 @@ impl RegularNumber {
             magnitude_sign,
             tries_float,
         } = self;
-        let whole = whole.trim_start_matches('0');
-        let decimal = decimal.trim_end_matches('0');
         let absissa = whole.to_string() + decimal;
         if absissa.is_empty() {
             return Some(Num::UInt(0));
@@ -165,8 +163,10 @@ impl RegularNumber {
         let whole_magnitude = if magnitude.is_empty() {
             -(decimal.len() as i64)
         } else {
-            match magnitude.parse::<i64>() {
-                Ok(magnitude) => magnitude_sign.to_num() as i64 * magnitude - decimal.len() as i64,
+            match magnitude.parse::<u32>() {
+                Ok(magnitude) => {
+                    magnitude_sign.to_num() as i64 * magnitude as i64 - decimal.len() as i64
+                }
                 Err(_) => {
                     return if *tries_float {
                         Some(Num::Float(match magnitude_sign {
@@ -180,13 +180,13 @@ impl RegularNumber {
             }
         };
         let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
-        if magnitude < i32::MIN as i64 {
+        if magnitude < f64::MIN_10_EXP as i64 {
             if *tries_float {
                 Some(Num::Float(f64::MIN_POSITIVE))
             } else {
                 None
             }
-        } else if magnitude > i32::MAX as i64 {
+        } else if magnitude > f64::MAX_10_EXP as i64 {
             if *tries_float {
                 Some(Num::Float(f64::MAX))
             } else {
