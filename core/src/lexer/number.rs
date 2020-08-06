@@ -217,7 +217,7 @@ impl RegularNumber {
 pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
     if let (Some("0"), Some(radix)) = (src.get(..1), src.get(1..2).and_then(Radix::from_str)) {
         let mut code = String::new();
-        let mut len = 0;
+        let mut len = src.len();
         let mut invalid = vec![];
         for (i, ch) in src[2..].char_indices() {
             let err = if let '_' = ch {
@@ -235,8 +235,9 @@ pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
                 len = i;
                 break;
             };
-            invalid.push((Span::new(src, i..i + ch.len_utf8()), err));
+            invalid.push((Span::new(src, i + 2..i + ch.len_utf8() + 2), err));
         }
+        let len = len + 2;
         if invalid.is_empty() {
             match u64::from_str_radix(&code, radix.to_num()) {
                 Ok(val) => (len, Ok(Num::UInt(val))),

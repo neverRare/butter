@@ -341,7 +341,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                         None
                     };
                     if let Some(token) = token {
-                        break (i, Ok(token));
+                        break (1, Ok(token));
                     }
                 }
                 break (
