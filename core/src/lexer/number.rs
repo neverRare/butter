@@ -161,11 +161,11 @@ impl RegularNumber {
             return Some(Num::UInt(0));
         }
         let whole_mantissa = if mantissa.is_empty() {
-            -(decimal.len() as i64)
+            -(decimal.len() as i128)
         } else {
             match mantissa.parse::<u32>() {
                 Ok(mantissa) => {
-                    mantissa_sign.to_num() as i64 * mantissa as i64 - decimal.len() as i64
+                    mantissa_sign.to_num() as i128 * mantissa as i128 - decimal.len() as i128
                 }
                 Err(_) => {
                     return if *tries_float {
@@ -179,14 +179,14 @@ impl RegularNumber {
                 }
             }
         };
-        let mantissa = absissa.len() as i64 - 1 + whole_mantissa;
-        if mantissa < f64::MIN_10_EXP as i64 {
+        let mantissa = absissa.len() as i128 - 1 + whole_mantissa;
+        if mantissa < f64::MIN_10_EXP as i128 {
             if *tries_float {
                 Some(Num::Float(f64::MIN_POSITIVE))
             } else {
                 None
             }
-        } else if mantissa > f64::MAX_10_EXP as i64 {
+        } else if mantissa > f64::MAX_10_EXP as i128 {
             if *tries_float {
                 Some(Num::Float(f64::MAX))
             } else {
