@@ -193,37 +193,17 @@ impl RegularNumber {
                 None
             }
         } else if whole_magnitude >= 0 {
-            let mut whole = absissa;
-            whole.push_str(&"0".repeat(whole_magnitude as usize));
-            match whole.parse::<u64>() {
+            let whole = absissa + &"0".repeat(whole_magnitude as usize);
+            match whole.parse() {
                 Ok(val) => Some(Num::UInt(val)),
                 Err(_) if *tries_float => Some(Num::Float(whole.parse().unwrap())),
                 Err(_) => None,
             }
         } else {
-            let mut val = 0f64;
-            let mut magnitude = magnitude;
-            for ch in absissa.chars() {
-                let digit = match ch {
-                    '0' => {
-                        magnitude -= 1;
-                        continue;
-                    }
-                    '1' => 1f64,
-                    '2' => 2f64,
-                    '3' => 3f64,
-                    '4' => 4f64,
-                    '5' => 5f64,
-                    '6' => 6f64,
-                    '7' => 7f64,
-                    '8' => 8f64,
-                    '9' => 9f64,
-                    _ => unreachable!(),
-                };
-                val += digit * 10f64.powf(magnitude as f64);
-                magnitude -= 1;
-            }
-            Some(Num::Float(val))
+            let absissa = absissa[0..1].to_string() + "." + &absissa[1..];
+            Some(Num::Float(
+                absissa.parse::<f64>().unwrap() * 10_f64.powi(magnitude as i32),
+            ))
         }
     }
 }
