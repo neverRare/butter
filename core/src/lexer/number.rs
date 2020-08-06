@@ -56,8 +56,8 @@ impl Sign {
 pub enum InvalidChar {
     Invalid(Radix),
     DoubleDecimal,
-    DoubleMagnitude,
-    DecimalOnMagnitude,
+    DoubleMantissa,
+    DecimalOnMantissa,
     DecimalOnInteger,
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -68,8 +68,8 @@ pub enum NumError<'a> {
 struct RegularNumber {
     whole: String,
     decimal: String,
-    magnitude: String,
-    magnitude_sign: Sign,
+    mantissa: String,
+    mantissa_sign: Sign,
     tries_float: bool,
 }
 impl RegularNumber {
@@ -78,13 +78,13 @@ impl RegularNumber {
         enum Mode {
             Whole,
             Decimal,
-            Magnitude(bool),
+            Mantissa(bool),
         }
         let mut mode = Mode::Whole;
         let mut whole = String::new();
         let mut decimal = String::new();
-        let mut magnitude = String::new();
-        let mut magnitude_sign = Sign::Plus;
+        let mut mantissa = String::new();
+        let mut mantissa_sign = Sign::Plus;
         let mut tries_float = false;
         let mut len = src.len();
         let mut invalid = vec![];
@@ -95,15 +95,15 @@ impl RegularNumber {
             } else if let ('.', Some('0'..='9')) = (ch, src[i + ch_len..].chars().next()) {
                 match mode {
                     Mode::Decimal => InvalidChar::DoubleDecimal,
-                    Mode::Magnitude(_) => InvalidChar::DecimalOnMagnitude,
+                    Mode::Mantissa(_) => InvalidChar::DecimalOnMantissa,
                     Mode::Whole => {
                         mode = Mode::Decimal;
                         continue;
                     }
                 }
-            } else if let (Mode::Magnitude(true), Some(sign)) = (mode, Sign::from_char(ch)) {
-                magnitude_sign = sign;
-                mode = Mode::Magnitude(false);
+            } else if let (Mode::Mantissa(true), Some(sign)) = (mode, Sign::from_char(ch)) {
+                mantissa_sign = sign;
+                mode = Mode::Mantissa(false);
                 continue;
             } else if ch.is_alphanumeric() {
                 match ch {
@@ -111,19 +111,19 @@ impl RegularNumber {
                         match mode {
                             Mode::Whole => whole.push(ch),
                             Mode::Decimal => decimal.push(ch),
-                            Mode::Magnitude(_) => {
+                            Mode::Mantissa(_) => {
                                 tries_float = true;
-                                mode = Mode::Magnitude(false);
-                                magnitude.push(ch);
+                                mode = Mode::Mantissa(false);
+                                mantissa.push(ch);
                             }
                         }
                         continue;
                     }
                     'e' | 'E' => {
-                        if let Mode::Magnitude(_) = mode {
-                            InvalidChar::DoubleMagnitude
+                        if let Mode::Mantissa(_) = mode {
+                            InvalidChar::DoubleMantissa
                         } else {
-                            mode = Mode::Magnitude(true);
+                            mode = Mode::Mantissa(true);
                             continue;
                         }
                     }
@@ -139,8 +139,8 @@ impl RegularNumber {
             Ok(RegularNumber {
                 whole: whole.trim_start_matches('0').to_string(),
                 decimal: decimal.trim_end_matches('0').to_string(),
-                magnitude,
-                magnitude_sign,
+                mantissa,
+                mantissa_sign,
                 tries_float,
             })
         } else {
@@ -152,24 +152,24 @@ impl RegularNumber {
         let RegularNumber {
             whole,
             decimal,
-            magnitude,
-            magnitude_sign,
+            mantissa,
+            mantissa_sign,
             tries_float,
         } = self;
         let absissa = whole.to_string() + decimal;
         if absissa.is_empty() {
             return Some(Num::UInt(0));
         }
-        let whole_magnitude = if magnitude.is_empty() {
+        let whole_mantissa = if mantissa.is_empty() {
             -(decimal.len() as i64)
         } else {
-            match magnitude.parse::<u32>() {
-                Ok(magnitude) => {
-                    magnitude_sign.to_num() as i64 * magnitude as i64 - decimal.len() as i64
+            match mantissa.parse::<u32>() {
+                Ok(mantissa) => {
+                    mantissa_sign.to_num() as i64 * mantissa as i64 - decimal.len() as i64
                 }
                 Err(_) => {
                     return if *tries_float {
-                        Some(Num::Float(match magnitude_sign {
+                        Some(Num::Float(match mantissa_sign {
                             Sign::Plus => f64::MAX,
                             Sign::Minus => f64::MIN_POSITIVE,
                         }))
@@ -179,21 +179,21 @@ impl RegularNumber {
                 }
             }
         };
-        let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
-        if magnitude < f64::MIN_10_EXP as i64 {
+        let mantissa = absissa.len() as i64 - 1 + whole_mantissa;
+        if mantissa < f64::MIN_10_EXP as i64 {
             if *tries_float {
                 Some(Num::Float(f64::MIN_POSITIVE))
             } else {
                 None
             }
-        } else if magnitude > f64::MAX_10_EXP as i64 {
+        } else if mantissa > f64::MAX_10_EXP as i64 {
             if *tries_float {
                 Some(Num::Float(f64::MAX))
             } else {
                 None
             }
-        } else if whole_magnitude >= 0 {
-            let whole = absissa + &"0".repeat(whole_magnitude as usize);
+        } else if whole_mantissa >= 0 {
+            let whole = absissa + &"0".repeat(whole_mantissa as usize);
             match whole.parse() {
                 Ok(val) => Some(Num::UInt(val)),
                 Err(_) if *tries_float => Some(Num::Float(whole.parse().unwrap())),
@@ -202,7 +202,7 @@ impl RegularNumber {
         } else {
             let absissa = absissa[0..1].to_string() + "." + &absissa[1..];
             Some(Num::Float(
-                absissa.parse::<f64>().unwrap() * 10_f64.powi(magnitude as i32),
+                absissa.parse::<f64>().unwrap() * 10_f64.powi(mantissa as i32),
             ))
         }
     }
