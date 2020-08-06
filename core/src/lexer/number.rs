@@ -181,17 +181,9 @@ impl RegularNumber {
         };
         let mantissa = absissa.len() as i64 - 1 + whole_mantissa;
         if mantissa < f64::MIN_10_EXP as i64 {
-            if *tries_float {
-                Some(Num::Float(f64::MIN_POSITIVE))
-            } else {
-                None
-            }
+            Some(Num::Float(f64::MIN_POSITIVE))
         } else if mantissa > f64::MAX_10_EXP as i64 {
-            if *tries_float {
-                Some(Num::Float(f64::MAX))
-            } else {
-                None
-            }
+            Some(Num::Float(f64::MAX))
         } else if whole_mantissa >= 0 {
             let whole = absissa + &"0".repeat(whole_mantissa as usize);
             match whole.parse() {
