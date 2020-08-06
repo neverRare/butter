@@ -1,5 +1,4 @@
 use crate::lexer::Num;
-use crate::span::Span;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Radix {
@@ -68,7 +67,7 @@ pub enum OverflowError {
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum NumError<'a> {
-    InvalidChar(Vec<(Span<'a>, InvalidChar)>),
+    InvalidChar(Vec<(&'a str, InvalidChar)>),
     Overflow(OverflowError),
 }
 struct RegularNumber {
@@ -139,7 +138,7 @@ impl RegularNumber {
                 len = i;
                 break;
             };
-            invalid.push((Span::new(src, i..i + ch_len), err));
+            invalid.push((&src[i..i + ch_len], err));
         }
         let val = if invalid.is_empty() {
             Ok(RegularNumber {
@@ -235,7 +234,7 @@ pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
                 len = i;
                 break;
             };
-            invalid.push((Span::new(src, i + 2..i + ch.len_utf8() + 2), err));
+            invalid.push((&src[i + 2..i + ch.len_utf8() + 2], err));
         }
         let len = len + 2;
         if invalid.is_empty() {

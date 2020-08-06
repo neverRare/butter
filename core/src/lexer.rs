@@ -3,7 +3,6 @@ use crate::lexer::number::NumError;
 use crate::lexer::number::OverflowError;
 use crate::lexer::string::EscapeError;
 use crate::lexer::string::StrError;
-use crate::span::Span;
 use number::parse_number;
 use string::parse_string;
 
@@ -172,8 +171,8 @@ pub enum Token<'a> {
     Operator(Operator),
 }
 impl<'a> Token<'a> {
-    pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<(Span, LexerError)>> {
-        let mut res: Result<_, Vec<(Span, LexerError)>> = Ok(vec![]);
+    pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<(&str, LexerError)>> {
+        let mut res: Result<_, Vec<(&str, LexerError)>> = Ok(vec![]);
         for (span, token) in TokenSpans::new(src) {
             match token {
                 Ok(token) => {
@@ -198,12 +197,12 @@ impl<'a> Token<'a> {
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum LexerError<'a> {
-    UnknownChar(Span<'a>),
-    UnterminatedQuote(Span<'a>, char),
-    InvalidEscape(Vec<(Span<'a>, EscapeError)>),
-    CharNotOne(Span<'a>),
-    InvalidChar(Vec<(Span<'a>, InvalidChar)>),
-    Overflow(Span<'a>, OverflowError),
+    UnknownChar(&'a str),
+    UnterminatedQuote(&'a str, char),
+    InvalidEscape(Vec<(&'a str, EscapeError)>),
+    CharNotOne(&'a str),
+    InvalidChar(Vec<(&'a str, InvalidChar)>),
+    Overflow(&'a str, OverflowError),
 }
 pub struct TokenSpans<'a> {
     src: &'a str,
@@ -220,7 +219,7 @@ impl<'a> TokenSpans<'a> {
     }
 }
 impl<'a> Iterator for TokenSpans<'a> {
-    type Item = (Span<'a>, Result<Token<'a>, LexerError<'a>>);
+    type Item = (&'a str, Result<Token<'a>, LexerError<'a>>);
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
@@ -266,14 +265,9 @@ impl<'a> Iterator for TokenSpans<'a> {
                         match num {
                             Ok(num) => Ok(Token::Num(num)),
                             Err(err) => Err(match err {
-                                NumError::InvalidChar(spans) => LexerError::InvalidChar(
-                                    spans
-                                        .into_iter()
-                                        .map(|(span, err)| (span.fit_from(self.src), err))
-                                        .collect(),
-                                ),
+                                NumError::InvalidChar(spans) => LexerError::InvalidChar(spans),
                                 NumError::Overflow(err) => {
-                                    LexerError::Overflow(Span::new(self.src, i..i + len), err)
+                                    LexerError::Overflow(&self.src[i..i + len], err)
                                 }
                             }),
                         },
@@ -289,22 +283,16 @@ impl<'a> Iterator for TokenSpans<'a> {
                         match token {
                             Ok(val) => match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
-                                '\'' => {
-                                    Err(LexerError::CharNotOne(Span::new(self.src, i..i + len + 2)))
-                                }
+                                '\'' => Err(LexerError::CharNotOne(&self.src[i..i + len + 2])),
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
                             },
                             Err(err) => match err {
-                                StrError::InvalidEscape(vec) => Err(LexerError::InvalidEscape(
-                                    vec.into_iter()
-                                        .map(|(span, err)| (span.fit_from(self.src), err))
-                                        .collect(),
-                                )),
+                                StrError::InvalidEscape(vec) => Err(LexerError::InvalidEscape(vec)),
                                 StrError::Unterminated => {
                                     self.done = true;
                                     Err(LexerError::UnterminatedQuote(
-                                        Span::new(self.src, i..i + len + 2),
+                                        &self.src[i..i + len + 2],
                                         first,
                                     ))
                                 }
@@ -346,14 +334,11 @@ impl<'a> Iterator for TokenSpans<'a> {
                 }
                 break (
                     first_len,
-                    Err(LexerError::UnknownChar(Span::new(
-                        self.src,
-                        i..i + first_len,
-                    ))),
+                    Err(LexerError::UnknownChar(&self.src[i..i + first_len])),
                 );
             };
             self.i = i + len;
-            Some((Span::new(self.src, i..i + len), result))
+            Some((&self.src[i..i + len], result))
         }
     }
 }
