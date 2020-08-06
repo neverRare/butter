@@ -171,7 +171,7 @@ impl RegularNumber {
                     return if *tries_float {
                         Some(Num::Float(match magnitude_sign {
                             Sign::Plus => f64::MAX,
-                            Sign::Minus => f64::EPSILON,
+                            Sign::Minus => f64::MIN_POSITIVE,
                         }))
                     } else {
                         None
@@ -182,7 +182,7 @@ impl RegularNumber {
         let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
         if magnitude < i32::MIN as i64 {
             if *tries_float {
-                Some(Num::Float(f64::EPSILON))
+                Some(Num::Float(f64::MIN_POSITIVE))
             } else {
                 None
             }
