@@ -61,14 +61,9 @@ pub enum InvalidChar {
     DecimalOnInteger,
 }
 #[derive(PartialEq, Eq, Debug)]
-pub enum OverflowError {
-    Magnitude,
-    Integer,
-}
-#[derive(PartialEq, Eq, Debug)]
 pub enum NumError<'a> {
     InvalidChar(Vec<(&'a str, InvalidChar)>),
-    Overflow(OverflowError),
+    Overflow,
 }
 struct RegularNumber {
     whole: String,
@@ -153,7 +148,7 @@ impl RegularNumber {
         };
         (len, val)
     }
-    fn to_num(&self) -> Result<Num, OverflowError> {
+    fn to_num(&self) -> Option<Num> {
         let RegularNumber {
             whole,
             decimal,
@@ -165,26 +160,45 @@ impl RegularNumber {
         let decimal = decimal.trim_end_matches('0');
         let absissa = whole.to_string() + decimal;
         if absissa.is_empty() {
-            return Ok(Num::UInt(0));
+            return Some(Num::UInt(0));
         }
         let whole_magnitude = if magnitude.is_empty() {
             -(decimal.len() as i64)
         } else {
             match magnitude.parse::<i64>() {
                 Ok(magnitude) => magnitude_sign.to_num() as i64 * magnitude - decimal.len() as i64,
-                Err(_) => return Err(OverflowError::Magnitude),
+                Err(_) => {
+                    return if *tries_float {
+                        Some(Num::Float(match magnitude_sign {
+                            Sign::Plus => f64::MAX,
+                            Sign::Minus => f64::EPSILON,
+                        }))
+                    } else {
+                        None
+                    }
+                }
             }
         };
         let magnitude = absissa.len() as i64 - 1 + whole_magnitude;
-        if magnitude < i32::MIN as i64 || magnitude > i32::MAX as i64 {
-            Err(OverflowError::Magnitude)
+        if magnitude < i32::MIN as i64 {
+            if *tries_float {
+                Some(Num::Float(f64::EPSILON))
+            } else {
+                None
+            }
+        } else if magnitude > i32::MAX as i64 {
+            if *tries_float {
+                Some(Num::Float(f64::MAX))
+            } else {
+                None
+            }
         } else if whole_magnitude >= 0 {
             let mut whole = absissa;
             whole.push_str(&"0".repeat(whole_magnitude as usize));
             match whole.parse::<u64>() {
-                Ok(val) => Ok(Num::UInt(val)),
-                Err(_) if *tries_float => Ok(Num::Float(whole.parse().unwrap())),
-                Err(_) => Err(OverflowError::Integer),
+                Ok(val) => Some(Num::UInt(val)),
+                Err(_) if *tries_float => Some(Num::Float(whole.parse().unwrap())),
+                Err(_) => None,
             }
         } else {
             let mut val = 0f64;
@@ -209,7 +223,7 @@ impl RegularNumber {
                 val += digit * 10f64.powf(magnitude as f64);
                 magnitude -= 1;
             }
-            Ok(Num::Float(val))
+            Some(Num::Float(val))
         }
     }
 }
@@ -240,7 +254,7 @@ pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
         if invalid.is_empty() {
             match u64::from_str_radix(&code, radix.to_num()) {
                 Ok(val) => (len, Ok(Num::UInt(val))),
-                Err(_) => (len, Err(NumError::Overflow(OverflowError::Integer))),
+                Err(_) => (len, Err(NumError::Overflow)),
             }
         } else {
             (len, Err(NumError::InvalidChar(invalid)))
@@ -248,8 +262,8 @@ pub fn parse_number(src: &str) -> (usize, Result<Num, NumError>) {
     } else {
         let (len, num) = RegularNumber::parse(src);
         let val = num.and_then(|num| match num.to_num() {
-            Ok(val) => Ok(val),
-            Err(err) => Err(NumError::Overflow(err)),
+            Some(val) => Ok(val),
+            None => Err(NumError::Overflow),
         });
         (len, val)
     }

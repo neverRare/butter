@@ -1,6 +1,5 @@
 use crate::lexer::number::InvalidChar;
 use crate::lexer::number::NumError;
-use crate::lexer::number::OverflowError;
 use crate::lexer::string::EscapeError;
 use crate::lexer::string::StrError;
 use number::parse_number;
@@ -202,7 +201,7 @@ pub enum LexerError<'a> {
     InvalidEscape(Vec<(&'a str, EscapeError)>),
     CharNotOne(&'a str),
     InvalidChar(Vec<(&'a str, InvalidChar)>),
-    Overflow(&'a str, OverflowError),
+    Overflow(&'a str),
 }
 pub struct TokenSpans<'a> {
     src: &'a str,
@@ -266,9 +265,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                             Ok(num) => Ok(Token::Num(num)),
                             Err(err) => Err(match err {
                                 NumError::InvalidChar(spans) => LexerError::InvalidChar(spans),
-                                NumError::Overflow(err) => {
-                                    LexerError::Overflow(&self.src[i..i + len], err)
-                                }
+                                NumError::Overflow => LexerError::Overflow(&self.src[i..i + len]),
                             }),
                         },
                     );
