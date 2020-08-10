@@ -1,4 +1,7 @@
-use crate::span::Span;
+use crate::lexer::number::InvalidChar;
+use crate::lexer::number::NumError;
+use crate::lexer::string::EscapeError;
+use crate::lexer::string::StrError;
 use number::parse_number;
 use string::parse_string;
 
@@ -166,22 +169,39 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
 }
+impl<'a> Token<'a> {
+    pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<(&str, LexerError)>> {
+        let mut res: Result<_, Vec<(&str, LexerError)>> = Ok(vec![]);
+        for (span, token) in TokenSpans::new(src) {
+            match token {
+                Ok(token) => {
+                    if let Ok(mut vec) = res {
+                        vec.push(token);
+                        res = Ok(vec);
+                    }
+                }
+                Err(err) => {
+                    let err = (span, err);
+                    if let Err(mut vec) = res {
+                        vec.push(err);
+                        res = Err(vec);
+                    } else {
+                        res = Err(vec![err]);
+                    }
+                }
+            }
+        }
+        res
+    }
+}
 #[derive(PartialEq, Eq, Debug)]
-pub enum LexerError {
-    UnknownChar,
-    UnterminatedQuote,
-    CharNotOne,
-    InvalidEscape,
-    InvalidCharOnHex,
-    InvalidCharOnOct,
-    InvalidCharOnBin,
-    DecimalOnInt,
-    DecimalOnMagnitude,
-    InvalidCharOnNum,
-    DoubleMagnitude,
-    DoubleDecimal,
-    MagnitudeOverflow,
-    IntegerOverflow,
+pub enum LexerError<'a> {
+    UnknownChar(&'a str),
+    UnterminatedQuote(&'a str, char),
+    InvalidEscape(Vec<(&'a str, EscapeError)>),
+    CharNotOne(&'a str),
+    InvalidChar(Vec<(&'a str, InvalidChar)>),
+    Overflow(&'a str),
 }
 pub struct TokenSpans<'a> {
     src: &'a str,
@@ -198,13 +218,13 @@ impl<'a> TokenSpans<'a> {
     }
 }
 impl<'a> Iterator for TokenSpans<'a> {
-    type Item = Result<Span<'a, Token<'a>>, Span<'a, LexerError>>;
+    type Item = (&'a str, Result<Token<'a>, LexerError<'a>>);
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
         } else {
             let mut i = self.i;
-            let result = loop {
+            let (len, result) = loop {
                 let src = &self.src[i..];
                 let first = match src.chars().next() {
                     Some(val) => val,
@@ -229,42 +249,55 @@ impl<'a> Iterator for TokenSpans<'a> {
                             .find(|ch: char| !ch.is_alphanumeric())
                             .unwrap_or_default();
                     let ident = &src[..len];
-                    self.i = i + len;
-                    break Ok(match Keyword::from_str(ident) {
-                        Some(keyword) => Token::Keyword(keyword),
-                        None => Token::Identifier(ident),
-                    });
+                    break (
+                        len,
+                        Ok(match Keyword::from_str(ident) {
+                            Some(keyword) => Token::Keyword(keyword),
+                            None => Token::Identifier(ident),
+                        }),
+                    );
                 } else if let ('0'..='9', _) | ('.', Some('0'..='9')) = (first, rest.chars().next())
                 {
-                    break match parse_number(src) {
-                        Ok((len, num)) => {
-                            self.i = i + len;
-                            Ok(Token::Num(num))
-                        }
-                        Err(span) => Err(span.fit_from(src)),
-                    };
+                    let (len, num) = parse_number(src);
+                    break (
+                        len,
+                        match num {
+                            Ok(num) => Ok(Token::Num(num)),
+                            Err(err) => Err(match err {
+                                NumError::InvalidChar(spans) => LexerError::InvalidChar(spans),
+                                NumError::Overflow => LexerError::Overflow(&self.src[i..i + len]),
+                            }),
+                        },
+                    );
                 } else if let '\'' | '"' = first {
                     let rest = match rest.find('\n') {
                         Some(ind) => &rest[..ind],
                         None => rest,
                     };
-                    break match parse_string(first, rest) {
-                        Ok((len, val)) => {
-                            self.i = i + len + 2;
-                            match first {
+                    let (len, token) = parse_string(first, rest);
+                    break (
+                        len + 2,
+                        match token {
+                            Ok(val) => match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
-                                '\'' => {
-                                    Err(Span::new(self.src, LexerError::CharNotOne, i..i + len + 2))
-                                }
+                                '\'' => Err(LexerError::CharNotOne(&self.src[i..i + len + 2])),
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
-                            }
-                        }
-                        Err(span) => Err(span.fit_from(src)),
-                    };
+                            },
+                            Err(err) => match err {
+                                StrError::InvalidEscape(vec) => Err(LexerError::InvalidEscape(vec)),
+                                StrError::Unterminated => {
+                                    self.done = true;
+                                    Err(LexerError::UnterminatedQuote(
+                                        &self.src[i..i + len + 2],
+                                        first,
+                                    ))
+                                }
+                            },
+                        },
+                    );
                 } else if let Some("<--") = src.get(0..3) {
-                    self.i = i + 1;
-                    break Ok(Token::Operator(Operator::Less));
+                    break (1, Ok(Token::Operator(Operator::Less)));
                 } else if let Some(val) = src.get(0..2) {
                     if val == "--" {
                         let rest = &src[2..];
@@ -279,8 +312,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                             }
                         }
                     } else if let Some(val) = Operator::from_str(val) {
-                        self.i = i + 2;
-                        break Ok(Token::Operator(val));
+                        break (2, Ok(Token::Operator(val)));
                     }
                 }
                 if let Some(val) = src.get(0..1) {
@@ -294,55 +326,26 @@ impl<'a> Iterator for TokenSpans<'a> {
                         None
                     };
                     if let Some(token) = token {
-                        self.i = i + 1;
-                        break Ok(token);
+                        break (1, Ok(token));
                     }
                 }
-                break Err(Span::new(
-                    self.src,
-                    LexerError::UnknownChar,
-                    i..i + first.len_utf8(),
-                ));
+                break (
+                    first_len,
+                    Err(LexerError::UnknownChar(&self.src[i..i + first_len])),
+                );
             };
-            Some(match result {
-                Ok(token) => Ok(Span::new(self.src, token, i..self.i + i)),
-                Err(reason) => {
-                    self.done = true;
-                    Err(reason)
-                }
-            })
+            self.i = i + len;
+            Some((&self.src[i..i + len], result))
         }
     }
-}
-pub fn lex(src: &str) -> Result<Vec<Token>, Vec<Span<LexerError>>> {
-    let mut res: Result<_, Vec<Span<LexerError>>> = Ok(vec![]);
-    for token in TokenSpans::new(src) {
-        match token {
-            Ok(val) => {
-                if let Ok(mut vec) = res {
-                    vec.push(val.note);
-                    res = Ok(vec);
-                }
-            }
-            Err(reason) => {
-                if let Err(mut vec) = res {
-                    vec.push(reason);
-                    res = Err(vec);
-                } else {
-                    res = Err(vec![reason]);
-                }
-            }
-        }
-    }
-    res
 }
 #[cfg(test)]
 mod test {
-    use super::{lex, Bracket, Keyword, Num, Opening, Operator, Separator, Token};
+    use super::{Bracket, Keyword, Num, Opening, Operator, Separator, Token};
     #[test]
     fn simple_lex() {
         assert_eq!(
-            lex("-- comment\n identifier truefalse null => + ( ) ; <--"),
+            Token::lex("-- comment\n identifier truefalse null => + ( ) ; <--"),
             Ok(vec![
                 Token::Identifier("identifier"),
                 Token::Identifier("truefalse"),
@@ -359,7 +362,8 @@ mod test {
     #[test]
     fn lex_string() {
         assert_eq!(
-            lex(r#"
+            Token::lex(
+                r#"
 "hello world"
 "hello \"world\""
 "hello world \\"
@@ -369,7 +373,8 @@ mod test {
 '\x7A'
 """"
 'a''a'
-"#),
+"#
+            ),
             Ok(vec![
                 Token::Str(b"hello world".to_vec()),
                 Token::Str(b"hello \"world\"".to_vec()),
@@ -388,7 +393,8 @@ mod test {
     #[test]
     fn lex_number() {
         assert_eq!(
-            lex(r#"
+            Token::lex(
+                r#"
 12
 0.5
 0xff
@@ -400,7 +406,8 @@ mod test {
 4e70
 2.
 .5
-"#),
+"#
+            ),
             Ok(vec![
                 Num::UInt(12),
                 Num::Float(0.5),
