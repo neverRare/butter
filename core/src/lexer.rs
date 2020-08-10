@@ -243,10 +243,10 @@ impl<'a> Iterator for TokenSpans<'a> {
                         }
                         None => return None,
                     }
-                } else if first.is_alphabetic() {
+                } else if first.is_alphabetic() || first == '_' {
                     let len = first_len
                         + rest
-                            .find(|ch: char| !ch.is_alphanumeric())
+                            .find(|ch: char| !ch.is_alphanumeric() && ch != '_')
                             .unwrap_or_default();
                     let ident = &src[..len];
                     break (
@@ -345,10 +345,10 @@ mod test {
     #[test]
     fn simple_lex() {
         assert_eq!(
-            Token::lex("-- comment\n identifier truefalse null => + ( ) ; <--"),
+            Token::lex("-- comment\n identifier true_false null => + ( ) ; <--"),
             Ok(vec![
                 Token::Identifier("identifier"),
-                Token::Identifier("truefalse"),
+                Token::Identifier("true_false"),
                 Token::Keyword(Keyword::Null),
                 Token::Operator(Operator::RightThickArrow),
                 Token::Operator(Operator::Plus),
