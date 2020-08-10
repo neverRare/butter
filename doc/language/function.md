@@ -10,14 +10,6 @@ reverse = (arr) => {
     }
     reverse
 };
-reverse_in_place = (arr) => {
-    orig = *arr;
-    new = [];
-    for elem in orig {
-        new <- [elem, ..new];
-    }
-    *arr <- new;
-};
 ```
 
 ## Parameters
