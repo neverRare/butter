@@ -17,6 +17,11 @@ pub struct TokenTreeSpans<'a> {
     tokens: Option<TokenSpans<'a>>,
     closes: Vec<Bracket>,
 }
+impl<'a> TokenTreeSpans<'a> {
+    pub fn new(src: &'a str) -> Self {
+        src.into()
+    }
+}
 impl<'a, T> From<T> for TokenTreeSpans<'a>
 where
     T: Into<TokenSpans<'a>>,
