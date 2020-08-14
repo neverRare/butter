@@ -167,8 +167,8 @@ impl RegularNumber {
             mantissa_sign,
             tries_float,
         } = self;
-        let absissa = whole.to_string() + decimal;
-        if absissa.is_empty() {
+        let abscissa = whole.to_string() + decimal;
+        if abscissa.is_empty() {
             return Some(Num::UInt(0));
         }
         let whole_mantissa = if mantissa.is_empty() {
@@ -186,7 +186,7 @@ impl RegularNumber {
                 }
             }
         };
-        let mantissa = absissa.len() as i128 - 1 + whole_mantissa;
+        let mantissa = abscissa.len() as i128 - 1 + whole_mantissa;
         if mantissa < f64::MIN_10_EXP as i128 {
             Some(Num::Float(f64::MIN_POSITIVE))
         } else if mantissa > f64::MAX_10_EXP as i128 {
@@ -196,16 +196,16 @@ impl RegularNumber {
                 None
             }
         } else if whole_mantissa >= 0 {
-            let whole = absissa + &"0".repeat(whole_mantissa as usize);
+            let whole = abscissa + &"0".repeat(whole_mantissa as usize);
             match whole.parse() {
                 Ok(val) => Some(Num::UInt(val)),
                 Err(_) if *tries_float => Some(Num::Float(whole.parse().unwrap())),
                 Err(_) => None,
             }
         } else {
-            let absissa = absissa[0..1].to_string() + "." + &absissa[1..];
+            let abscissa = abscissa[0..1].to_string() + "." + &abscissa[1..];
             Some(Num::Float(
-                absissa.parse::<f64>().unwrap() * 10_f64.powi(mantissa as i32),
+                abscissa.parse::<f64>().unwrap() * 10_f64.powi(mantissa as i32),
             ))
         }
     }
