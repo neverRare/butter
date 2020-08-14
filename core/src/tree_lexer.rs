@@ -17,16 +17,11 @@ pub struct TokenTreeSpans<'a> {
     tokens: Option<TokenSpans<'a>>,
     closes: Vec<Bracket>,
 }
-impl<'a> From<TokenSpans<'a>> for TokenTreeSpans<'a> {
-    fn from(val: TokenSpans<'a>) -> Self {
-        Self {
-            tokens: Some(val),
-            closes: vec![],
-        }
-    }
-}
-impl<'a> From<&'a str> for TokenTreeSpans<'a> {
-    fn from(val: &'a str) -> Self {
+impl<'a, T> From<T> for TokenTreeSpans<'a>
+where
+    T: Into<TokenSpans<'a>>,
+{
+    fn from(val: T) -> Self {
         Self {
             tokens: Some(val.into()),
             closes: vec![],
