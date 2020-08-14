@@ -196,12 +196,12 @@ impl<'a> Token<'a> {
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum LexerError<'a> {
-    UnknownChar(&'a str),
-    UnterminatedQuote(&'a str, char),
+    UnknownChar,
+    UnterminatedQuote(char),
     InvalidEscape(Vec<(&'a str, EscapeError)>),
-    CharNotOne(&'a str),
+    CharNotOne,
     InvalidChar(Vec<(&'a str, InvalidChar)>),
-    Overflow(&'a str),
+    Overflow,
 }
 pub struct TokenSpans<'a> {
     src: &'a str,
@@ -270,7 +270,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                             Ok(num) => Ok(Token::Num(num)),
                             Err(err) => Err(match err {
                                 NumError::InvalidChar(spans) => LexerError::InvalidChar(spans),
-                                NumError::Overflow => LexerError::Overflow(&self.src[i..i + len]),
+                                NumError::Overflow => LexerError::Overflow,
                             }),
                         },
                     );
@@ -285,7 +285,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                         match token {
                             Ok(val) => match first {
                                 '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
-                                '\'' => Err(LexerError::CharNotOne(&self.src[i..i + len + 2])),
+                                '\'' => Err(LexerError::CharNotOne),
                                 '"' => Ok(Token::Str(val)),
                                 _ => unreachable!(),
                             },
@@ -293,10 +293,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                                 StrError::InvalidEscape(vec) => Err(LexerError::InvalidEscape(vec)),
                                 StrError::Unterminated => {
                                     self.done = true;
-                                    Err(LexerError::UnterminatedQuote(
-                                        &self.src[i..i + len + 2],
-                                        first,
-                                    ))
+                                    Err(LexerError::UnterminatedQuote(first))
                                 }
                             },
                         },
@@ -334,10 +331,7 @@ impl<'a> Iterator for TokenSpans<'a> {
                         break (1, Ok(token));
                     }
                 }
-                break (
-                    first_len,
-                    Err(LexerError::UnknownChar(&self.src[i..i + first_len])),
-                );
+                break (first_len, Err(LexerError::UnknownChar));
             };
             self.i = i + len;
             Some((&self.src[i..i + len], result))
