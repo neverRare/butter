@@ -208,13 +208,18 @@ pub struct TokenSpans<'a> {
     i: usize,
     done: bool,
 }
-impl<'a> TokenSpans<'a> {
-    pub fn new(src: &'a str) -> Self {
+impl<'a> From<&'a str> for TokenSpans<'a> {
+    fn from(val: &'a str) -> Self {
         TokenSpans {
-            src,
+            src: val,
             i: 0,
             done: false,
         }
+    }
+}
+impl<'a> TokenSpans<'a> {
+    pub fn new(src: &'a str) -> Self {
+        src.into()
     }
 }
 impl<'a> Iterator for TokenSpans<'a> {

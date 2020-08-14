@@ -28,7 +28,7 @@ impl<'a> From<TokenSpans<'a>> for TokenTreeSpans<'a> {
 impl<'a> From<&'a str> for TokenTreeSpans<'a> {
     fn from(val: &'a str) -> Self {
         Self {
-            tokens: Some(TokenSpans::new(val)),
+            tokens: Some(val.into()),
             closes: vec![],
         }
     }
