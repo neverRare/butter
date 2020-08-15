@@ -13,12 +13,13 @@ pub enum BaseTreeResult<'a> {
 pub enum BracketError<'a> {
     Mismatch((&'a str, Bracket), (&'a str, Bracket)),
     Unexpected(&'a str, Bracket),
-    Unmatched(Vec<(&'a str, Bracket)>),
+    Unmatched(&'a str, Bracket),
 }
 pub struct BaseTreeSpans<'a> {
     tokens: TokenSpans<'a>,
     closes: Vec<(&'a str, Bracket)>,
     done: bool,
+    err: bool,
 }
 impl<'a> BaseTreeSpans<'a> {
     pub fn new<T: Into<Self>>(src: T) -> Self {
@@ -33,7 +34,8 @@ where
         BaseTreeSpans {
             tokens: val.into(),
             closes: vec![],
-            done: true,
+            done: false,
+            err: false,
         }
     }
 }
@@ -42,6 +44,15 @@ impl<'a> Iterator for BaseTreeSpans<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.done {
             None
+        } else if self.err {
+            if let Some((src, bracket)) = self.closes.pop() {
+                Some(BaseTreeResult::TreeError(BracketError::Unmatched(
+                    src, bracket,
+                )))
+            } else {
+                self.done = true;
+                None
+            }
         } else if let Some((src, token)) = self.tokens.next() {
             let res = match token {
                 Ok(Token::Bracket(Opening::Open, bracket)) => {
@@ -66,13 +77,14 @@ impl<'a> Iterator for BaseTreeSpans<'a> {
                 Err(err) => BaseTreeResult::LexerError(src, err),
             };
             Some(res)
-        } else if self.closes.is_empty() {
-            self.done = true;
-            None
+        } else if let Some((src, bracket)) = self.closes.pop() {
+            self.err = true;
+            Some(BaseTreeResult::TreeError(BracketError::Unmatched(
+                src, bracket,
+            )))
         } else {
             self.done = true;
-            let errs = self.closes.drain(..).collect();
-            Some(BaseTreeResult::TreeError(BracketError::Unmatched(errs)))
+            None
         }
     }
 }
