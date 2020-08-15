@@ -218,7 +218,7 @@ impl<'a> From<&'a str> for TokenSpans<'a> {
     }
 }
 impl<'a> TokenSpans<'a> {
-    pub fn new(src: &'a str) -> Self {
+    pub fn new<T: Into<Self>>(src: T) -> Self {
         src.into()
     }
 }

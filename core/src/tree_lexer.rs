@@ -21,7 +21,7 @@ pub struct BaseTreeSpans<'a> {
     done: bool,
 }
 impl<'a> BaseTreeSpans<'a> {
-    pub fn new(src: &'a str) -> Self {
+    pub fn new<T: Into<Self>>(src: T) -> Self {
         src.into()
     }
 }
