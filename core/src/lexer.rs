@@ -14,7 +14,7 @@ pub enum Num {
     Int(i64),
     Float(f64),
 }
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Bracket {
     Paren,
     Bracket,
