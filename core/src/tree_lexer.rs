@@ -103,8 +103,8 @@ pub enum Tree<'a> {
 impl<'a> Tree<'a> {
     pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<TreeError<'a>>> {
         let mut errors = vec![];
-        let mut stack: Vec<Vec<Self>> = vec![];
-        let mut current: Vec<Self> = vec![];
+        let mut stack = vec![];
+        let mut current = vec![];
         for token in TreeSpans::new(src) {
             match token {
                 TreeSpansResult::Token(_, token) => {
