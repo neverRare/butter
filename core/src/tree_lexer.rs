@@ -8,7 +8,7 @@ pub enum BaseTreeResult<'a> {
     LexerError(&'a str, LexerError<'a>),
     TreeError(BracketError<'a>),
     In(&'a str, Bracket),
-    Out(&'a str),
+    Out(&'a str, Bracket),
 }
 pub enum BracketError<'a> {
     Mismatch((&'a str, Bracket), (&'a str, Bracket)),
@@ -60,7 +60,7 @@ impl<'a> Iterator for BaseTreeSpans<'a> {
                     BaseTreeResult::In(src, bracket)
                 }
                 Ok(Token::Bracket(Opening::Close, bracket)) => match self.closes.pop() {
-                    Some((_, open)) if open == bracket => BaseTreeResult::Out(src),
+                    Some((_, open)) if open == bracket => BaseTreeResult::Out(src, bracket),
                     Some((first_src, open)) => {
                         self.done = true;
                         BaseTreeResult::TreeError(BracketError::Mismatch(
@@ -85,6 +85,53 @@ impl<'a> Iterator for BaseTreeSpans<'a> {
         } else {
             self.done = true;
             None
+        }
+    }
+}
+pub enum TokenTreeError<'a> {
+    Token(&'a str, LexerError<'a>),
+    Tree(BracketError<'a>),
+}
+pub type TokenTrees<'a> = Vec<TokenTree<'a>>;
+pub enum TokenTree<'a> {
+    Token(Token<'a>),
+    Tree(Bracket, TokenTrees<'a>),
+}
+impl<'a> TokenTree<'a> {
+    pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<TokenTreeError<'a>>> {
+        let mut errors = vec![];
+        let mut stack: Vec<Vec<Self>> = vec![];
+        let mut current: Vec<Self> = vec![];
+        for token in BaseTreeSpans::new(src) {
+            match token {
+                BaseTreeResult::Token(_, token) => {
+                    if errors.is_empty() {
+                        current.push(TokenTree::Token(token));
+                    }
+                }
+                BaseTreeResult::In(_, _) => {
+                    if errors.is_empty() {
+                        stack.push(current.drain(..).collect());
+                    }
+                }
+                BaseTreeResult::Out(_, bracket) => {
+                    if errors.is_empty() {
+                        let prev = stack.pop().unwrap();
+                        current.push(TokenTree::Tree(bracket, prev));
+                    }
+                }
+                BaseTreeResult::LexerError(src, err) => {
+                    errors.push(TokenTreeError::Token(src, err));
+                }
+                BaseTreeResult::TreeError(err) => {
+                    errors.push(TokenTreeError::Tree(err));
+                }
+            }
+        }
+        if errors.is_empty() {
+            Err(errors)
+        } else {
+            Ok(current)
         }
     }
 }
