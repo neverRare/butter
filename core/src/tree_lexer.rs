@@ -10,6 +10,7 @@ pub enum TreeSpansResult<'a> {
     In(&'a str, Bracket),
     Out(&'a str, Bracket),
 }
+#[derive(Debug, PartialEq, Eq)]
 pub enum BracketError<'a> {
     Mismatch((&'a str, Bracket), (&'a str, Bracket)),
     Unexpected(&'a str, Bracket),
@@ -88,11 +89,13 @@ impl<'a> Iterator for TreeSpans<'a> {
         }
     }
 }
+#[derive(Debug, PartialEq, Eq)]
 pub enum TreeError<'a> {
     Token(&'a str, LexerError<'a>),
     Tree(BracketError<'a>),
 }
 pub type Trees<'a> = Vec<Tree<'a>>;
+#[derive(Debug, PartialEq)]
 pub enum Tree<'a> {
     Token(Token<'a>),
     Tree(Bracket, Trees<'a>),
@@ -134,5 +137,20 @@ impl<'a> Tree<'a> {
             debug_assert!(stack.is_empty());
             Ok(current)
         }
+    }
+}
+#[cfg(test)]
+mod test {
+    use super::Tree;
+    use crate::lexer::Bracket;
+    #[test]
+    fn tree_lex() {
+        assert_eq!(
+            Tree::lex("()[{}]"),
+            Ok(vec![
+                Tree::Tree(Bracket::Paren, vec![]),
+                Tree::Tree(Bracket::Bracket, vec![Tree::Tree(Bracket::Brace, vec![])]),
+            ]),
+        );
     }
 }
