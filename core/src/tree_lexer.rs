@@ -131,6 +131,7 @@ impl<'a> Tree<'a> {
         if errors.is_empty() {
             Err(errors)
         } else {
+            debug_assert!(stack.is_empty());
             Ok(current)
         }
     }
