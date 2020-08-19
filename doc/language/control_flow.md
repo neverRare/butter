@@ -14,7 +14,7 @@ Block groups statement and creates scope for declaration.
 -- foo and len can't be used from here
 ```
 
-If the last statement is an expression and ommited the semicolon after it, the block can be used as expression and it will evaluate to the last expression. Butter doesn't have uninitialized variable. Although, it could be simulated with null, using blocks can do better job.
+If the last statement is an expression and omitted the semicolon after it, the block can be used as expression and it will evaluate to the last expression. Butter doesn't have uninitialized variable. Although, it could be simulated with null, using blocks can do better job.
 
 ```butter
 len = {

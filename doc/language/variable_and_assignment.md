@@ -42,7 +42,7 @@ foo = &10;
 *foo <- 20;
 ```
 
-Reasign a value of field.
+Reassign a value of field.
 
 ```butter
 foo = (

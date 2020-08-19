@@ -4,7 +4,7 @@ Unpacking syntax can be used in variable declaration as well as on function para
 
 ## Array unpacking
 
-Array unpacking have similar syntax to array declaration, but they are used on left hand side of declaration, and it does the exact opposite of array declaraion.
+Array unpacking have similar syntax to array declaration, but they are used on left hand side of declaration, and it does the exact opposite of array declaration.
 
 ```butter
 arr = ["hello", "world"];

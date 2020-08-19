@@ -15,7 +15,7 @@ letter = 'a';
 | `\"`     | Double quote                 |
 | `\'`     | Single quote                 |
 | `\n`     | Line feed                    |
-| `\r`     | Catridge return              |
+| `\r`     | Carriage return              |
 | `\t`     | Horizontal tab               |
 | `\v`     | Vertical tab                 |
 | `\0`     | Null                         |

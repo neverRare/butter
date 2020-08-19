@@ -38,7 +38,7 @@ Also pretty straight-forward.
 
 ## Bitwise operations
 
-Operation in bitwise manner, only works with integer. The right hand side operand of bitshifts must be non-negative.
+Operation in bitwise manner, only works with integer. The right hand side operand of bit-shifts must be non-negative.
 
 - And `A & B`
 - Or `A | B`
@@ -47,7 +47,7 @@ Operation in bitwise manner, only works with integer. The right hand side operan
 - Shift left `A << B`
 - Shift right `A >> B`
 
-Bitwise not operator is required to be annotated with traditional type, as the operation depends on it. If we let Butter infer it, it may cause ambuigity.
+Bitwise not operator is required to be annotated with traditional type, as the operation depends on it. If we let Butter infer it, it may cause ambiguity.
 
 ```butter
 foo = ~[u32] bar;
