@@ -119,8 +119,9 @@ impl<'a> Tree<'a> {
                 }
                 TreeSpansResult::Out(_, bracket) => {
                     if errors.is_empty() {
-                        let prev = stack.pop().unwrap();
-                        current.push(Tree::Tree(bracket, prev));
+                        let previous = current;
+                        current = stack.pop().unwrap();
+                        current.push(Self::Tree(bracket, previous));
                     }
                 }
                 TreeSpansResult::TokenError(src, err) => {
