@@ -5,7 +5,7 @@ Null represents absence of value. This is often used with other types to produce
 ```butter
 input = {
     input = std::read();
-    if input.len > 0 (input) else (null)
+    if input.len > 0 { input } else { null }
 };
 ```
 
@@ -14,7 +14,7 @@ input = {
 You can use `== null` or `!= null` to check whether the value is null or not. One of the operand must be exactly `null`.
 
 ```butter
-name = if input != null (input) else {
+name = if input != null { input } else {
     std::println("invalid input");
     abort -1;
 };
