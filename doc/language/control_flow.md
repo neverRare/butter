@@ -73,7 +73,13 @@ std::print(message);
 
 ## For
 
-TODO
+`for` iterates over an array. However, it should not be used as expression.
+
+```butter
+for fruit in ["apple", "banana", "cherry"] {
+    std::print([..fruit, .." is yummy!"]);
+}
+```
 
 ## While
 
