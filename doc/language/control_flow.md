@@ -34,7 +34,42 @@ if input.len == 0 {
 }
 ```
 
-TODO
+You can add an `else` branch which gets executed when the condition isn't true
+
+```butter
+input = std::get_line();
+if input.len == 0 {
+    std::print("please input something meaningful\n");
+} else {
+    std::print("thanks for the input!\n");
+}
+```
+
+And you can branch as many `if`s as necessary.
+
+```butter
+password = std::get_line();
+len = input.len;
+if len == 0 {
+    std::print("please input a password\n");
+} else if len < 8 {
+    std::print("password too short\n");
+} else {
+    std::print("alright!\n");
+}
+```
+
+`if` is an expression, just like blocks, it will evaluate to the last expression if its last semicolon is omitted. In this case, there should be a hanging `else`.
+
+```butter
+input = std::get_line();
+message = if input.len == 0 {
+    "please input something meaningful\n"
+} else {
+    "thanks for the input!\n"
+};
+std::print(message);
+```
 
 ## For
 
