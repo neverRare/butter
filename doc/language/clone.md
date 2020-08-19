@@ -1,10 +1,10 @@
 # Clone
 
-Clone takes a reference of a value and returns a deep-copy of its underlying value.
+Clone creates a deep-copy of a value.
 
 ```butter
 foo = 10;
-bar = clone &foo;
+bar = clone foo;
 foo <- 20;
 std::assert(bar == 10);
 ```
