@@ -109,7 +109,7 @@ impl<'a> Tree<'a> {
             match token {
                 TreeSpansResult::Token(_, token) => {
                     if errors.is_empty() {
-                        current.push(Tree::Token(token));
+                        current.push(Self::Token(token));
                     }
                 }
                 TreeSpansResult::In(_, _) => {
