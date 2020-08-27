@@ -298,9 +298,12 @@ impl<'a> Iterator for TokenSpans<'a> {
                             },
                         },
                     );
-                } else if let Some("<--") = src.get(0..3) {
-                    break (1, Ok(Token::Operator(Operator::Less)));
-                } else if let Some(val) = src.get(0..2) {
+                }
+                let special = src
+                    .get(0..3)
+                    .map(|val| val == "<--" || val == "==>")
+                    .unwrap_or_default();
+                if let (false, Some(val)) = (special, src.get(0..2)) {
                     if val == "--" {
                         let rest = &src[2..];
                         match rest.find('\n') {
