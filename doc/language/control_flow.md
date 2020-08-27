@@ -73,7 +73,7 @@ std::print(message);
 
 ## For
 
-`for` iterates over an array. However, it should not be used as expression.
+`for` iterates over an array. It should not be used as expression however.
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
