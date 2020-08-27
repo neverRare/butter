@@ -83,8 +83,53 @@ for fruit in ["apple", "banana", "cherry"] {
 
 ## While
 
-TODO
+`while` repeatedly executes the body while the condition is true. This kind of statement shouldn't be used as expression.
+
+```butter
+i = 0;
+while i < 10 {
+    std::print("hello!\n");
+    i <- i + 1;
+}
+```
 
 ## Loop
 
+`loop` creates an infinite loop. It can be exited with `break`.
+
+```butter
+loop {
+    std::print("this is an infinite loop!\n");
+}
+```
+
+Unlike other loops, `loop` can be used as expression if its break statements have expression.
+
+```butter
+counter = 0;
+result = loop {
+    counter <- counter + 1;
+    if counter == 10 {
+        break counter * 2;
+    }
+};
+std::assert(result == 20);
+```
+
+## Break
+
 TODO
+
+## Continue
+
+TODO
+
+## Label
+
+Loop expression such as `loop`, `while`, and `for` and be labelled. This is useful especially when using `break` or `continue` on deep loops.
+
+TODO example
+
+---
+
+Note: `for` and `while` are technically expressions as well, but they always return `()` regardless of its content, hence the recommendation to not use it as an expression where a value is expected.
