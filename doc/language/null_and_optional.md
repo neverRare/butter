@@ -22,7 +22,7 @@ name = if input != null { input } else {
 
 ## Null Coalescing Operator
 
-You can use the `??` operator. TODO more explanation.
+You can use the `??` operator. It evaluates to left expression if its not null, otherwise, the right expression. This short-circuits, which means the right expression only get evaluated when the left is null.
 
 ```butter
 name = input ?? "unnamed";
