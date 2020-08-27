@@ -73,7 +73,7 @@ std::print(message);
 
 ## For
 
-`for` iterates over an array. It should not be used as expression however.
+`for` iterates over an array.
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
@@ -83,7 +83,7 @@ for fruit in ["apple", "banana", "cherry"] {
 
 ## While
 
-`while` repeatedly executes the body while the condition is true. This kind of statement shouldn't be used as expression.
+`while` repeatedly executes the body while the condition is true.
 
 ```butter
 i = 0;
@@ -103,7 +103,7 @@ loop {
 }
 ```
 
-Unlike other loops, `loop` can be used as expression if its break statements have expression.
+`loop` is an expression when its `break` have an expression.
 
 ```butter
 counter = 0;
@@ -129,7 +129,3 @@ TODO
 Loop expression such as `loop`, `while`, and `for` and be labelled. This is useful especially when using `break` or `continue` on deep loops.
 
 TODO example
-
----
-
-Note: `for` and `while` are technically expressions as well, but they always return `()` regardless of its content, hence the recommendation to not use it as an expression where a value is expected.
