@@ -1,6 +1,6 @@
 # Unpacking
 
-Unpacking syntax can be used in variable declaration as well as on function parameter. Unpacking can be referred to as destructuring.
+Unpacking syntax can be used in variable declaration as well as on function parameter. These are syntactic sugar to accessing field value or element and assigning it to a declared variable. Unpacking can be referred to as destructuring.
 
 ## Array unpacking
 
@@ -28,12 +28,36 @@ You can unpack from its start or its end then unpack the rest. There can only be
 
 ## Struct unpacking
 
-TODO
+You can unpack a struct via `()`. These assigns field value to a variable with the same name, if you wish to use another variable name, use `:`.
+
+```butter
+user = (
+    name: "someone",
+    email: "someone@example.com",
+);
+(name: username, email) = user;
+```
+
+If you wish to ignore some fields, simply don't write it.
+
+```butter
+(email) = user;
+```
 
 ## Nesting
 
-TODO
+You can nest unpacking syntax.
 
-## Parameter
-
-TODO
+```butter
+users = [
+    (
+        name: "someone",
+        email: "someone@example.com",
+    ),
+    (
+        name: "anyone",
+        email: "anyone@example.com",
+    ),
+];
+[(name, email), .._] = users;
+```
