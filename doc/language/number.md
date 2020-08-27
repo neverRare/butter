@@ -42,7 +42,7 @@ Operation in bitwise manner, only works with integer. The right hand side operan
 
 - AND `A & B`
 - OR `A | B`
-- NOT `~[T] A` (requires to be annotated with traditional type)
+- NOT `!<T>A` (requires to be annotated with traditional type)
 - XOR `A ^ B`
 - Shift left `A << B`
 - Shift right `A >> B`
@@ -50,7 +50,7 @@ Operation in bitwise manner, only works with integer. The right hand side operan
 Bitwise NOT operator is required to be annotated with traditional type, as the operation depends on it. If we let Butter infer it, it may cause ambiguity.
 
 ```butter
-foo = ~[u32] bar;
+foo = !<u32>bar;
 ```
 
 The following annotation are available for bitwise NOT operator.
