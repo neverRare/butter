@@ -11,7 +11,7 @@ input = {
 
 ## Handling Null
 
-You can use `== null` or `!= null` to check whether the value is null or not. One of the operand must be exactly `null`.
+You can use `== null` or `!= null` to check whether the value is null or not.
 
 ```butter
 name = if input != null { input } else {
