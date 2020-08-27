@@ -40,20 +40,20 @@ Also pretty straight-forward.
 
 Operation in bitwise manner, only works with integer. The right hand side operand of bit-shifts must be non-negative.
 
-- And `A & B`
-- Or `A | B`
-- Not `~[T] A` (requires to be annotated with traditional type)
-- Xor `A ^ B`
+- AND `A & B`
+- OR `A | B`
+- NOT `~[T] A` (requires to be annotated with traditional type)
+- XOR `A ^ B`
 - Shift left `A << B`
 - Shift right `A >> B`
 
-Bitwise not operator is required to be annotated with traditional type, as the operation depends on it. If we let Butter infer it, it may cause ambiguity.
+Bitwise NOT operator is required to be annotated with traditional type, as the operation depends on it. If we let Butter infer it, it may cause ambiguity.
 
 ```butter
 foo = ~[u32] bar;
 ```
 
-The following annotation are available for bitwise not operator.
+The following annotation are available for bitwise NOT operator.
 
 - `u8`
 - `u16`

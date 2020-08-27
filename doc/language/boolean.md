@@ -8,10 +8,12 @@ foo = true;
 
 ## Logical operators
 
-- And `A && B`
-- Or `A || B`
-- Not `!A`
-- Nxor `A == B`
-- Xor `A != B`
+- AND `A && B`
+- OR `A || B`
+- NOT `!A`
+- NXOR `A == B`
+- XOR `A != B`
 
-"And" and "or" operators have short-circuiting behavior. When the left hand side of "and" operator is false, it immediately evaluates to false without evaluating the right hand side. Same for "or" operator with left hand side being true.
+AND and OR operators have short-circuiting behavior. When the left hand side of AND operator is false, it immediately evaluates to false without evaluating the right hand side. Same for OR operator with left hand side being true.
+
+Note that NXOR and XOR are just equality operator.
