@@ -42,7 +42,7 @@ Operation in bitwise manner, only works with integer. The right hand side operan
 
 - AND `A & B`
 - OR `A | B`
-- NOT `!<T>A` (requires to be annotated with traditional type)
+- NOT `!<T>A`
 - XOR `A ^ B`
 - Shift left `A << B`
 - Shift right `A >> B`
