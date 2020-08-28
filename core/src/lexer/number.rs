@@ -1,5 +1,8 @@
-use crate::lexer::Num;
-
+#[derive(PartialEq, Debug)]
+pub enum Num {
+    UInt(u64),
+    Float(f64),
+}
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Radix {
     Hex,

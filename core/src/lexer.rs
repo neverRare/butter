@@ -1,4 +1,5 @@
 use crate::lexer::number::InvalidChar;
+use crate::lexer::number::Num;
 use crate::lexer::number::NumError;
 use crate::lexer::string::EscapeError;
 use crate::lexer::string::StrError;
@@ -8,12 +9,6 @@ use string::parse_string;
 mod number;
 mod string;
 
-#[derive(PartialEq, Debug)]
-pub enum Num {
-    UInt(u64),
-    Int(i64),
-    Float(f64),
-}
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Bracket {
     Paren,
