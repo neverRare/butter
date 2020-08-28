@@ -59,6 +59,7 @@ The following annotation are available for bitwise NOT operator.
 - `u16`
 - `u32`
 - `u64`
+- `i`
 - `i8`
 - `i16`
 - `i32`
