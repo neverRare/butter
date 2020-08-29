@@ -33,6 +33,7 @@ fn get_bracket(bracket: &str) -> Option<(Opening, Bracket)> {
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum Keyword {
+    Abort,
     Move,
     True,
     False,
@@ -50,6 +51,7 @@ pub enum Keyword {
 impl Keyword {
     fn from_str(bracket: &str) -> Option<Self> {
         Some(match bracket {
+            "abort" => Self::Abort,
             "move" => Self::Move,
             "true" => Self::True,
             "false" => Self::False,
