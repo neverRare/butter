@@ -49,8 +49,8 @@ pub enum Keyword {
     Continue,
 }
 impl Keyword {
-    fn from_str(bracket: &str) -> Option<Self> {
-        Some(match bracket {
+    fn from_str(keyword: &str) -> Option<Self> {
+        Some(match keyword {
             "abort" => Self::Abort,
             "move" => Self::Move,
             "true" => Self::True,
@@ -75,8 +75,8 @@ pub enum Separator {
     Semicolon,
 }
 impl Separator {
-    fn from_str(bracket: &str) -> Option<Self> {
-        Some(match bracket {
+    fn from_str(separator: &str) -> Option<Self> {
+        Some(match separator {
             "," => Self::Comma,
             ";" => Self::Semicolon,
             _ => return None,
