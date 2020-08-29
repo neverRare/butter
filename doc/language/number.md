@@ -25,6 +25,8 @@ Pretty straight-forward. The right hand side of division, floor division, and mo
 - Unary plus `+A`
 - Unary minus `-B`
 
+Modulo internally uses floor division, the result will have the same sign as the right expression.
+
 ## Comparison operations
 
 Also pretty straight-forward.
