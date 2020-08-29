@@ -1,17 +1,36 @@
 # Reserved keywords
 
-The following keywords can't be used as identifier since they either have special meaning for Butter or is reserved for future features.
+Butter have keywords that either have special meaning or reserved for future use.
 
-- `move`
-- `true`
-- `false`
-- `null`
+The following are keywords that have special meaning for current version. They cannot be used as identifiers.
+
+- `abort`
+- `break`
 - `clone`
-- `if`
+- `continue`
 - `else`
+- `false`
 - `for`
+- `if`
 - `in`
 - `loop`
+- `move`
+- `null`
+- `true`
 - `while`
-- `break`
-- `continue`
+
+The following are reserved for possible future features. These will cause a warning when written in Butter code, indicating other identifier should be used to maintain forward compatibility.
+
+- `box`
+- `case`
+- `cell`
+- `const`
+- `do`
+- `dyn`
+- `extern`
+- `mod`
+- `rc`
+- `return`
+- `switch`
+- `use`
+- `unsafe`
