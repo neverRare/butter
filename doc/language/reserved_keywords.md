@@ -23,11 +23,16 @@ The following are reserved for possible future features. These will cause a warn
 
 - `allow`
 - `as`
+- `async`
+- `await`
 - `box`
+- `chan`
+- `concur`
 - `do`
 - `extern`
 - `is`
 - `mod`
 - `return`
+- `thread`
 - `use`
 - `when`
