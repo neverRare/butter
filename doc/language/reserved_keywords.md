@@ -19,18 +19,15 @@ The following are keywords that have special meaning for current version. They c
 - `true`
 - `while`
 
-The following are reserved for possible future features. These will cause a warning when written in Butter code, indicating other identifier should be used to maintain forward compatibility.
+The following are reserved for possible future features. These will cause a warning when written in Butter code, indicating other name should be used to maintain forward compatibility.
 
+- `allow`
+- `as`
 - `box`
-- `case`
-- `cell`
-- `const`
 - `do`
-- `dyn`
 - `extern`
+- `is`
 - `mod`
-- `rc`
 - `return`
-- `switch`
 - `use`
-- `unsafe`
+- `when`
