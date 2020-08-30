@@ -62,3 +62,12 @@ say_hello = name => {
 }
 say_hello();
 ```
+
+## Move
+
+Functions uses `move`, this is thoroughly explained at TODO link to function's move semantic. Notice that `move` is a keyword, it won't be used as parameter, in the example below, the function don't really have a parameter.
+
+```butter
+message = "hello";
+say_message = move => std::print(message);
+```
