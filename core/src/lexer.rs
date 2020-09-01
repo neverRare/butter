@@ -4,11 +4,27 @@ use crate::lexer::number::NumError;
 use crate::lexer::string::EscapeError;
 use crate::lexer::string::StrError;
 use number::parse_number;
+use std::num::NonZeroUsize;
 use string::parse_string;
+use util::lexer::Lex;
+use util::lexer::MoveState;
 
 mod number;
 mod string;
 
+struct Ident<'a>(&'a str);
+impl<'a> Lex<'a> for Ident<'a> {
+    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+        match src.find(|ch: char| !ch.is_alphanumeric()) {
+            None => Some((MoveState::Stop, Self(src))),
+            Some(0) => None,
+            Some(i) => Some((
+                MoveState::Move(NonZeroUsize::new(i).unwrap()),
+                Self(&src[..i]),
+            )),
+        }
+    }
+}
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Bracket {
     Paren,
@@ -20,16 +36,23 @@ pub enum Opening {
     Open,
     Close,
 }
-fn get_bracket(bracket: &str) -> Option<(Opening, Bracket)> {
-    Some(match bracket {
-        "(" => (Opening::Open, Bracket::Paren),
-        ")" => (Opening::Close, Bracket::Paren),
-        "[" => (Opening::Open, Bracket::Bracket),
-        "]" => (Opening::Close, Bracket::Bracket),
-        "{" => (Opening::Open, Bracket::Brace),
-        "}" => (Opening::Close, Bracket::Brace),
-        _ => return None,
-    })
+struct OpeningBracket(Opening, Bracket);
+impl<'a> Lex<'a> for OpeningBracket {
+    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+        let (opening, bracket) = match src.get(..1)? {
+            "(" => (Opening::Open, Bracket::Paren),
+            ")" => (Opening::Close, Bracket::Paren),
+            "[" => (Opening::Open, Bracket::Bracket),
+            "]" => (Opening::Close, Bracket::Bracket),
+            "{" => (Opening::Open, Bracket::Brace),
+            "}" => (Opening::Close, Bracket::Brace),
+            _ => return None,
+        };
+        Some((
+            MoveState::Move(NonZeroUsize::new(1).unwrap()),
+            Self(opening, bracket),
+        ))
+    }
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum Keyword {
@@ -48,9 +71,10 @@ pub enum Keyword {
     Break,
     Continue,
 }
-impl Keyword {
-    fn from_str(keyword: &str) -> Option<Self> {
-        Some(match keyword {
+impl<'a> Lex<'a> for Keyword {
+    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+        let (move_state, Ident(ident)) = Lex::lex_first(src)?;
+        let keyword = match ident {
             "abort" => Self::Abort,
             "move" => Self::Move,
             "true" => Self::True,
@@ -66,7 +90,8 @@ impl Keyword {
             "break" => Self::Break,
             "continue" => Self::Continue,
             _ => return None,
-        })
+        };
+        Some((move_state, keyword))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -74,13 +99,14 @@ pub enum Separator {
     Comma,
     Semicolon,
 }
-impl Separator {
-    fn from_str(separator: &str) -> Option<Self> {
-        Some(match separator {
+impl<'a> Lex<'a> for Separator {
+    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+        let separator = match src.get(..1)? {
             "," => Self::Comma,
             ";" => Self::Semicolon,
             _ => return None,
-        })
+        };
+        Some((MoveState::Move(NonZeroUsize::new(1).unwrap()), separator))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -117,42 +143,56 @@ pub enum Operator {
     Question,
     DoubleQuestion,
 }
-impl Operator {
-    fn from_str(operator: &str) -> Option<Self> {
-        Some(match operator {
+impl<'a> Lex<'a> for Operator {
+    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+        let special = src
+            .get(..3)
+            .map(|val| val == "<--" || val == "==>")
+            .unwrap_or(false);
+        if !special {
+            let operator = src.get(..2).and_then(|operator| match operator {
+                "==" => Some(Self::DoubleEqual),
+                "!=" => Some(Self::NotEqual),
+                "::" => Some(Self::DoubleColon),
+                ".." => Some(Self::DoubleDot),
+                "//" => Some(Self::DoubleSlash),
+                "&&" => Some(Self::DoubleAmp),
+                "||" => Some(Self::DoublePipe),
+                ">>" => Some(Self::DoubleGreater),
+                "<<" => Some(Self::DoubleLess),
+                ">=" => Some(Self::GreaterEqual),
+                "<=" => Some(Self::LessEqual),
+                "<-" => Some(Self::LeftArrow),
+                "->" => Some(Self::RightArrow),
+                "=>" => Some(Self::RightThickArrow),
+                "??" => Some(Self::DoubleQuestion),
+                _ => None,
+            });
+            if let Some(operator) = operator {
+                return Some((MoveState::Move(NonZeroUsize::new(2).unwrap()), operator));
+            }
+        }
+        let operator = src.get(..1)?;
+        let operator = match operator {
             "=" => Self::Equal,
-            "==" => Self::DoubleEqual,
-            "!=" => Self::NotEqual,
             ":" => Self::Colon,
-            "::" => Self::DoubleColon,
             "." => Self::Dot,
-            ".." => Self::DoubleDot,
             "+" => Self::Plus,
             "-" => Self::Minus,
             "*" => Self::Star,
             "/" => Self::Slash,
-            "//" => Self::DoubleSlash,
             "%" => Self::Percent,
             "!" => Self::Bang,
             "&" => Self::Amp,
             "|" => Self::Pipe,
             "^" => Self::Caret,
             "~" => Self::Tilde,
-            "&&" => Self::DoubleAmp,
-            "||" => Self::DoublePipe,
             ">" => Self::Greater,
             "<" => Self::Less,
-            ">>" => Self::DoubleGreater,
-            "<<" => Self::DoubleLess,
-            ">=" => Self::GreaterEqual,
-            "<=" => Self::LessEqual,
-            "<-" => Self::LeftArrow,
-            "->" => Self::RightArrow,
-            "=>" => Self::RightThickArrow,
             "?" => Self::Question,
-            "??" => Self::DoubleQuestion,
             _ => return None,
-        })
+        };
+        Some((MoveState::Move(NonZeroUsize::new(1).unwrap()), operator))
     }
 }
 #[derive(PartialEq, Debug)]
