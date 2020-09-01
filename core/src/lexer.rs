@@ -10,6 +10,20 @@ impl<'a> Lex<'a> for Whitespace {
         }
     }
 }
+struct Comment<'a>(&'a str);
+impl<'a> Lex<'a> for Comment<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        if let Some("--") = src.get(..2) {
+            match src[2..].find('\n') {
+                None => Some((src.len(), Self(src))),
+                Some(0) => None,
+                Some(i) => Some((i + 2, Self(&src[2..i + 2]))),
+            }
+        } else {
+            None
+        }
+    }
+}
 struct Ident<'a>(&'a str);
 impl<'a> Lex<'a> for Ident<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
