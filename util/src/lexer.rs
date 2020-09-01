@@ -1,7 +1,8 @@
 use std::marker::PhantomData;
+use std::num::NonZeroUsize;
 
 pub enum MoveState {
-    Move(usize),
+    Move(NonZeroUsize),
     Stop,
 }
 pub trait Lex<'a>: Sized {
@@ -41,7 +42,7 @@ where
                 None => None,
                 Some((move_state, token)) => {
                     match move_state {
-                        MoveState::Move(step) => self.src = &self.src[step..],
+                        MoveState::Move(step) => self.src = &self.src[step.get()..],
                         MoveState::Stop => self.src = "",
                     }
                     Some(token)
