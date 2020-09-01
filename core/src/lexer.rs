@@ -1,23 +1,12 @@
-use crate::lexer::number::InvalidChar;
-use crate::lexer::number::Num;
-use crate::lexer::number::NumError;
-use crate::lexer::string::EscapeError;
-use crate::lexer::string::StrError;
-use number::parse_number;
-use string::parse_string;
 use util::lexer::Lex;
-use util::lexer::MoveState;
-
-mod number;
-mod string;
 
 struct Ident<'a>(&'a str);
 impl<'a> Lex<'a> for Ident<'a> {
-    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         match src.find(|ch: char| !ch.is_alphanumeric()) {
-            None => Some((MoveState::Stop, Self(src))),
+            None => Some((src.len(), Self(src))),
             Some(0) => None,
-            Some(i) => Some((MoveState::Move(i), Self(&src[..i]))),
+            Some(i) => Some((i, Self(&src[..i]))),
         }
     }
 }
@@ -34,7 +23,7 @@ pub enum Opening {
 }
 struct OpeningBracket(Opening, Bracket);
 impl<'a> Lex<'a> for OpeningBracket {
-    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         let (opening, bracket) = match src.get(..1)? {
             "(" => (Opening::Open, Bracket::Paren),
             ")" => (Opening::Close, Bracket::Paren),
@@ -44,7 +33,7 @@ impl<'a> Lex<'a> for OpeningBracket {
             "}" => (Opening::Close, Bracket::Brace),
             _ => return None,
         };
-        Some((MoveState::Move(1), Self(opening, bracket)))
+        Some((1, Self(opening, bracket)))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -65,7 +54,7 @@ pub enum Keyword {
     Continue,
 }
 impl<'a> Lex<'a> for Keyword {
-    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         let (move_state, Ident(ident)) = Lex::lex_first(src)?;
         let keyword = match ident {
             "abort" => Self::Abort,
@@ -93,13 +82,13 @@ pub enum Separator {
     Semicolon,
 }
 impl<'a> Lex<'a> for Separator {
-    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         let separator = match src.get(..1)? {
             "," => Self::Comma,
             ";" => Self::Semicolon,
             _ => return None,
         };
-        Some((MoveState::Move(1), separator))
+        Some((1, separator))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -137,7 +126,7 @@ pub enum Operator {
     DoubleQuestion,
 }
 impl<'a> Lex<'a> for Operator {
-    fn lex_first(src: &'a str) -> Option<(MoveState, Self)> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         let special = src
             .get(..3)
             .map(|val| val == "<--" || val == "==>")
@@ -162,7 +151,7 @@ impl<'a> Lex<'a> for Operator {
                 _ => None,
             });
             if let Some(operator) = operator {
-                return Some((MoveState::Move(2), operator));
+                return Some((2, operator));
             }
         }
         let operator = src.get(..1)?;
@@ -185,7 +174,7 @@ impl<'a> Lex<'a> for Operator {
             "?" => Self::Question,
             _ => return None,
         };
-        Some((MoveState::Move(1), operator))
+        Some((1, operator))
     }
 }
 #[derive(PartialEq, Debug)]
