@@ -1,1 +1,3 @@
-mod lexer;
+pub mod lexer;
+
+pub enum Void {}
