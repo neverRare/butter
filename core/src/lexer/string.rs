@@ -1,4 +1,3 @@
-use std::num::NonZeroUsize;
 use util::lexer::Lex;
 use util::lexer::MoveState;
 
@@ -28,7 +27,7 @@ impl<'a> Lex<'a> for Char<'a> {
                         Some(val) => codes.push(val as u8),
                         None => {
                             return Some((
-                                MoveState::Move(NonZeroUsize::new(2 + len).unwrap()),
+                                MoveState::Move(2 + len),
                                 Self::Error(
                                     &code_rest[ind..ind + ch.len_utf8()],
                                     EscapeError::InvalidHexChar,
@@ -47,7 +46,7 @@ impl<'a> Lex<'a> for Char<'a> {
                 } else {
                     Self::Byte((codes[0] << 4) + codes[1])
                 };
-                Some((MoveState::Move(NonZeroUsize::new(2 + len).unwrap()), token))
+                Some((MoveState::Move(2 + len), token))
             } else {
                 let byte = match escape {
                     '\\' => b'\\',
@@ -60,28 +59,19 @@ impl<'a> Lex<'a> for Char<'a> {
                     '0' => b'\0',
                     _ => {
                         return Some((
-                            MoveState::Move(NonZeroUsize::new(1 + escape.len_utf8()).unwrap()),
+                            MoveState::Move(1 + escape.len_utf8()),
                             Self::Error(&src[1..1 + escape.len_utf8()], EscapeError::InvalidChar),
                         ))
                     }
                 };
-                Some((
-                    MoveState::Move(NonZeroUsize::new(2).unwrap()),
-                    Self::Byte(byte),
-                ))
+                Some((MoveState::Move(2), Self::Byte(byte)))
             }
         } else if let '\'' = first {
-            Some((MoveState::Move(NonZeroUsize::new(1).unwrap()), Self::Quote))
+            Some((MoveState::Move(1), Self::Quote))
         } else if let '"' = first {
-            Some((
-                MoveState::Move(NonZeroUsize::new(1).unwrap()),
-                Self::DoubleQuote,
-            ))
+            Some((MoveState::Move(1), Self::DoubleQuote))
         } else {
-            Some((
-                MoveState::Move(NonZeroUsize::new(1).unwrap()),
-                Self::Char(first),
-            ))
+            Some((MoveState::Move(1), Self::Char(first)))
         }
     }
 }

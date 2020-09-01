@@ -4,7 +4,6 @@ use crate::lexer::number::NumError;
 use crate::lexer::string::EscapeError;
 use crate::lexer::string::StrError;
 use number::parse_number;
-use std::num::NonZeroUsize;
 use string::parse_string;
 use util::lexer::Lex;
 use util::lexer::MoveState;
@@ -18,10 +17,7 @@ impl<'a> Lex<'a> for Ident<'a> {
         match src.find(|ch: char| !ch.is_alphanumeric()) {
             None => Some((MoveState::Stop, Self(src))),
             Some(0) => None,
-            Some(i) => Some((
-                MoveState::Move(NonZeroUsize::new(i).unwrap()),
-                Self(&src[..i]),
-            )),
+            Some(i) => Some((MoveState::Move(i), Self(&src[..i]))),
         }
     }
 }
@@ -48,10 +44,7 @@ impl<'a> Lex<'a> for OpeningBracket {
             "}" => (Opening::Close, Bracket::Brace),
             _ => return None,
         };
-        Some((
-            MoveState::Move(NonZeroUsize::new(1).unwrap()),
-            Self(opening, bracket),
-        ))
+        Some((MoveState::Move(1), Self(opening, bracket)))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -106,7 +99,7 @@ impl<'a> Lex<'a> for Separator {
             ";" => Self::Semicolon,
             _ => return None,
         };
-        Some((MoveState::Move(NonZeroUsize::new(1).unwrap()), separator))
+        Some((MoveState::Move(1), separator))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -169,7 +162,7 @@ impl<'a> Lex<'a> for Operator {
                 _ => None,
             });
             if let Some(operator) = operator {
-                return Some((MoveState::Move(NonZeroUsize::new(2).unwrap()), operator));
+                return Some((MoveState::Move(2), operator));
             }
         }
         let operator = src.get(..1)?;
@@ -192,7 +185,7 @@ impl<'a> Lex<'a> for Operator {
             "?" => Self::Question,
             _ => return None,
         };
-        Some((MoveState::Move(NonZeroUsize::new(1).unwrap()), operator))
+        Some((MoveState::Move(1), operator))
     }
 }
 #[derive(PartialEq, Debug)]
