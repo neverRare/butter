@@ -179,26 +179,19 @@ impl<'a> Lex<'a> for Operator {
 }
 #[derive(PartialEq, Debug)]
 pub enum Token<'a> {
-    Num(Num),
-    Str(Vec<u8>),
-    Char(u8),
+    Whitespace,
+    Comment(&'a str),
+    Num(&'a str),
+    Str(&'a str),
+    Char(&'a str),
     Keyword(Keyword),
     Identifier(&'a str),
     Separator(Separator),
     Bracket(Opening, Bracket),
     Operator(Operator),
-    Error(LexerError<'a>),
+    UnterminatedQuote,
+    InvalidToken,
 }
-#[derive(PartialEq, Eq, Debug)]
-pub enum LexerError<'a> {
-    UnknownChar,
-    UnterminatedQuote(char),
-    InvalidEscape(Vec<(&'a str, EscapeError)>),
-    CharNotOne,
-    InvalidChar(Vec<(&'a str, InvalidChar)>),
-    Overflow,
-}
-struct TokenSpan<'a>(&'a str, Token<'a>);
 // #[cfg(test)]
 // mod test {
 //     use super::{Bracket, Keyword, Num, Opening, Operator, Separator, Token};
