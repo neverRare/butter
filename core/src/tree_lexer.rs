@@ -124,20 +124,15 @@ impl<'a, 'b> Iterator for TreeIter<'a, 'b> {
             None
         } else {
             let (span, node) = &self.src[0];
+            self.src = &self.src[1..];
             let token = match node {
-                Node::Token(token) => {
-                    self.src = &self.src[1..];
-                    TokenTree::Token(token)
-                }
+                Node::Token(token) => TokenTree::Token(token),
                 Node::Tree(bracket, len) => {
-                    let tree = Tree(&self.src[1 + len..]);
-                    self.src = &self.src[1..];
+                    let tree = Tree(&self.src[..*len]);
+                    self.src = &self.src[*len..];
                     TokenTree::Tree(bracket, tree)
                 }
-                Node::Error(msg) => {
-                    self.src = &self.src[1..];
-                    TokenTree::Error(msg)
-                }
+                Node::Error(msg) => TokenTree::Error(msg),
             };
             Some((span, token))
         }
