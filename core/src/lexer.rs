@@ -294,20 +294,20 @@ pub enum Token<'a> {
 impl<'a> Lex<'a> for Token<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         match_lex! { src;
-            Whitespace => Self::Whitespace,
-            Comment(content) => Self::Comment(content),
-            Num(num) => Self::Num(num),
-            Keyword(keyword) => Self::Keyword(keyword),
-            Ident(ident) => Self::Identifier(ident),
-            OpeningBracket(opening, bracket) => Self::Bracket(opening, bracket),
-            Separator(separator) => Self::Separator(separator),
-            Operator(operator) => Self::Operator(operator),
-            Str::Str(content) => Self::Str(content),
-            Str::Char(content) => Self::Char(content),
-            Str::Unterminated(ch) => Self::UnterminatedQuote(ch),
-            Num(num) => Self::Num(num),
+            Some(Whitespace) => Self::Whitespace,
+            Some(Comment(content)) => Self::Comment(content),
+            Some(Num(num)) => Self::Num(num),
+            Some(keyword) => Self::Keyword(keyword),
+            Some(Ident(ident)) => Self::Identifier(ident),
+            Some(OpeningBracket(opening, bracket)) => Self::Bracket(opening, bracket),
+            Some(separator) => Self::Separator(separator),
+            Some(operator) => Self::Operator(operator),
+            Some(Str::Str(content)) => Self::Str(content),
+            Some(Str::Char(content)) => Self::Char(content),
+            Some(Str::Unterminated(ch)) => Self::UnterminatedQuote(ch),
+            Some(Num(num)) => Self::Num(num),
             else src => {
-                let ch = src.chars().next();
+                let ch = src.chars().next().unwrap();
                 Some((ch.len_utf8(), Self::InvalidToken(ch)))
             }
         }
