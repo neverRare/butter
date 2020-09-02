@@ -1,4 +1,5 @@
 pub mod lexer;
+pub mod span;
 
 #[macro_export]
 macro_rules! match_lex {
