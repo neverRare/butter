@@ -12,4 +12,4 @@ While language describes its syntaxes, this section describes its semantics. But
 
 ## Low level representation
 
-Describes how Butter's high-level value roughly represents low-level values. Roughly means if Butter does naive compilation, as it can have more optimization from LLVM (hopefully).
+Describes how Butter's high-level value roughly represents low-level values. Roughly means if Butter does naive compilation, as it can have more optimization.
