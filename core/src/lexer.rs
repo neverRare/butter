@@ -1,15 +1,41 @@
-use crate::lexer::number::InvalidChar;
-use crate::lexer::number::Num;
-use crate::lexer::number::NumError;
-use crate::lexer::string::EscapeError;
-use crate::lexer::string::StrError;
-use number::parse_number;
-use string::parse_string;
+use util::lexer::Lex;
+use util::match_lex;
 
-mod number;
-mod string;
-
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+struct Whitespace;
+impl<'a> Lex<'a> for Whitespace {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        match src.find(|ch: char| !ch.is_whitespace()) {
+            None => Some((src.len(), Self)),
+            Some(0) => None,
+            Some(i) => Some((i, Self)),
+        }
+    }
+}
+struct Comment<'a>(&'a str);
+impl<'a> Lex<'a> for Comment<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        if let Some("--") = src.get(..2) {
+            match src[2..].find('\n') {
+                None => Some((src.len(), Self(&src[2..]))),
+                Some(0) => None,
+                Some(i) => Some((i + 3, Self(&src[2..i + 2]))),
+            }
+        } else {
+            None
+        }
+    }
+}
+struct Ident<'a>(&'a str);
+impl<'a> Lex<'a> for Ident<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        match src.find(|ch: char| ch != '_' && !ch.is_alphanumeric()) {
+            None => Some((src.len(), Self(src))),
+            Some(0) => None,
+            Some(i) => Some((i, Self(&src[..i]))),
+        }
+    }
+}
+#[derive(PartialEq, Eq, Debug)]
 pub enum Bracket {
     Paren,
     Bracket,
@@ -20,16 +46,20 @@ pub enum Opening {
     Open,
     Close,
 }
-fn get_bracket(bracket: &str) -> Option<(Opening, Bracket)> {
-    Some(match bracket {
-        "(" => (Opening::Open, Bracket::Paren),
-        ")" => (Opening::Close, Bracket::Paren),
-        "[" => (Opening::Open, Bracket::Bracket),
-        "]" => (Opening::Close, Bracket::Bracket),
-        "{" => (Opening::Open, Bracket::Brace),
-        "}" => (Opening::Close, Bracket::Brace),
-        _ => return None,
-    })
+struct OpeningBracket(Opening, Bracket);
+impl<'a> Lex<'a> for OpeningBracket {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        let (opening, bracket) = match src.get(..1)? {
+            "(" => (Opening::Open, Bracket::Paren),
+            ")" => (Opening::Close, Bracket::Paren),
+            "[" => (Opening::Open, Bracket::Bracket),
+            "]" => (Opening::Close, Bracket::Bracket),
+            "{" => (Opening::Open, Bracket::Brace),
+            "}" => (Opening::Close, Bracket::Brace),
+            _ => return None,
+        };
+        Some((1, Self(opening, bracket)))
+    }
 }
 #[derive(PartialEq, Eq, Debug)]
 pub enum Keyword {
@@ -48,9 +78,10 @@ pub enum Keyword {
     Break,
     Continue,
 }
-impl Keyword {
-    fn from_str(keyword: &str) -> Option<Self> {
-        Some(match keyword {
+impl<'a> Lex<'a> for Keyword {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        let (move_state, Ident(ident)) = Lex::lex_first(src)?;
+        let keyword = match ident {
             "abort" => Self::Abort,
             "move" => Self::Move,
             "true" => Self::True,
@@ -66,7 +97,8 @@ impl Keyword {
             "break" => Self::Break,
             "continue" => Self::Continue,
             _ => return None,
-        })
+        };
+        Some((move_state, keyword))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -74,13 +106,14 @@ pub enum Separator {
     Comma,
     Semicolon,
 }
-impl Separator {
-    fn from_str(separator: &str) -> Option<Self> {
-        Some(match separator {
+impl<'a> Lex<'a> for Separator {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        let separator = match src.get(..1)? {
             "," => Self::Comma,
             ";" => Self::Semicolon,
             _ => return None,
-        })
+        };
+        Some((1, separator))
     }
 }
 #[derive(PartialEq, Eq, Debug)]
@@ -117,315 +150,261 @@ pub enum Operator {
     Question,
     DoubleQuestion,
 }
-impl Operator {
-    fn from_str(operator: &str) -> Option<Self> {
-        Some(match operator {
+impl<'a> Lex<'a> for Operator {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        let special = src
+            .get(..3)
+            .map(|val| val == "<--" || val == "==>")
+            .unwrap_or(false);
+        if !special {
+            let operator = src.get(..2).and_then(|operator| match operator {
+                "==" => Some(Self::DoubleEqual),
+                "!=" => Some(Self::NotEqual),
+                "::" => Some(Self::DoubleColon),
+                ".." => Some(Self::DoubleDot),
+                "//" => Some(Self::DoubleSlash),
+                "&&" => Some(Self::DoubleAmp),
+                "||" => Some(Self::DoublePipe),
+                ">>" => Some(Self::DoubleGreater),
+                "<<" => Some(Self::DoubleLess),
+                ">=" => Some(Self::GreaterEqual),
+                "<=" => Some(Self::LessEqual),
+                "<-" => Some(Self::LeftArrow),
+                "->" => Some(Self::RightArrow),
+                "=>" => Some(Self::RightThickArrow),
+                "??" => Some(Self::DoubleQuestion),
+                _ => None,
+            });
+            if let Some(operator) = operator {
+                return Some((2, operator));
+            }
+        }
+        let operator = src.get(..1)?;
+        let operator = match operator {
             "=" => Self::Equal,
-            "==" => Self::DoubleEqual,
-            "!=" => Self::NotEqual,
             ":" => Self::Colon,
-            "::" => Self::DoubleColon,
             "." => Self::Dot,
-            ".." => Self::DoubleDot,
             "+" => Self::Plus,
             "-" => Self::Minus,
             "*" => Self::Star,
             "/" => Self::Slash,
-            "//" => Self::DoubleSlash,
             "%" => Self::Percent,
             "!" => Self::Bang,
             "&" => Self::Amp,
             "|" => Self::Pipe,
             "^" => Self::Caret,
             "~" => Self::Tilde,
-            "&&" => Self::DoubleAmp,
-            "||" => Self::DoublePipe,
             ">" => Self::Greater,
             "<" => Self::Less,
-            ">>" => Self::DoubleGreater,
-            "<<" => Self::DoubleLess,
-            ">=" => Self::GreaterEqual,
-            "<=" => Self::LessEqual,
-            "<-" => Self::LeftArrow,
-            "->" => Self::RightArrow,
-            "=>" => Self::RightThickArrow,
             "?" => Self::Question,
-            "??" => Self::DoubleQuestion,
             _ => return None,
-        })
+        };
+        Some((1, operator))
     }
 }
-#[derive(PartialEq, Debug)]
+struct Num<'a>(&'a str);
+impl<'a> Lex<'a> for Num<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        let mut chars = src.chars();
+        let first = chars.next();
+        let num = if let Some('.') = first {
+            chars.next()
+        } else {
+            first
+        };
+        if let Some('0'..='9') = num {
+            let mut e = false;
+            let mut chars = src[1..].char_indices().peekable();
+            while let Some((i, ch)) = chars.next() {
+                let resume = match ch {
+                    '-' | '+' if e => {
+                        e = false;
+                        true
+                    }
+                    'e' | 'E' => {
+                        e = true;
+                        true
+                    }
+                    '.' if matches!(chars.peek(), Some((_, '0'..='9'))) => true,
+                    '_' => true,
+                    ch if ch.is_alphanumeric() => true,
+                    _ => false,
+                };
+                if !resume {
+                    return Some((i + 1, Self(&src[..i + 1])));
+                }
+            }
+            Some((src.len(), Self(src)))
+        } else {
+            None
+        }
+    }
+}
+enum Str<'a> {
+    Str(&'a str),
+    Char(&'a str),
+    Unterminated(char),
+}
+impl<'a> Lex<'a> for Str<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        let mut chars = src.char_indices();
+        let (_, first) = chars.next().unwrap();
+        if let '\'' | '"' = first {
+            let mut escaping = false;
+            for (i, ch) in chars {
+                if let '\n' = ch {
+                    return Some((i + 1, Self::Unterminated(first)));
+                } else if escaping {
+                    escaping = false;
+                    continue;
+                } else if let '\\' = ch {
+                    escaping = true;
+                    continue;
+                } else if first == ch {
+                    let content = &src[1..i];
+                    let token = match first {
+                        '\'' => Self::Char(content),
+                        '"' => Self::Str(content),
+                        _ => unreachable!(),
+                    };
+                    return Some((i + 1, token));
+                }
+            }
+            Some((src.len(), Self::Unterminated(first)))
+        } else {
+            None
+        }
+    }
+}
+#[derive(PartialEq, Eq, Debug)]
 pub enum Token<'a> {
-    Num(Num),
-    Str(Vec<u8>),
-    Char(u8),
+    Whitespace,
+    Comment(&'a str),
+    Num(&'a str),
+    Str(&'a str),
+    Char(&'a str),
     Keyword(Keyword),
     Identifier(&'a str),
     Separator(Separator),
     Bracket(Opening, Bracket),
     Operator(Operator),
-}
-impl<'a> Token<'a> {
-    pub fn lex(src: &'a str) -> Result<Vec<Self>, Vec<(&str, LexerError)>> {
-        let mut res: Result<_, Vec<(&str, LexerError)>> = Ok(vec![]);
-        for (span, token) in TokenSpans::new(src) {
-            match token {
-                Ok(token) => {
-                    if let Ok(mut vec) = res {
-                        vec.push(token);
-                        res = Ok(vec);
-                    }
-                }
-                Err(err) => {
-                    let err = (span, err);
-                    if let Err(mut vec) = res {
-                        vec.push(err);
-                        res = Err(vec);
-                    } else {
-                        res = Err(vec![err]);
-                    }
-                }
-            }
-        }
-        res
-    }
-}
-#[derive(PartialEq, Eq, Debug)]
-pub enum LexerError<'a> {
-    UnknownChar,
     UnterminatedQuote(char),
-    InvalidEscape(Vec<(&'a str, EscapeError)>),
-    CharNotOne,
-    InvalidChar(Vec<(&'a str, InvalidChar)>),
-    Overflow,
+    InvalidToken(char),
 }
-pub struct TokenSpans<'a> {
-    src: &'a str,
-    i: usize,
-    done: bool,
-}
-impl<'a> From<&'a str> for TokenSpans<'a> {
-    fn from(val: &'a str) -> Self {
-        TokenSpans {
-            src: val,
-            i: 0,
-            done: false,
-        }
-    }
-}
-impl<'a> TokenSpans<'a> {
-    pub fn new<T: Into<Self>>(src: T) -> Self {
-        src.into()
-    }
-}
-impl<'a> Iterator for TokenSpans<'a> {
-    type Item = (&'a str, Result<Token<'a>, LexerError<'a>>);
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.done {
-            None
-        } else {
-            let mut i = self.i;
-            let (len, result) = loop {
-                let src = &self.src[i..];
-                let first = match src.chars().next() {
-                    Some(val) => val,
-                    None => {
-                        self.done = true;
-                        return None;
-                    }
-                };
-                let first_len = first.len_utf8();
-                let rest = &src[first_len..];
-                if first.is_whitespace() {
-                    match rest.find(|ch: char| !ch.is_whitespace()) {
-                        Some(ind) => {
-                            i += first_len + ind;
-                            continue;
-                        }
-                        None => return None,
-                    }
-                } else if first.is_alphabetic() || first == '_' {
-                    let len = first_len
-                        + rest
-                            .find(|ch: char| !ch.is_alphanumeric() && ch != '_')
-                            .unwrap_or_default();
-                    let ident = &src[..len];
-                    break (
-                        len,
-                        Ok(match Keyword::from_str(ident) {
-                            Some(keyword) => Token::Keyword(keyword),
-                            None => Token::Identifier(ident),
-                        }),
-                    );
-                } else if let ('0'..='9', _) | ('.', Some('0'..='9')) = (first, rest.chars().next())
-                {
-                    let (len, num) = parse_number(src);
-                    break (
-                        len,
-                        match num {
-                            Ok(num) => Ok(Token::Num(num)),
-                            Err(err) => Err(match err {
-                                NumError::InvalidChar(spans) => LexerError::InvalidChar(spans),
-                                NumError::Overflow => LexerError::Overflow,
-                            }),
-                        },
-                    );
-                } else if let '\'' | '"' = first {
-                    let rest = match rest.find('\n') {
-                        Some(ind) => &rest[..ind],
-                        None => rest,
-                    };
-                    let (len, token) = parse_string(first, rest);
-                    break (
-                        len + 2,
-                        match token {
-                            Ok(val) => match first {
-                                '\'' if val.len() == 1 => Ok(Token::Char(val[0])),
-                                '\'' => Err(LexerError::CharNotOne),
-                                '"' => Ok(Token::Str(val)),
-                                _ => unreachable!(),
-                            },
-                            Err(err) => match err {
-                                StrError::InvalidEscape(vec) => Err(LexerError::InvalidEscape(vec)),
-                                StrError::Unterminated => {
-                                    self.done = true;
-                                    Err(LexerError::UnterminatedQuote(first))
-                                }
-                            },
-                        },
-                    );
-                }
-                let special = src
-                    .get(0..3)
-                    .map(|val| val == "<--" || val == "==>")
-                    .unwrap_or_default();
-                if let (false, Some(val)) = (special, src.get(0..2)) {
-                    if val == "--" {
-                        let rest = &src[2..];
-                        match rest.find('\n') {
-                            Some(index) => {
-                                i += 3 + index;
-                                continue;
-                            }
-                            None => {
-                                self.done = true;
-                                return None;
-                            }
-                        }
-                    } else if let Some(val) = Operator::from_str(val) {
-                        break (2, Ok(Token::Operator(val)));
-                    }
-                }
-                if let Some(val) = src.get(0..1) {
-                    let token = if let Some(val) = Operator::from_str(val) {
-                        Some(Token::Operator(val))
-                    } else if let Some(val) = Separator::from_str(val) {
-                        Some(Token::Separator(val))
-                    } else if let Some((opening, bracket)) = get_bracket(val) {
-                        Some(Token::Bracket(opening, bracket))
-                    } else {
-                        None
-                    };
-                    if let Some(token) = token {
-                        break (1, Ok(token));
-                    }
-                }
-                break (first_len, Err(LexerError::UnknownChar));
-            };
-            self.i = i + len;
-            Some((&self.src[i..i + len], result))
+impl<'a> Lex<'a> for Token<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        match_lex! { src;
+            Some(Whitespace) => Self::Whitespace,
+            Some(Comment(content)) => Self::Comment(content),
+            Some(Num(num)) => Self::Num(num),
+            Some(keyword) => Self::Keyword(keyword),
+            Some(Ident(ident)) => Self::Identifier(ident),
+            Some(OpeningBracket(opening, bracket)) => Self::Bracket(opening, bracket),
+            Some(separator) => Self::Separator(separator),
+            Some(operator) => Self::Operator(operator),
+            Some(string) => match string {
+                Str::Str(content) => Self::Str(content),
+                Str::Char(content) => Self::Char(content),
+                Str::Unterminated(ch) => Self::UnterminatedQuote(ch),
+            },
+            Some(Num(num)) => Self::Num(num),
+            else src => {
+                let ch = src.chars().next().unwrap();
+                Some((ch.len_utf8(), Self::InvalidToken(ch)))
+            }
         }
     }
 }
 #[cfg(test)]
 mod test {
-    use super::{Bracket, Keyword, Num, Opening, Operator, Separator, Token};
+    use super::Bracket;
+    use super::Keyword;
+    use super::Opening;
+    use super::Operator;
+    use super::Separator;
+    use super::Token;
+    use util::lexer::Lex;
     #[test]
     fn simple_lex() {
+        let vec: Vec<_> =
+            Token::lex("-- comment\n identifier true_false null => + ( ) ; <--").collect();
         assert_eq!(
-            Token::lex("-- comment\n identifier true_false null => + ( ) ; <--"),
-            Ok(vec![
+            vec,
+            vec![
+                Token::Comment(" comment"),
+                Token::Whitespace,
                 Token::Identifier("identifier"),
+                Token::Whitespace,
                 Token::Identifier("true_false"),
+                Token::Whitespace,
                 Token::Keyword(Keyword::Null),
+                Token::Whitespace,
                 Token::Operator(Operator::RightThickArrow),
+                Token::Whitespace,
                 Token::Operator(Operator::Plus),
+                Token::Whitespace,
                 Token::Bracket(Opening::Open, Bracket::Paren),
+                Token::Whitespace,
                 Token::Bracket(Opening::Close, Bracket::Paren),
+                Token::Whitespace,
                 Token::Separator(Separator::Semicolon),
+                Token::Whitespace,
                 Token::Operator(Operator::Less),
-            ]),
+                Token::Comment(""),
+            ],
         );
     }
     #[test]
     fn lex_string() {
-        assert_eq!(
-            Token::lex(
-                r#"
+        let vec: Vec<_> = Token::lex(
+            r#"
 "hello world"
 "hello \"world\""
 "hello world \\"
-'a'
-'\''
-'\\'
-'\x7A'
-""""
-'a''a'
-"#
-            ),
-            Ok(vec![
-                Token::Str(b"hello world".to_vec()),
-                Token::Str(b"hello \"world\"".to_vec()),
-                Token::Str(b"hello world \\".to_vec()),
-                Token::Char(b'a'),
-                Token::Char(b'\''),
-                Token::Char(b'\\'),
-                Token::Char(b'\x7A'),
-                Token::Str(vec![]),
-                Token::Str(vec![]),
-                Token::Char(b'a'),
-                Token::Char(b'a'),
-            ]),
+"#,
+        )
+        .collect();
+        assert_eq!(
+            vec,
+            vec![
+                Token::Whitespace,
+                Token::Str("hello world"),
+                Token::Whitespace,
+                Token::Str(r#"hello \"world\""#),
+                Token::Whitespace,
+                Token::Str(r"hello world \\"),
+                Token::Whitespace,
+            ],
         );
     }
     #[test]
     fn lex_number() {
-        assert_eq!(
-            Token::lex(
-                r#"
+        let vec: Vec<_> = Token::lex(
+            r#"
 12
-0.5
-0xff
-0b11110000
-0o127
-1_000_000
-4e-7
-4e7
-4e70
-2.
+5.
 .5
-"#
-            ),
-            Ok(vec![
-                Num::UInt(12),
-                Num::Float(0.5),
-                Num::UInt(0xff),
-                Num::UInt(0b11110000),
-                Num::UInt(0o127),
-                Num::UInt(1_000_000),
-                Num::Float(4e-7),
-                Num::UInt(40_000_000),
-                Num::Float(4e70),
-                Num::UInt(2),
-            ]
-            .into_iter()
-            .map(Token::Num)
-            .chain(vec![
+1e+10
+1e-10
+"#,
+        )
+        .collect();
+        assert_eq!(
+            vec,
+            vec![
+                Token::Whitespace,
+                Token::Num("12"),
+                Token::Whitespace,
+                Token::Num("5"),
                 Token::Operator(Operator::Dot),
-                Token::Num(Num::Float(0.5)),
-            ])
-            .collect()),
+                Token::Whitespace,
+                Token::Num(".5"),
+                Token::Whitespace,
+                Token::Num("1e+10"),
+                Token::Whitespace,
+                Token::Num("1e-10"),
+                Token::Whitespace,
+            ],
         );
     }
 }
