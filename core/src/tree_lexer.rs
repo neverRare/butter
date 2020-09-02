@@ -143,3 +143,46 @@ impl<'a, 'b> Iterator for TreeIter<'a, 'b> {
         }
     }
 }
+#[cfg(test)]
+mod test {
+    use super::BigTree;
+    use super::Bracket;
+    use super::Token;
+    use super::TokenTree;
+    #[test]
+    fn tree_lex() {
+        let big_tree = BigTree::new("(ident){[]}");
+        let mut iter = big_tree.tree().into_iter();
+        let (span, token) = iter.next().unwrap();
+        assert_eq!(span, "(ident)");
+        if let TokenTree::Tree(Bracket::Paren, token) = token {
+            let mut iter = token.into_iter();
+            let (span, token) = iter.next().unwrap();
+            assert_eq!(span, "ident");
+            assert!(matches!(
+                token,
+                TokenTree::Token(Token::Identifier("ident"))
+            ));
+            assert!(iter.next().is_none());
+        } else {
+            panic!()
+        }
+        let (span, token) = iter.next().unwrap();
+        assert_eq!(span, "{[]}");
+        if let TokenTree::Tree(Bracket::Paren, token) = token {
+            let mut iter = token.into_iter();
+            let (span, token) = iter.next().unwrap();
+            assert_eq!(span, "[]");
+            if let TokenTree::Tree(Bracket::Paren, token) = token {
+                let mut iter = token.into_iter();
+                assert!(iter.next().is_none());
+            } else {
+                panic!()
+            }
+            assert!(iter.next().is_none());
+        } else {
+            panic!()
+        }
+        assert!(iter.next().is_none());
+    }
+}
