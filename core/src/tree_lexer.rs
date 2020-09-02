@@ -50,26 +50,25 @@ impl<'a> BigTree<'a> {
                     continue;
                 }
                 SrcToken::Bracket(Opening::Close, bracket) => {
-                    match brackets.pop() {
-                        Some((open_span, open)) => {
-                            let big_span = Span::from_spans(src, &open_span, &span);
-                            let mut prev_current = current;
-                            let mut next_current = stack.pop().unwrap();
-                            if open == bracket {
-                                next_current.push((big_span, Node::Tree(open, prev_current.len())));
-                                next_current.append(&mut prev_current);
-                            } else {
-                                next_current.push((
-                                    big_span,
-                                    Node::Error(Error::Mismatch(
-                                        (open_span, open),
-                                        (span, bracket),
-                                    )),
-                                ))
-                            }
-                            current = next_current;
+                    if let Some((open_span, open)) = brackets.pop() {
+                        let big_span = Span::from_spans(src, &open_span, &span);
+                        let mut prev_current = current;
+                        let mut next_current = stack.pop().unwrap();
+                        if open == bracket {
+                            next_current.push((big_span, Node::Tree(open, prev_current.len())));
+                            next_current.append(&mut prev_current);
+                        } else {
+                            next_current.push((
+                                big_span,
+                                Node::Error(Error::Mismatch(
+                                    (open_span, open),
+                                    (span, bracket),
+                                )),
+                            ))
                         }
-                        None => current.push((span, Node::Error(Error::Unexpected(span, bracket)))),
+                        current = next_current;
+                    } else {
+                        current.push((span, Node::Error(Error::Unexpected(span, bracket))))
                     }
                     continue;
                 }
