@@ -302,9 +302,11 @@ impl<'a> Lex<'a> for Token<'a> {
             Some(OpeningBracket(opening, bracket)) => Self::Bracket(opening, bracket),
             Some(separator) => Self::Separator(separator),
             Some(operator) => Self::Operator(operator),
-            Some(Str::Str(content)) => Self::Str(content),
-            Some(Str::Char(content)) => Self::Char(content),
-            Some(Str::Unterminated(ch)) => Self::UnterminatedQuote(ch),
+            Some(string) => match string {
+                Str::Str(content) => Self::Str(content),
+                Str::Char(content) => Self::Char(content),
+                Str::Unterminated(ch) => Self::UnterminatedQuote(ch),
+            },
             Some(Num(num)) => Self::Num(num),
             else src => {
                 let ch = src.chars().next().unwrap();
