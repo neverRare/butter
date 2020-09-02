@@ -65,6 +65,9 @@ impl<'a> BigTree<'a> {
             };
             current.push((span, Node::Token(token)));
         }
+        while let Some((span, bracket)) = brackets.pop() {
+            current.push((span, Node::Error(Error::Unmatched(span, bracket))))
+        }
         Self(current)
     }
 }
