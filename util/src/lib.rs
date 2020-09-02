@@ -6,7 +6,7 @@ macro_rules! match_lex {
         let src = $src;
         $(
             if let Some((step, $pat)) = $crate::lexer::Lex::lex_first(src) {
-                Some(lex, $expr)
+                Some((step, $expr))
             } else
         )* {
             let $last_pat = src;
