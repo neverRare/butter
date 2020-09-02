@@ -201,6 +201,41 @@ impl<'a> Lex<'a> for Operator {
         Some((1, operator))
     }
 }
+struct Num<'a>(&'a str);
+impl<'a> Lex<'a> for Num<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        let mut chars = src.chars();
+        let first = chars.next();
+        let num = if let Some('.') = first {
+            chars.next()
+        } else {
+            first
+        };
+        if let Some('0'..='9') = num {
+            let mut e = false;
+            for (i, ch) in src[1..].char_indices() {
+                match ch {
+                    '-' | '+' => {
+                        if e {
+                            e = false;
+                        } else {
+                            return Some((i + 1, Self(&src[..i + 1])));
+                        }
+                    }
+                    'e' | 'E' => e = true,
+                    ch => {
+                        if ch != '.' && ch != '_' && !ch.is_alphanumeric() {
+                            return Some((i + 1, Self(&src[..i + 1])));
+                        }
+                    }
+                }
+            }
+            Some((src.len(), Self(src)))
+        } else {
+            None
+        }
+    }
+}
 #[derive(PartialEq, Debug)]
 pub enum Token<'a> {
     Whitespace,
