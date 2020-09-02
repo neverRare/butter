@@ -1,4 +1,5 @@
 use util::lexer::Lex;
+use util::match_lex;
 
 struct Whitespace;
 impl<'a> Lex<'a> for Whitespace {
@@ -287,8 +288,30 @@ pub enum Token<'a> {
     Separator(Separator),
     Bracket(Opening, Bracket),
     Operator(Operator),
-    UnterminatedQuote,
-    InvalidToken,
+    UnterminatedQuote(char),
+    InvalidToken(char),
+}
+impl<'a> Lex<'a> for Token<'a> {
+    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+        match_lex! { src;
+            Whitespace => Self::Whitespace,
+            Comment(content) => Self::Comment(content),
+            Num(num) => Self::Num(num),
+            Keyword(keyword) => Self::Keyword(keyword),
+            Ident(ident) => Self::Identifier(ident),
+            OpeningBracket(opening, bracket) => Self::Bracket(opening, bracket),
+            Separator(separator) => Self::Separator(separator),
+            Operator(operator) => Self::Operator(operator),
+            Str::Str(content) => Self::Str(content),
+            Str::Char(content) => Self::Char(content),
+            Str::Unterminated(ch) => Self::UnterminatedQuote(ch),
+            Num(num) => Self::Num(num),
+            else src => {
+                let ch = src.chars().next();
+                Some((ch.len_utf8(), Self::InvalidToken(ch)))
+            }
+        }
+    }
 }
 // #[cfg(test)]
 // mod test {
