@@ -16,12 +16,35 @@ pub enum Token<'a> {
     Separator(Separator),
     Operator(Operator),
 }
+impl<'a> Token<'a> {
+    fn from_token(token: &SrcToken<'a>) -> Option<Self> {
+        Some(match token {
+            SrcToken::Num(num) => Self::Num(num),
+            SrcToken::Str(content) => Self::Str(content),
+            SrcToken::Char(content) => Self::Char(content),
+            SrcToken::Keyword(keyword) => Self::Keyword(*keyword),
+            SrcToken::Identifier(identifier) => Self::Identifier(identifier),
+            SrcToken::Separator(separator) => Self::Separator(*separator),
+            SrcToken::Operator(operator) => Self::Operator(*operator),
+            _ => return None,
+        })
+    }
+}
 pub enum Error<'a> {
     UnterminatedQuote(char, &'a str),
     InvalidToken(&'a str),
     Mismatch((&'a str, Bracket), (&'a str, Bracket)),
     Unexpected(&'a str, Bracket),
     Unmatched(&'a str, Bracket),
+}
+impl<'a> Error<'a> {
+    fn from_token(token: &SrcToken<'a>) -> Option<Self> {
+        Some(match token {
+            SrcToken::UnterminatedQuote(quote, span) => Self::UnterminatedQuote(*quote, span),
+            SrcToken::InvalidToken(span) => Self::InvalidToken(span),
+            _ => return None,
+        })
+    }
 }
 pub enum TokenTree<'a, 'b> {
     Token(&'b Token<'a>),
@@ -40,55 +63,43 @@ impl<'a> BigTree<'a> {
         let mut stack = vec![];
         let mut current = vec![];
         for (span, token) in SrcToken::lex_span(src) {
-            let token = match token {
-                SrcToken::Whitespace => continue,
-                SrcToken::Comment(_) => continue,
-                SrcToken::Bracket(Opening::Open, bracket) => {
-                    stack.push(current);
-                    brackets.push((span, bracket));
-                    current = vec![];
-                    continue;
-                }
-                SrcToken::Bracket(Opening::Close, bracket) => {
-                    if let Some((open_span, open)) = brackets.pop() {
-                        let big_span = Span::from_spans(src, &open_span, &span);
-                        let mut prev_current = current;
-                        let mut next_current = stack.pop().unwrap();
-                        if open == bracket {
-                            next_current.push((big_span, Node::Tree(open, prev_current.len())));
-                            next_current.append(&mut prev_current);
-                        } else {
-                            next_current.push((
-                                big_span,
-                                Node::Error(Error::Mismatch(
-                                    (open_span, open),
-                                    (span, bracket),
-                                )),
-                            ))
-                        }
-                        current = next_current;
-                    } else {
-                        current.push((span, Node::Error(Error::Unexpected(span, bracket))))
+            if let SrcToken::Bracket(opening, bracket) = token {
+                match opening {
+                    Opening::Open => {
+                        stack.push(current);
+                        brackets.push((span, bracket));
+                        current = vec![];
                     }
-                    continue;
+                    Opening::Close => {
+                        if let Some((open_span, open)) = brackets.pop() {
+                            let big_span = Span::from_spans(src, &open_span, &span);
+                            let mut prev_current = current;
+                            let mut next_current = stack.pop().unwrap();
+                            if open == bracket {
+                                next_current.push((big_span, Node::Tree(open, prev_current.len())));
+                                next_current.append(&mut prev_current);
+                            } else {
+                                next_current.push((
+                                    big_span,
+                                    Node::Error(Error::Mismatch(
+                                        (open_span, open),
+                                        (span, bracket),
+                                    )),
+                                ))
+                            }
+                            current = next_current;
+                        } else {
+                            current.push((span, Node::Error(Error::Unexpected(span, bracket))))
+                        }
+                    }
                 }
-                SrcToken::Num(num) => Token::Num(num),
-                SrcToken::Str(content) => Token::Str(content),
-                SrcToken::Char(content) => Token::Char(content),
-                SrcToken::Keyword(keyword) => Token::Keyword(keyword),
-                SrcToken::Identifier(identifier) => Token::Identifier(identifier),
-                SrcToken::Separator(separator) => Token::Separator(separator),
-                SrcToken::Operator(separator) => Token::Operator(separator),
-                SrcToken::UnterminatedQuote(quote, src) => {
-                    current.push((span, Node::Error(Error::UnterminatedQuote(quote, src))));
-                    continue;
-                }
-                SrcToken::InvalidToken(src) => {
-                    current.push((span, Node::Error(Error::InvalidToken(src))));
-                    continue;
-                }
-            };
-            current.push((span, Node::Token(token)));
+            } else if let Some(token) = Token::from_token(&token) {
+                current.push((span, Node::Token(token)));
+            } else if let Some(error) = Error::from_token(&token) {
+                current.push((span, Node::Error(error)));
+            } else {
+                unreachable!()
+            }
         }
         while let Some((span, bracket)) = brackets.pop() {
             current.push((span, Node::Error(Error::Unmatched(span, bracket))))

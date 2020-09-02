@@ -61,7 +61,7 @@ impl<'a> Lex<'a> for OpeningBracket {
         Some((1, Self(opening, bracket)))
     }
 }
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Keyword {
     Abort,
     Move,
@@ -101,7 +101,7 @@ impl<'a> Lex<'a> for Keyword {
         Some((move_state, keyword))
     }
 }
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Separator {
     Comma,
     Semicolon,
@@ -116,7 +116,7 @@ impl<'a> Lex<'a> for Separator {
         Some((1, separator))
     }
 }
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Operator {
     Equal,
     DoubleEqual,
