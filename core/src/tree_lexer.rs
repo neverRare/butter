@@ -151,6 +151,10 @@ impl<'a, 'b> Iterator for TreeIter<'a, 'b> {
             Some((span, token))
         }
     }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.src.len();
+        (1.min(len), Some(len))
+    }
 }
 #[cfg(test)]
 mod test {
