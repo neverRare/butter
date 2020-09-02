@@ -243,7 +243,7 @@ impl<'a> Lex<'a> for Num<'a> {
 enum Str<'a> {
     Str(&'a str),
     Char(&'a str),
-    Unterminated(char),
+    Unterminated(char, &'a str),
 }
 impl<'a> Lex<'a> for Str<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
@@ -253,7 +253,7 @@ impl<'a> Lex<'a> for Str<'a> {
             let mut escaping = false;
             for (i, ch) in chars {
                 if let '\n' = ch {
-                    return Some((i + 1, Self::Unterminated(first)));
+                    return Some((i + 1, Self::Unterminated(first, &src[..i])));
                 } else if escaping {
                     escaping = false;
                     continue;
@@ -270,7 +270,7 @@ impl<'a> Lex<'a> for Str<'a> {
                     return Some((i + 1, token));
                 }
             }
-            Some((src.len(), Self::Unterminated(first)))
+            Some((src.len(), Self::Unterminated(first, src)))
         } else {
             None
         }
@@ -288,8 +288,8 @@ pub enum Token<'a> {
     Separator(Separator),
     Bracket(Opening, Bracket),
     Operator(Operator),
-    UnterminatedQuote(char),
-    InvalidToken(char),
+    UnterminatedQuote(char, &'a str),
+    InvalidToken(&'a str),
 }
 impl<'a> Lex<'a> for Token<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
@@ -305,12 +305,12 @@ impl<'a> Lex<'a> for Token<'a> {
             Some(string) => match string {
                 Str::Str(content) => Self::Str(content),
                 Str::Char(content) => Self::Char(content),
-                Str::Unterminated(ch) => Self::UnterminatedQuote(ch),
+                Str::Unterminated(ch, src) => Self::UnterminatedQuote(ch, src),
             },
             Some(Num(num)) => Self::Num(num),
             else src => {
-                let ch = src.chars().next().unwrap();
-                Some((ch.len_utf8(), Self::InvalidToken(ch)))
+                let len = src.chars().next().unwrap().len_utf8();
+                Some((len, Self::InvalidToken(&src[..len])))
             }
         }
     }
