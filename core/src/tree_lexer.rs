@@ -100,7 +100,6 @@ impl<'a> BigTree<'a> {
         self.into()
     }
 }
-#[derive(Clone, Copy)]
 pub struct Tree<'a, 'b>(&'b [(&'a str, Node<'a>)]);
 impl<'a, 'b> Tree<'a, 'b> {
     pub fn iter(self) -> TreeIter<'a, 'b> {
