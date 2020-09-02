@@ -35,7 +35,7 @@ impl<'a> Lex<'a> for Ident<'a> {
         }
     }
 }
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Bracket {
     Paren,
     Bracket,
@@ -276,7 +276,7 @@ impl<'a> Lex<'a> for Str<'a> {
         }
     }
 }
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum Token<'a> {
     Whitespace,
     Comment(&'a str),
