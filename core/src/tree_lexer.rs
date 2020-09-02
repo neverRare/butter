@@ -102,6 +102,11 @@ impl<'a> BigTree<'a> {
 }
 #[derive(Clone, Copy)]
 pub struct Tree<'a, 'b>(&'b [(&'a str, Node<'a>)]);
+impl<'a, 'b> Tree<'a, 'b> {
+    pub fn iter(self) -> TreeIter<'a, 'b> {
+        self.into_iter()
+    }
+}
 impl<'a, 'b> From<&'b BigTree<'a>> for Tree<'a, 'b> {
     fn from(BigTree(vec): &'b BigTree<'a>) -> Self {
         Self(vec)
