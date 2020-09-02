@@ -1,20 +1,25 @@
-use std::ops::Range;
-
 pub trait Span<'a>: Sized {
-    fn from_range(src: &'a str, range: Range<usize>) -> Self;
-    fn range_on(&self, src: &'a str) -> Range<usize>;
+    fn from_range(src: &'a str, start: usize, end: usize) -> Self;
+    fn start_on(&self, src: &'a str) -> usize;
+    fn end_on(&self, src: &'a str) -> usize;
+    fn span_len(&self) -> usize;
     fn from_spans(src: &'a str, start: &Self, end: &Self) -> Self {
-        let start = start.range_on(src).start;
-        let end = end.range_on(src).end;
-        Self::from_range(src, start..end)
+        let start = start.start_on(src);
+        let end = end.end_on(src);
+        Self::from_range(src, start, end)
     }
 }
 impl<'a> Span<'a> for &'a str {
-    fn from_range(src: &'a str, range: Range<usize>) -> Self {
-        &src[range]
+    fn from_range(src: &'a str, start: usize, end: usize) -> Self {
+        &src[start..end]
     }
-    fn range_on(&self, src: &'a str) -> Range<usize> {
-        let start = self.as_ptr() as usize - src.as_ptr() as usize;
-        start..start + self.len()
+    fn start_on(&self, src: &'a str) -> usize {
+        self.as_ptr() as usize - src.as_ptr() as usize
+    }
+    fn end_on(&self, src: &'a str) -> usize {
+        self.start_on(src) + self.len()
+    }
+    fn span_len(&self) -> usize {
+        self.len()
     }
 }
