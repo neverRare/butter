@@ -148,6 +148,9 @@ pub enum Operator {
     RightArrow,
     RightThickArrow,
     Question,
+    QuestionDot,
+    QuestionAmp,
+    QuestionStar,
     DoubleQuestion,
 }
 impl<'a> Lex<'a> for Operator {
@@ -173,6 +176,9 @@ impl<'a> Lex<'a> for Operator {
                 "->" => Some(Self::RightArrow),
                 "=>" => Some(Self::RightThickArrow),
                 "??" => Some(Self::DoubleQuestion),
+                "?." => Some(Self::QuestionDot),
+                "?&" => Some(Self::QuestionAmp),
+                "?*" => Some(Self::QuestionStar),
                 _ => None,
             });
             if let Some(operator) = operator {
