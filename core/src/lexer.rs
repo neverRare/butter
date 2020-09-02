@@ -17,7 +17,7 @@ impl<'a> Lex<'a> for Comment<'a> {
             match src[2..].find('\n') {
                 None => Some((src.len(), Self(src))),
                 Some(0) => None,
-                Some(i) => Some((i + 2, Self(&src[2..i + 2]))),
+                Some(i) => Some((i + 3, Self(&src[2..i + 2]))),
             }
         } else {
             None
