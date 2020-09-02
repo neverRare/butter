@@ -354,41 +354,33 @@ mod test {
             ],
         );
     }
+    #[test]
+    fn lex_string() {
+        let vec: Vec<_> = Token::lex(
+            r#"
+"hello world"
+"hello \"world\""
+"hello world \\"
+"#,
+        )
+        .collect();
+        assert_eq!(
+            vec,
+            vec![
+                Token::Whitespace,
+                Token::Str("hello world"),
+                Token::Whitespace,
+                Token::Str(r#"hello \"world\""#),
+                Token::Whitespace,
+                Token::Str(r"hello world \\"),
+                Token::Whitespace,
+            ],
+        );
+    }
 }
 // #[cfg(test)]
 // mod test {
 //     use super::{Bracket, Keyword, Num, Opening, Operator, Separator, Token};
-//     #[test]
-//     fn lex_string() {
-//         assert_eq!(
-//             Token::lex(
-//                 r#"
-// "hello world"
-// "hello \"world\""
-// "hello world \\"
-// 'a'
-// '\''
-// '\\'
-// '\x7A'
-// """"
-// 'a''a'
-// "#
-//             ),
-//             Ok(vec![
-//                 Token::Str(b"hello world".to_vec()),
-//                 Token::Str(b"hello \"world\"".to_vec()),
-//                 Token::Str(b"hello world \\".to_vec()),
-//                 Token::Char(b'a'),
-//                 Token::Char(b'\''),
-//                 Token::Char(b'\\'),
-//                 Token::Char(b'\x7A'),
-//                 Token::Str(vec![]),
-//                 Token::Str(vec![]),
-//                 Token::Char(b'a'),
-//                 Token::Char(b'a'),
-//             ]),
-//         );
-//     }
 //     #[test]
 //     fn lex_number() {
 //         assert_eq!(
