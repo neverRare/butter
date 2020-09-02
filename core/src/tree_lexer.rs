@@ -164,11 +164,11 @@ mod test {
         }
         let (span, token) = iter.next().unwrap();
         assert_eq!(span, "{[]}");
-        if let TokenTree::Tree(Bracket::Paren, token) = token {
+        if let TokenTree::Tree(Bracket::Brace, token) = token {
             let mut iter = token.into_iter();
             let (span, token) = iter.next().unwrap();
             assert_eq!(span, "[]");
-            if let TokenTree::Tree(Bracket::Paren, token) = token {
+            if let TokenTree::Tree(Bracket::Bracket, token) = token {
                 let mut iter = token.into_iter();
                 assert!(iter.next().is_none());
             } else {
