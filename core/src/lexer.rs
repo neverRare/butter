@@ -213,21 +213,24 @@ impl<'a> Lex<'a> for Num<'a> {
         };
         if let Some('0'..='9') = num {
             let mut e = false;
-            for (i, ch) in src[1..].char_indices() {
-                match ch {
-                    '-' | '+' => {
-                        if e {
-                            e = false;
-                        } else {
-                            return Some((i + 1, Self(&src[..i + 1])));
-                        }
+            let mut chars = src[1..].char_indices().peekable();
+            while let Some((i, ch)) = chars.next() {
+                let resume = match ch {
+                    '-' | '+' if e => {
+                        e = false;
+                        true
                     }
-                    'e' | 'E' => e = true,
-                    ch => {
-                        if ch != '.' && ch != '_' && !ch.is_alphanumeric() {
-                            return Some((i + 1, Self(&src[..i + 1])));
-                        }
+                    'e' | 'E' => {
+                        e = true;
+                        true
                     }
+                    '.' if matches!(chars.peek(), Some((_, '0'..='9'))) => true,
+                    '_' => true,
+                    ch if ch.is_alphanumeric() => true,
+                    _ => false,
+                };
+                if !resume {
+                    return Some((i + 1, Self(&src[..i + 1])));
                 }
             }
             Some((src.len(), Self(src)))
