@@ -377,47 +377,34 @@ mod test {
             ],
         );
     }
+    #[test]
+    fn lex_number() {
+        let vec: Vec<_> = Token::lex(
+            r#"
+12
+5.
+.5
+1e+10
+1e-10
+"#,
+        )
+        .collect();
+        assert_eq!(
+            vec,
+            vec![
+                Token::Whitespace,
+                Token::Num("12"),
+                Token::Whitespace,
+                Token::Num("5"),
+                Token::Operator(Operator::Dot),
+                Token::Whitespace,
+                Token::Num(".5"),
+                Token::Whitespace,
+                Token::Num("1e+10"),
+                Token::Whitespace,
+                Token::Num("1e-10"),
+                Token::Whitespace,
+            ],
+        );
+    }
 }
-// #[cfg(test)]
-// mod test {
-//     use super::{Bracket, Keyword, Num, Opening, Operator, Separator, Token};
-//     #[test]
-//     fn lex_number() {
-//         assert_eq!(
-//             Token::lex(
-//                 r#"
-// 12
-// 0.5
-// 0xff
-// 0b11110000
-// 0o127
-// 1_000_000
-// 4e-7
-// 4e7
-// 4e70
-// 2.
-// .5
-// "#
-//             ),
-//             Ok(vec![
-//                 Num::UInt(12),
-//                 Num::Float(0.5),
-//                 Num::UInt(0xff),
-//                 Num::UInt(0b11110000),
-//                 Num::UInt(0o127),
-//                 Num::UInt(1_000_000),
-//                 Num::Float(4e-7),
-//                 Num::UInt(40_000_000),
-//                 Num::Float(4e70),
-//                 Num::UInt(2),
-//             ]
-//             .into_iter()
-//             .map(Token::Num)
-//             .chain(vec![
-//                 Token::Operator(Operator::Dot),
-//                 Token::Num(Num::Float(0.5)),
-//             ])
-//             .collect()),
-//         );
-//     }
-// }
