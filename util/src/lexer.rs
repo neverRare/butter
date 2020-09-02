@@ -5,6 +5,9 @@ pub trait Lex<'a>: Sized {
     fn lex(src: &'a str) -> Lexer<'a, Self> {
         src.into()
     }
+    fn lex_span(src: &'a str) -> SpanLexer<'a, Self> {
+        src.into()
+    }
 }
 pub struct Lexer<'a, T> {
     src: &'a str,
@@ -38,6 +41,43 @@ where
                 Some((step, token)) => {
                     self.src = &self.src[step..];
                     Some(token)
+                }
+            }
+        }
+    }
+}
+pub struct SpanLexer<'a, T> {
+    src: &'a str,
+    _phantom: PhantomData<fn() -> T>,
+}
+impl<'a, T> SpanLexer<'a, T> {
+    pub fn new(src: &'a str) -> Self {
+        Self {
+            src,
+            _phantom: PhantomData,
+        }
+    }
+}
+impl<'a, T> From<&'a str> for SpanLexer<'a, T> {
+    fn from(src: &'a str) -> Self {
+        Self::new(src)
+    }
+}
+impl<'a, T> Iterator for SpanLexer<'a, T>
+where
+    T: Lex<'a>,
+{
+    type Item = (&'a str, T);
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.src.is_empty() {
+            None
+        } else {
+            match T::lex_first(self.src) {
+                None => None,
+                Some((step, token)) => {
+                    let span = &self.src[..step];
+                    self.src = &self.src[step..];
+                    Some((span, token))
                 }
             }
         }
