@@ -251,7 +251,9 @@ impl<'a> Lex<'a> for Str<'a> {
         if let '\'' | '"' = first {
             let mut escaping = false;
             for (i, ch) in chars {
-                if escaping {
+                if let '\n' = ch {
+                    return Some((i + 1, Self::Unterminated(first)))
+                } else if escaping {
                     escaping = false;
                     continue;
                 } else if let '\\' = ch {
@@ -264,7 +266,7 @@ impl<'a> Lex<'a> for Str<'a> {
                         '"' => Self::Str(content),
                         _ => unreachable!(),
                     };
-                    return Some((i + 2, token));
+                    return Some((i + 1, token));
                 }
             }
             Some((src.len(), Self::Unterminated(first)))
