@@ -7,6 +7,7 @@ use crate::lexer::Token as SrcToken;
 use util::lexer::Lex;
 use util::span::Span;
 
+#[derive(Clone, Copy)]
 pub enum Token<'a> {
     Num(&'a str),
     Str(&'a str),
@@ -30,6 +31,7 @@ impl<'a> Token<'a> {
         })
     }
 }
+#[derive(Clone, Copy)]
 pub enum Error<'a> {
     UnterminatedQuote(char, &'a str),
     InvalidToken(&'a str),
@@ -46,6 +48,7 @@ impl<'a> Error<'a> {
         })
     }
 }
+#[derive(Clone, Copy)]
 pub enum TokenTree<'a, 'b> {
     Token(&'b Token<'a>),
     Tree(&'b Bracket, Tree<'a, 'b>),
@@ -110,6 +113,7 @@ impl<'a> BigTree<'a> {
         self.into()
     }
 }
+#[derive(Clone, Copy)]
 pub struct Tree<'a, 'b>(&'b [(&'a str, Node<'a>)]);
 impl<'a, 'b> Tree<'a, 'b> {
     pub fn iter(self) -> TreeIter<'a, 'b> {
