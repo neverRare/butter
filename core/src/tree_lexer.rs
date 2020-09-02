@@ -18,15 +18,15 @@ pub enum Token<'a> {
     Operator(Operator),
 }
 impl<'a> Token<'a> {
-    fn from_token(token: &SrcToken<'a>) -> Option<Self> {
+    fn from_token(token: SrcToken<'a>) -> Option<Self> {
         Some(match token {
             SrcToken::Num(num) => Self::Num(num),
             SrcToken::Str(content) => Self::Str(content),
             SrcToken::Char(content) => Self::Char(content),
-            SrcToken::Keyword(keyword) => Self::Keyword(*keyword),
+            SrcToken::Keyword(keyword) => Self::Keyword(keyword),
             SrcToken::Identifier(identifier) => Self::Identifier(identifier),
-            SrcToken::Separator(separator) => Self::Separator(*separator),
-            SrcToken::Operator(operator) => Self::Operator(*operator),
+            SrcToken::Separator(separator) => Self::Separator(separator),
+            SrcToken::Operator(operator) => Self::Operator(operator),
             _ => return None,
         })
     }
@@ -40,9 +40,9 @@ pub enum Error<'a> {
     Unmatched(&'a str, Bracket),
 }
 impl<'a> Error<'a> {
-    fn from_token(token: &SrcToken<'a>) -> Option<Self> {
+    fn from_token(token: SrcToken<'a>) -> Option<Self> {
         Some(match token {
-            SrcToken::UnterminatedQuote(quote, span) => Self::UnterminatedQuote(*quote, span),
+            SrcToken::UnterminatedQuote(quote, span) => Self::UnterminatedQuote(quote, span),
             SrcToken::InvalidToken(span) => Self::InvalidToken(span),
             _ => return None,
         })
@@ -96,12 +96,12 @@ impl<'a> BigTree<'a> {
                         }
                     }
                 }
-            } else if let Some(token) = Token::from_token(&token) {
+            } else if let Some(token) = Token::from_token(token) {
                 current.push((span, Node::Token(token)));
-            } else if let Some(error) = Error::from_token(&token) {
+            } else if let Some(error) = Error::from_token(token) {
                 current.push((span, Node::Error(error)));
             } else {
-                unreachable!()
+                debug_assert!(matches!(token, SrcToken::Whitespace | SrcToken::Comment(_)))
             }
         }
         while let Some((span, bracket)) = brackets.pop() {
@@ -111,6 +111,11 @@ impl<'a> BigTree<'a> {
     }
     pub fn tree<'b>(&'b self) -> Tree<'a, 'b> {
         self.into()
+    }
+}
+impl<'a> From<&'a str> for BigTree<'a> {
+    fn from(src: &'a str) -> Self {
+        Self::new(src)
     }
 }
 #[derive(Clone, Copy)]
@@ -168,7 +173,7 @@ mod test {
     use super::TokenTree;
     #[test]
     fn tree_lex() {
-        let big_tree = BigTree::new("(ident){[]}");
+        let big_tree = BigTree::new("(ident) { [] }");
         let mut iter = big_tree.tree().into_iter();
         let (span, token) = iter.next().unwrap();
         assert_eq!(span, "(ident)");
@@ -185,7 +190,7 @@ mod test {
             panic!()
         }
         let (span, token) = iter.next().unwrap();
-        assert_eq!(span, "{[]}");
+        assert_eq!(span, "{ [] }");
         if let TokenTree::Tree(Bracket::Brace, token) = token {
             let mut iter = token.into_iter();
             let (span, token) = iter.next().unwrap();

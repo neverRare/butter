@@ -41,7 +41,7 @@ pub enum Bracket {
     Bracket,
     Brace,
 }
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Opening {
     Open,
     Close,
@@ -282,7 +282,7 @@ impl<'a> Lex<'a> for Str<'a> {
         }
     }
 }
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Token<'a> {
     Whitespace,
     Comment(&'a str),
