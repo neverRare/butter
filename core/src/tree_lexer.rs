@@ -36,9 +36,9 @@ enum Node<'a> {
 pub struct BigTree<'a>(Vec<(&'a str, Node<'a>)>);
 impl<'a> BigTree<'a> {
     pub fn new(src: &'a str) -> Self {
-        let mut brackets: Vec<(&str, Bracket)> = vec![];
-        let mut stack: Vec<Vec<(&str, Node)>> = vec![];
-        let mut current: Vec<(&str, Node)> = vec![];
+        let mut brackets = vec![];
+        let mut stack = vec![];
+        let mut current = vec![];
         for (span, token) in SrcToken::lex_span(src) {
             let token = match token {
                 SrcToken::Whitespace => continue,
