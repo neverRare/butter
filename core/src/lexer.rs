@@ -253,7 +253,7 @@ impl<'a> Lex<'a> for Str<'a> {
             let mut escaping = false;
             for (i, ch) in chars {
                 if let '\n' = ch {
-                    return Some((i + 1, Self::Unterminated(first)))
+                    return Some((i + 1, Self::Unterminated(first)));
                 } else if escaping {
                     escaping = false;
                     continue;
@@ -315,26 +315,49 @@ impl<'a> Lex<'a> for Token<'a> {
         }
     }
 }
+#[cfg(test)]
+mod test {
+    use super::Bracket;
+    use super::Keyword;
+    use super::Opening;
+    use super::Operator;
+    use super::Separator;
+    use super::Token;
+    use util::lexer::Lex;
+    #[test]
+    fn simple_lex() {
+        let vec: Vec<_> =
+            Token::lex("-- comment\n identifier true_false null => + ( ) ; <--").collect();
+        assert_eq!(
+            vec,
+            vec![
+                Token::Comment(" comment"),
+                Token::Whitespace,
+                Token::Identifier("identifier"),
+                Token::Whitespace,
+                Token::Identifier("true_false"),
+                Token::Whitespace,
+                Token::Keyword(Keyword::Null),
+                Token::Whitespace,
+                Token::Operator(Operator::RightThickArrow),
+                Token::Whitespace,
+                Token::Operator(Operator::Plus),
+                Token::Whitespace,
+                Token::Bracket(Opening::Open, Bracket::Paren),
+                Token::Whitespace,
+                Token::Bracket(Opening::Close, Bracket::Paren),
+                Token::Whitespace,
+                Token::Separator(Separator::Semicolon),
+                Token::Whitespace,
+                Token::Operator(Operator::Less),
+                Token::Comment(""),
+            ],
+        );
+    }
+}
 // #[cfg(test)]
 // mod test {
 //     use super::{Bracket, Keyword, Num, Opening, Operator, Separator, Token};
-//     #[test]
-//     fn simple_lex() {
-//         assert_eq!(
-//             Token::lex("-- comment\n identifier true_false null => + ( ) ; <--"),
-//             Ok(vec![
-//                 Token::Identifier("identifier"),
-//                 Token::Identifier("true_false"),
-//                 Token::Keyword(Keyword::Null),
-//                 Token::Operator(Operator::RightThickArrow),
-//                 Token::Operator(Operator::Plus),
-//                 Token::Bracket(Opening::Open, Bracket::Paren),
-//                 Token::Bracket(Opening::Close, Bracket::Paren),
-//                 Token::Separator(Separator::Semicolon),
-//                 Token::Operator(Operator::Less),
-//             ]),
-//         );
-//     }
 //     #[test]
 //     fn lex_string() {
 //         assert_eq!(
