@@ -1,4 +1,4 @@
-# 🧈 Butter
+# ![Butter](butter.svg)
 
 [![Rust](https://github.com/neverRare/butter/workflows/Rust/badge.svg)](https://github.com/neverRare/butter/actions?query=workflow%3ARust)
 
