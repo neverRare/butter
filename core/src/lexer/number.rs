@@ -1,7 +1,7 @@
 use util::lexer::Lex;
 
-pub struct Num<'a>(pub &'a str);
-impl<'a> Lex<'a> for Num<'a> {
+pub struct Num;
+impl<'a> Lex<'a> for Num {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         let mut chars = src.chars();
         let first = chars.next();
@@ -29,10 +29,10 @@ impl<'a> Lex<'a> for Num<'a> {
                     _ => false,
                 };
                 if !resume {
-                    return Some((i + 1, Self(&src[..i + 1])));
+                    return Some((i + 1, Self));
                 }
             }
-            Some((src.len(), Self(src)))
+            Some((src.len(), Self))
         } else {
             None
         }

@@ -22,41 +22,41 @@ mod separator;
 mod string;
 mod whitespace;
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
-pub enum Token<'a> {
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
+enum Token<'a> {
     Whitespace,
-    Comment(&'a str),
-    Num(&'a str),
+    Comment,
+    Num,
     Str(&'a str),
     Char(&'a str),
     Keyword(Keyword),
-    Identifier(&'a str),
+    Identifier,
     Separator(Separator),
     Bracket(Opening, Bracket),
     Operator(Operator),
-    UnterminatedQuote(char, &'a str),
-    InvalidToken(&'a str),
+    UnterminatedQuote,
+    Invalid,
 }
 impl<'a> Lex<'a> for Token<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         match_lex! { src;
             Some(Whitespace) => Self::Whitespace,
-            Some(Comment(content)) => Self::Comment(content),
-            Some(Num(num)) => Self::Num(num),
+            Some(Comment) => Self::Comment,
+            Some(Num) => Self::Num,
             Some(keyword) => Self::Keyword(keyword),
-            Some(Ident(ident)) => Self::Identifier(ident),
+            Some(Ident) => Self::Identifier,
             Some(OpeningBracket(opening, bracket)) => Self::Bracket(opening, bracket),
             Some(separator) => Self::Separator(separator),
             Some(operator) => Self::Operator(operator),
             Some(string) => match string {
                 Str::Str(content) => Self::Str(content),
                 Str::Char(content) => Self::Char(content),
-                Str::Unterminated(ch, src) => Self::UnterminatedQuote(ch, src),
+                Str::Unterminated => Self::UnterminatedQuote,
             },
-            Some(Num(num)) => Self::Num(num),
+            Some(Num) => Self::Num,
             else src => {
                 let len = src.chars().next().unwrap().len_utf8();
-                Some((len, Self::InvalidToken(&src[..len])))
+                Some((len, Self::Invalid))
             }
         }
     }
@@ -73,36 +73,36 @@ mod test {
     #[test]
     fn simple_lex() {
         let vec: Vec<_> =
-            Token::lex("-- comment\n identifier true_false null => + ( ) ; <--").collect();
+            Token::lex_span("-- comment\n identifier true_false null => + ( ) ; <--").collect();
         assert_eq!(
             vec,
             vec![
-                Token::Comment(" comment"),
-                Token::Whitespace,
-                Token::Identifier("identifier"),
-                Token::Whitespace,
-                Token::Identifier("true_false"),
-                Token::Whitespace,
-                Token::Keyword(Keyword::Null),
-                Token::Whitespace,
-                Token::Operator(Operator::RightThickArrow),
-                Token::Whitespace,
-                Token::Operator(Operator::Plus),
-                Token::Whitespace,
-                Token::Bracket(Opening::Open, Bracket::Paren),
-                Token::Whitespace,
-                Token::Bracket(Opening::Close, Bracket::Paren),
-                Token::Whitespace,
-                Token::Separator(Separator::Semicolon),
-                Token::Whitespace,
-                Token::Operator(Operator::Less),
-                Token::Comment(""),
+                ("-- comment\n", Token::Comment),
+                (" ", Token::Whitespace),
+                ("identifier", Token::Identifier),
+                (" ", Token::Whitespace),
+                ("true_false", Token::Identifier),
+                (" ", Token::Whitespace),
+                ("null", Token::Keyword(Keyword::Null)),
+                (" ", Token::Whitespace),
+                ("=>", Token::Operator(Operator::RightThickArrow)),
+                (" ", Token::Whitespace),
+                ("+", Token::Operator(Operator::Plus)),
+                (" ", Token::Whitespace),
+                ("(", Token::Bracket(Opening::Open, Bracket::Paren)),
+                (" ", Token::Whitespace),
+                (")", Token::Bracket(Opening::Close, Bracket::Paren)),
+                (" ", Token::Whitespace),
+                (";", Token::Separator(Separator::Semicolon)),
+                (" ", Token::Whitespace),
+                ("<", Token::Operator(Operator::Less)),
+                ("--", Token::Comment),
             ],
         );
     }
     #[test]
     fn lex_string() {
-        let vec: Vec<_> = Token::lex(
+        let vec: Vec<_> = Token::lex_span(
             r#"
 "hello world"
 "hello \"world\""
@@ -113,43 +113,43 @@ mod test {
         assert_eq!(
             vec,
             vec![
-                Token::Whitespace,
-                Token::Str("hello world"),
-                Token::Whitespace,
-                Token::Str(r#"hello \"world\""#),
-                Token::Whitespace,
-                Token::Str(r"hello world \\"),
-                Token::Whitespace,
+                ("\n", Token::Whitespace),
+                (r#""hello world""#, Token::Str("hello world")),
+                ("\n", Token::Whitespace),
+                (r#""hello \"world\"""#, Token::Str(r#"hello \"world\""#)),
+                ("\n", Token::Whitespace),
+                (r#""hello world \\""#, Token::Str(r"hello world \\")),
+                ("\n", Token::Whitespace),
             ],
         );
     }
     #[test]
     fn lex_number() {
-        let vec: Vec<_> = Token::lex(
-            r#"
+        let vec: Vec<_> = Token::lex_span(
+            r"
 12
 5.
 .5
 1e+10
 1e-10
-"#,
+",
         )
         .collect();
         assert_eq!(
             vec,
             vec![
-                Token::Whitespace,
-                Token::Num("12"),
-                Token::Whitespace,
-                Token::Num("5"),
-                Token::Operator(Operator::Dot),
-                Token::Whitespace,
-                Token::Num(".5"),
-                Token::Whitespace,
-                Token::Num("1e+10"),
-                Token::Whitespace,
-                Token::Num("1e-10"),
-                Token::Whitespace,
+                ("\n", Token::Whitespace),
+                ("12", Token::Num),
+                ("\n", Token::Whitespace),
+                ("5", Token::Num),
+                (".", Token::Operator(Operator::Dot)),
+                ("\n", Token::Whitespace),
+                (".5", Token::Num),
+                ("\n", Token::Whitespace),
+                ("1e+10", Token::Num),
+                ("\n", Token::Whitespace),
+                ("1e-10", Token::Num),
+                ("\n", Token::Whitespace),
             ],
         );
     }

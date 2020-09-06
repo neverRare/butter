@@ -1,5 +1,6 @@
 use crate::lexer::Ident;
 use util::lexer::Lex;
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Keyword {
     Abort,
@@ -19,7 +20,7 @@ pub enum Keyword {
 }
 impl<'a> Lex<'a> for Keyword {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
-        let (move_state, Ident(ident)) = Lex::lex_first(src)?;
+        let (ident, Ident) = Lex::lex_first_span(src)?;
         let keyword = match ident {
             "abort" => Self::Abort,
             "move" => Self::Move,
@@ -37,6 +38,6 @@ impl<'a> Lex<'a> for Keyword {
             "continue" => Self::Continue,
             _ => return None,
         };
-        Some((move_state, keyword))
+        Some((ident.len(), keyword))
     }
 }

@@ -3,7 +3,7 @@ use util::lexer::Lex;
 pub enum Str<'a> {
     Str(&'a str),
     Char(&'a str),
-    Unterminated(char, &'a str),
+    Unterminated,
 }
 impl<'a> Lex<'a> for Str<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
@@ -13,7 +13,7 @@ impl<'a> Lex<'a> for Str<'a> {
             let mut escaping = false;
             for (i, ch) in chars {
                 if let '\n' = ch {
-                    return Some((i + 1, Self::Unterminated(first, &src[..i])));
+                    return Some((i + 1, Self::Unterminated));
                 } else if escaping {
                     escaping = false;
                     continue;
@@ -30,7 +30,7 @@ impl<'a> Lex<'a> for Str<'a> {
                     return Some((i + 1, token));
                 }
             }
-            Some((src.len(), Self::Unterminated(first, src)))
+            Some((src.len(), Self::Unterminated))
         } else {
             None
         }
