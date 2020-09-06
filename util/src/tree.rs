@@ -1,6 +1,7 @@
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use std::mem::swap;
 use std::mem::transmute;
 use std::ops::Deref;
 use std::ops::DerefMut;
@@ -56,6 +57,13 @@ impl<T> DerefMut for BigTree<T> {
         Tree::from_mut_slice(&mut self.0)
     }
 }
+impl<T> IntoIterator for BigTree<T> {
+    type Item = (T, Self);
+    type IntoIter = TreeIntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        TreeIntoIter(self.0)
+    }
+}
 impl<T: Debug> Debug for BigTree<T> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         let tree: &Tree<T> = self;
@@ -109,6 +117,26 @@ impl<'a, T> Iterator for TreeIter<'a, T> {
             let len = first.len;
             self.0 = &arr[1 + len..];
             Some((&first.content, Tree::from_slice(&arr[1..1 + len])))
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.0.len();
+        (1.min(len), Some(len))
+    }
+}
+pub struct TreeIntoIter<T>(Vec<Node<T>>);
+impl<T> Iterator for TreeIntoIter<T> {
+    type Item = (T, BigTree<T>);
+    fn next(&mut self) -> Option<Self::Item> {
+        let self_arr = &mut self.0;
+        if self_arr.is_empty() {
+            None
+        } else {
+            let first = self_arr.remove(0);
+            let len = first.len;
+            let mut other_arr = self_arr.split_off(len);
+            swap(self_arr, &mut other_arr);
+            Some((first.content, BigTree(other_arr)))
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
