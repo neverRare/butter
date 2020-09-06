@@ -2,7 +2,6 @@ use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
 use std::mem::swap;
-use std::mem::transmute;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
@@ -74,10 +73,12 @@ impl<T: Debug> Debug for BigTree<T> {
 pub struct Tree<T>([Node<T>]);
 impl<T> Tree<T> {
     fn from_slice(slice: &[Node<T>]) -> &Self {
-        unsafe { transmute(slice) }
+        let ptr = slice as *const [Node<T>] as *const Tree<T>;
+        unsafe { &*ptr }
     }
     fn from_mut_slice(slice: &mut [Node<T>]) -> &mut Self {
-        unsafe { transmute(slice) }
+        let ptr = slice as *mut [Node<T>] as *mut Tree<T>;
+        unsafe { &mut *ptr }
     }
     pub fn iter(&self) -> TreeIter<T> {
         self.into_iter()
