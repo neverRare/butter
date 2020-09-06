@@ -1,3 +1,4 @@
+use util::tree::BigTree;
 use op::BinaryOp;
 use op::UnaryOp;
 
@@ -47,10 +48,4 @@ enum NodeKind {
     While,
     Loop,
 }
-#[derive(Clone, Copy)]
-struct Node<'a> {
-    span: &'a str,
-    kind: NodeKind,
-    group: usize,
-}
-pub struct BigAst<'a>(Vec<Node<'a>>);
+pub struct BigAst<'a>(BigTree<(&'a str, NodeKind)>);
