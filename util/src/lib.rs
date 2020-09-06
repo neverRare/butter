@@ -1,5 +1,6 @@
 pub mod lexer;
 pub mod span;
+pub mod tree;
 
 #[macro_export]
 macro_rules! match_lex {
