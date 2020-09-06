@@ -59,6 +59,9 @@ impl<T> Tree<T> {
     fn from_mut_slice(slice: &mut [Node<T>]) -> &mut Self {
         unsafe { transmute(slice) }
     }
+    pub fn iter(&self) -> TreeIter<T> {
+        self.into_iter()
+    }
 }
 impl<'a, T> Default for &'a Tree<T> {
     fn default() -> Self {
