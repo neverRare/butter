@@ -1,15 +1,56 @@
-mod nud;
-mod op;
-mod unpacking;
+use op::BinaryOp;
+use op::UnaryOp;
 
-struct Expr;
-struct Block {
-    stmt: Vec<Expr>,
-    expr: Expr,
+mod op;
+
+#[derive(Clone, Copy)]
+pub enum Num {
+    UInt(u64),
+    Float(f64),
 }
-struct Field<'a> {
-    name: &'a str,
-    value: Expr,
+#[derive(Clone, Copy)]
+enum NodeKind {
+    Splat,
+    Rest,
+    Label,
+
+    CharInside(u8),
+
+    True,
+    False,
+    Null,
+    Ident,
+    Char,
+    Str,
+    Num(Num),
+    Path,
+
+    Clone,
+    Abort,
+    Break,
+    Continue,
+
+    Unary(UnaryOp),
+    Binary(BinaryOp),
+
+    Declare,
+    Assign,
+
+    Array,
+    Struct,
+
+    Block(bool),
+    Fun(bool),
+    If,
+    Else,
+    For,
+    While,
+    Loop,
 }
-struct Struct<'a>(Vec<Field<'a>>);
-struct Array(Vec<Expr>);
+#[derive(Clone, Copy)]
+struct Node<'a> {
+    span: &'a str,
+    kind: NodeKind,
+    group: usize,
+}
+pub struct BigAst<'a>(Vec<Node<'a>>);

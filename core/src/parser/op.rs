@@ -1,3 +1,4 @@
+#[derive(Clone, Copy)]
 pub enum UnaryOp {
     Plus,
     Minus,
@@ -8,6 +9,29 @@ pub enum UnaryOp {
     Not,
     NotType(NotType),
 }
+#[derive(Clone, Copy)]
+pub enum BinaryOp {
+    Add,
+    Sub,
+    Mult,
+    Div,
+    FlrDiv,
+    Mod,
+    Shl,
+    Shr,
+    BitAnd,
+    BitOr,
+    BitXor,
+    And,
+    Or,
+    Eq,
+    NotEq,
+    Gt,
+    Gte,
+    Lt,
+    Lte,
+}
+#[derive(Clone, Copy)]
 pub enum NotType {
     U8,
     U16,
