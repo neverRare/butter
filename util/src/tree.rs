@@ -1,3 +1,6 @@
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Formatter;
 use std::mem::transmute;
 use std::ops::Deref;
 use std::ops::DerefMut;
@@ -50,6 +53,12 @@ impl<T> DerefMut for BigTree<T> {
         Tree::from_mut_slice(&mut self.0)
     }
 }
+impl<T: Debug> Debug for BigTree<T> {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        let tree: &Tree<T> = self;
+        tree.fmt(fmt)
+    }
+}
 #[derive(PartialEq, Eq, Hash)]
 pub struct Tree<T>([Node<T>]);
 impl<T> Tree<T> {
@@ -78,6 +87,11 @@ impl<'a, T> IntoIterator for &'a Tree<T> {
     type IntoIter = TreeIter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
         TreeIter(&self.0)
+    }
+}
+impl<T: Debug> Debug for Tree<T> {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        fmt.debug_list().entries(self.iter()).finish()
     }
 }
 pub struct TreeIter<'a, T>(&'a [Node<T>]);
