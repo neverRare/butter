@@ -23,6 +23,9 @@ impl<T> Default for BigTree<T> {
     }
 }
 impl<T> BigTree<T> {
+    pub fn new() -> Self {
+        Self::default()
+    }
     pub fn branch(leaf: T, branch: Self) -> Self {
         let Self(mut branch) = branch;
         let mut vec = vec![Node {
