@@ -2,6 +2,9 @@ use std::marker::PhantomData;
 
 pub trait Lex<'a>: Sized {
     fn lex_first(src: &'a str) -> Option<(usize, Self)>;
+    fn lex_first_span(src: &'a str) -> Option<(&'a str, Self)> {
+        Self::lex_first(src).map(|(step, token)| (&src[..step], token))
+    }
     fn lex(src: &'a str) -> Lexer<'a, Self> {
         src.into()
     }
