@@ -1,5 +1,6 @@
 use std::mem::transmute;
 use std::ops::Deref;
+use std::ops::DerefMut;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct Node<T> {
@@ -44,11 +45,29 @@ impl<T> Deref for BigTree<T> {
         Tree::from_slice(&self.0)
     }
 }
+impl<T> DerefMut for BigTree<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        Tree::from_mut_slice(&mut self.0)
+    }
+}
 #[derive(PartialEq, Eq, Hash)]
 pub struct Tree<T>([Node<T>]);
 impl<T> Tree<T> {
     fn from_slice(slice: &[Node<T>]) -> &Self {
         unsafe { transmute(slice) }
+    }
+    fn from_mut_slice(slice: &mut [Node<T>]) -> &mut Self {
+        unsafe { transmute(slice) }
+    }
+}
+impl<'a, T> Default for &'a Tree<T> {
+    fn default() -> Self {
+        Tree::from_slice(&[])
+    }
+}
+impl<'a, T> Default for &'a mut Tree<T> {
+    fn default() -> Self {
+        Tree::from_mut_slice(&mut [])
     }
 }
 impl<'a, T> IntoIterator for &'a Tree<T> {
@@ -71,5 +90,9 @@ impl<'a, T> Iterator for TreeIter<'a, T> {
             self.0 = &arr[1 + len..];
             Some((&first.content, Tree::from_slice(&arr[1..1 + len])))
         }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.0.len();
+        (1.min(len), Some(len))
     }
 }
