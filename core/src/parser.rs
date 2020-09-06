@@ -1,6 +1,6 @@
-use util::tree::BigTree;
 use op::BinaryOp;
 use op::UnaryOp;
+use util::tree::BigTree;
 
 mod op;
 
