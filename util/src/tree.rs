@@ -133,6 +133,15 @@ impl<T> TreeSlice<T> {
         let ptr = slice as *mut [Node<T>] as *mut Self;
         unsafe { &mut *ptr }
     }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+    pub fn len(&self) -> usize {
+        self.iter().count()
+    }
+    pub fn total(&self) -> usize {
+        self.0.len()
+    }
     pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
