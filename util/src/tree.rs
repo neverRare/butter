@@ -11,9 +11,32 @@ struct Node<T> {
     content: T,
     len: usize,
 }
-impl<T> Node<T> {
-    fn new(content: T) -> Self {
-        Self { content, len: 0 }
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Tree<T> {
+    pub content: T,
+    pub children: TreeVec<T>,
+}
+impl<T> Tree<T> {
+    pub fn new(content: T) -> Self {
+        Self {
+            content,
+            children: TreeVec::new(),
+        }
+    }
+    pub fn with_children(content: T, children: TreeVec<T>) -> Self {
+        Self { content, children }
+    }
+    pub fn into_tree_vec(self) -> TreeVec<T> {
+        let Self {
+            content,
+            children: TreeVec(mut children),
+        } = self;
+        let mut vec = vec![Node {
+            content,
+            len: children.len(),
+        }];
+        vec.append(&mut children);
+        TreeVec(vec)
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -30,44 +53,48 @@ impl<T> TreeVec<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self(Vec::with_capacity(capacity))
     }
-    pub fn node_branch(node: T, children: Self) -> Self {
-        let Self(mut branch) = children;
-        let mut vec = vec![Node {
-            content: node,
-            len: branch.len(),
-        }];
-        vec.append(&mut branch);
-        Self(vec)
+    pub fn push(&mut self, tree: Tree<T>) {
+        let Tree {
+            content,
+            children: Self(mut children),
+        } = tree;
+        let Self(vec) = self;
+        vec.push(Node {
+            content,
+            len: children.len(),
+        });
+        vec.append(&mut children);
     }
-    pub fn node(node: T) -> Self {
-        Self(vec![Node::new(node)])
+    pub fn append(&mut self, Self(children): &mut Self) {
+        self.0.append(children);
     }
-    pub fn push(&mut self, node: T) {
-        self.0.push(Node::new(node))
-    }
-    pub fn append(&mut self, children: &mut Self) {
-        self.0.append(&mut children.0)
-    }
-    pub fn into_first(self) -> Option<(T, Self)> {
-        let mut vec = self.0;
+    pub fn into_first(self) -> Option<Tree<T>> {
+        let Self(mut vec) = self;
         if vec.is_empty() {
             None
         } else {
             let first = vec.remove(0);
             let len = first.len;
             vec.truncate(len);
-            Some((first.content, Self(vec)))
+            Some(Tree {
+                content: first.content,
+                children: Self(vec),
+            })
         }
     }
-    pub fn into_first_and_rest(self) -> Option<(T, Self, Self)> {
-        let mut vec = self.0;
+    pub fn into_first_and_rest(self) -> Option<(Tree<T>, Self)> {
+        let Self(mut vec) = self;
         if vec.is_empty() {
             None
         } else {
             let first = vec.remove(0);
             let len = first.len;
             let rest = vec.split_off(len);
-            Some((first.content, Self(vec), Self(rest)))
+            let tree = Tree {
+                content: first.content,
+                children: Self(vec),
+            };
+            Some((tree, Self(rest)))
         }
     }
 }
@@ -83,7 +110,7 @@ impl<T> DerefMut for TreeVec<T> {
     }
 }
 impl<T> IntoIterator for TreeVec<T> {
-    type Item = (T, Self);
+    type Item = Tree<T>;
     type IntoIter = IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
         IntoIter(self)
@@ -200,7 +227,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
 impl<'a, T> FusedIterator for Iter<'a, T> {}
 pub struct IntoIter<T>(TreeVec<T>);
 impl<T> Iterator for IntoIter<T> {
-    type Item = (T, TreeVec<T>);
+    type Item = Tree<T>;
     fn next(&mut self) -> Option<Self::Item> {
         let self_vec = &mut (self.0).0;
         if self_vec.is_empty() {
@@ -208,9 +235,9 @@ impl<T> Iterator for IntoIter<T> {
         } else {
             let mut vec = vec![];
             swap(self_vec, &mut vec);
-            let (content, children, rest) = TreeVec(vec).into_first_and_rest().unwrap();
+            let (tree, rest) = TreeVec(vec).into_first_and_rest().unwrap();
             *self_vec = rest.0;
-            Some((content, children))
+            Some(tree)
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
