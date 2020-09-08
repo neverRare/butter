@@ -17,36 +17,36 @@ impl<T> Node<T> {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct BigTree<T>(Vec<Node<T>>);
-impl<T> Default for BigTree<T> {
+pub struct TreeVec<T>(Vec<Node<T>>);
+impl<T> Default for TreeVec<T> {
     fn default() -> Self {
         Self(vec![])
     }
 }
-impl<T> BigTree<T> {
+impl<T> TreeVec<T> {
     pub fn new() -> Self {
         Self::default()
     }
     pub fn with_capacity(capacity: usize) -> Self {
         Self(Vec::with_capacity(capacity))
     }
-    pub fn branch(leaf: T, branch: Self) -> Self {
-        let Self(mut branch) = branch;
+    pub fn node_branch(node: T, children: Self) -> Self {
+        let Self(mut branch) = children;
         let mut vec = vec![Node {
-            content: leaf,
+            content: node,
             len: branch.len(),
         }];
         vec.append(&mut branch);
         Self(vec)
     }
-    pub fn leaf(leaf: T) -> Self {
-        Self(vec![Node::new(leaf)])
+    pub fn node(node: T) -> Self {
+        Self(vec![Node::new(node)])
     }
-    pub fn push(&mut self, leaf: T) {
-        self.0.push(Node::new(leaf))
+    pub fn push(&mut self, node: T) {
+        self.0.push(Node::new(node))
     }
-    pub fn append(&mut self, branch: &mut Self) {
-        self.0.append(&mut branch.0)
+    pub fn append(&mut self, children: &mut Self) {
+        self.0.append(&mut children.0)
     }
     pub fn into_first(self) -> Option<(T, Self)> {
         let mut vec = self.0;
@@ -71,42 +71,42 @@ impl<T> BigTree<T> {
         }
     }
 }
-impl<T> Deref for BigTree<T> {
-    type Target = Tree<T>;
+impl<T> Deref for TreeVec<T> {
+    type Target = TreeSlice<T>;
     fn deref(&self) -> &Self::Target {
-        Tree::from_slice(&self.0)
+        TreeSlice::from_slice(&self.0)
     }
 }
-impl<T> DerefMut for BigTree<T> {
+impl<T> DerefMut for TreeVec<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        Tree::from_mut_slice(&mut self.0)
+        TreeSlice::from_mut_slice(&mut self.0)
     }
 }
-impl<T> IntoIterator for BigTree<T> {
+impl<T> IntoIterator for TreeVec<T> {
     type Item = (T, Self);
-    type IntoIter = TreeIntoIter<T>;
+    type IntoIter = IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
-        TreeIntoIter(self)
+        IntoIter(self)
     }
 }
-impl<T: Debug> Debug for BigTree<T> {
+impl<T: Debug> Debug for TreeVec<T> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        let tree: &Tree<T> = self;
+        let tree: &TreeSlice<T> = self;
         tree.fmt(fmt)
     }
 }
 #[derive(PartialEq, Eq, Hash)]
-pub struct Tree<T>([Node<T>]);
-impl<T> Tree<T> {
+pub struct TreeSlice<T>([Node<T>]);
+impl<T> TreeSlice<T> {
     fn from_slice(slice: &[Node<T>]) -> &Self {
-        let ptr = slice as *const [Node<T>] as *const Tree<T>;
+        let ptr = slice as *const [Node<T>] as *const Self;
         unsafe { &*ptr }
     }
     fn from_mut_slice(slice: &mut [Node<T>]) -> &mut Self {
-        let ptr = slice as *mut [Node<T>] as *mut Tree<T>;
+        let ptr = slice as *mut [Node<T>] as *mut Self;
         unsafe { &mut *ptr }
     }
-    pub fn iter(&self) -> TreeIter<T> {
+    pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
     pub fn first(&self) -> Option<(&T, &Self)> {
@@ -161,31 +161,31 @@ impl<T> Tree<T> {
         }
     }
 }
-impl<'a, T> Default for &'a Tree<T> {
+impl<'a, T> Default for &'a TreeSlice<T> {
     fn default() -> Self {
-        Tree::from_slice(&[])
+        TreeSlice::from_slice(&[])
     }
 }
-impl<'a, T> Default for &'a mut Tree<T> {
+impl<'a, T> Default for &'a mut TreeSlice<T> {
     fn default() -> Self {
-        Tree::from_mut_slice(&mut [])
+        TreeSlice::from_mut_slice(&mut [])
     }
 }
-impl<'a, T> IntoIterator for &'a Tree<T> {
-    type Item = (&'a T, &'a Tree<T>);
-    type IntoIter = TreeIter<'a, T>;
+impl<'a, T> IntoIterator for &'a TreeSlice<T> {
+    type Item = (&'a T, &'a TreeSlice<T>);
+    type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        TreeIter(self)
+        Iter(self)
     }
 }
-impl<T: Debug> Debug for Tree<T> {
+impl<T: Debug> Debug for TreeSlice<T> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         fmt.debug_list().entries(self.iter()).finish()
     }
 }
-pub struct TreeIter<'a, T>(&'a Tree<T>);
-impl<'a, T> Iterator for TreeIter<'a, T> {
-    type Item = (&'a T, &'a Tree<T>);
+pub struct Iter<'a, T>(&'a TreeSlice<T>);
+impl<'a, T> Iterator for Iter<'a, T> {
+    type Item = (&'a T, &'a TreeSlice<T>);
     fn next(&mut self) -> Option<Self::Item> {
         self.0.first_and_rest().map(|(content, children, rest)| {
             self.0 = rest;
@@ -197,10 +197,10 @@ impl<'a, T> Iterator for TreeIter<'a, T> {
         (1.min(len), Some(len))
     }
 }
-impl<'a, T> FusedIterator for TreeIter<'a, T> {}
-pub struct TreeIntoIter<T>(BigTree<T>);
-impl<T> Iterator for TreeIntoIter<T> {
-    type Item = (T, BigTree<T>);
+impl<'a, T> FusedIterator for Iter<'a, T> {}
+pub struct IntoIter<T>(TreeVec<T>);
+impl<T> Iterator for IntoIter<T> {
+    type Item = (T, TreeVec<T>);
     fn next(&mut self) -> Option<Self::Item> {
         let self_vec = &mut (self.0).0;
         if self_vec.is_empty() {
@@ -208,7 +208,7 @@ impl<T> Iterator for TreeIntoIter<T> {
         } else {
             let mut vec = vec![];
             swap(self_vec, &mut vec);
-            let (content, children, rest) = BigTree(vec).into_first_and_rest().unwrap();
+            let (content, children, rest) = TreeVec(vec).into_first_and_rest().unwrap();
             *self_vec = rest.0;
             Some((content, children))
         }
@@ -218,4 +218,4 @@ impl<T> Iterator for TreeIntoIter<T> {
         (1.min(len), Some(len))
     }
 }
-impl<T> FusedIterator for TreeIntoIter<T> {}
+impl<T> FusedIterator for IntoIter<T> {}

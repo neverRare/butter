@@ -1,6 +1,6 @@
 use op::BinaryOp;
 use op::UnaryOp;
-use util::tree::BigTree;
+use util::tree::TreeVec;
 
 mod op;
 
@@ -48,4 +48,4 @@ enum NodeKind {
     While,
     Loop,
 }
-pub struct BigAst<'a>(BigTree<(&'a str, NodeKind)>);
+pub struct BigAst<'a>(TreeVec<(&'a str, NodeKind)>);
