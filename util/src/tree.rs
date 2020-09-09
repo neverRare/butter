@@ -4,11 +4,6 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 
 #[derive(Clone, PartialEq, Eq, Hash)]
-struct Node<T> {
-    content: T,
-    len: usize,
-}
-#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Tree<T> {
     pub content: T,
     pub children: TreeVec<T>,
@@ -28,10 +23,7 @@ impl<T> Tree<T> {
             content,
             children: TreeVec(mut children),
         } = self;
-        let mut vec = vec![Node {
-            content,
-            len: children.len(),
-        }];
+        let mut vec = vec![(content, children.len())];
         vec.append(&mut children);
         TreeVec(vec)
     }
@@ -47,7 +39,7 @@ pub struct TreeMutRef<'a, T> {
     pub children: &'a mut TreeSlice<T>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct TreeVec<T>(Vec<Node<T>>);
+pub struct TreeVec<T>(Vec<(T, usize)>);
 impl<T> Default for TreeVec<T> {
     fn default() -> Self {
         Self(vec![])
@@ -66,10 +58,7 @@ impl<T> TreeVec<T> {
             children: Self(mut children),
         } = tree;
         let Self(vec) = self;
-        vec.push(Node {
-            content,
-            len: children.len(),
-        });
+        vec.push((content, children.len()));
         vec.append(&mut children);
     }
     pub fn append(&mut self, Self(children): &mut Self) {
@@ -80,11 +69,10 @@ impl<T> TreeVec<T> {
         if vec.is_empty() {
             None
         } else {
-            let first = vec.remove(0);
-            let len = first.len;
+            let (content, len) = vec.remove(0);
             vec.truncate(len);
             Some(Tree {
-                content: first.content,
+                content,
                 children: Self(vec),
             })
         }
@@ -94,11 +82,10 @@ impl<T> TreeVec<T> {
         if vec.is_empty() {
             None
         } else {
-            let first = vec.remove(0);
-            let len = first.len;
+            let (content, len) = vec.remove(0);
             let rest = vec.split_off(len);
             let tree = Tree {
-                content: first.content,
+                content,
                 children: Self(vec),
             };
             Some((tree, Self(rest)))
@@ -124,14 +111,14 @@ impl<T> IntoIterator for TreeVec<T> {
     }
 }
 #[derive(PartialEq, Eq, Hash)]
-pub struct TreeSlice<T>([Node<T>]);
+pub struct TreeSlice<T>([(T, usize)]);
 impl<T> TreeSlice<T> {
-    fn from_slice(slice: &[Node<T>]) -> &Self {
-        let ptr = slice as *const [Node<T>] as *const Self;
+    fn from_slice(slice: &[(T, usize)]) -> &Self {
+        let ptr = slice as *const [(T, usize)] as *const Self;
         unsafe { &*ptr }
     }
-    fn from_mut_slice(slice: &mut [Node<T>]) -> &mut Self {
-        let ptr = slice as *mut [Node<T>] as *mut Self;
+    fn from_mut_slice(slice: &mut [(T, usize)]) -> &mut Self {
+        let ptr = slice as *mut [(T, usize)] as *mut Self;
         unsafe { &mut *ptr }
     }
     pub fn is_empty(&self) -> bool {
@@ -151,10 +138,10 @@ impl<T> TreeSlice<T> {
         if arr.is_empty() {
             None
         } else {
-            let first = &arr[0];
-            let children = &arr[1..1 + first.len];
+            let (content, len) = &arr[0];
+            let children = &arr[1..1 + len];
             Some(TreeRef {
-                content: &first.content,
+                content,
                 children: Self::from_slice(children),
             })
         }
@@ -164,11 +151,11 @@ impl<T> TreeSlice<T> {
         if arr.is_empty() {
             None
         } else {
-            let first = &arr[0];
-            let children = &arr[1..1 + first.len];
-            let rest = &arr[1 + first.len..];
+            let (content, len) = &arr[0];
+            let children = &arr[1..1 + len];
+            let rest = &arr[1 + len..];
             let tree = TreeRef {
-                content: &first.content,
+                content,
                 children: Self::from_slice(children),
             };
             Some((tree, Self::from_slice(rest)))
@@ -180,27 +167,27 @@ impl<T> TreeSlice<T> {
             None
         } else {
             let (first, rest) = arr.split_at_mut(1);
-            let first = &mut first[0];
-            let children = &mut rest[..first.len];
+            let (content, len) = &mut first[0];
+            let children = &mut rest[..*len];
             Some(TreeMutRef {
-                content: &mut first.content,
+                content,
                 children: Self::from_mut_slice(children),
             })
         }
     }
-    pub fn first_and_rest_mut(&mut self) -> Option<(&mut T, &mut Self, &mut Self)> {
+    pub fn first_and_rest_mut(&mut self) -> Option<(TreeMutRef<T>, &mut Self)> {
         let arr = &mut self.0;
         if arr.is_empty() {
             None
         } else {
             let (first, rest) = arr.split_at_mut(1);
-            let first = &mut first[0];
-            let (children, rest) = rest.split_at_mut(first.len);
-            Some((
-                &mut first.content,
-                Self::from_mut_slice(children),
-                Self::from_mut_slice(rest),
-            ))
+            let (content, len) = &mut first[0];
+            let (children, rest) = rest.split_at_mut(*len);
+            let tree = TreeMutRef {
+                content,
+                children: Self::from_mut_slice(children),
+            };
+            Some((tree, Self::from_mut_slice(rest)))
         }
     }
 }
