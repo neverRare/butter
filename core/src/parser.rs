@@ -1,6 +1,5 @@
 use op::BinaryOp;
 use op::UnaryOp;
-use util::tree::TreeVec;
 
 mod num;
 mod op;
@@ -50,4 +49,3 @@ enum NodeKind {
     While,
     Loop,
 }
-pub struct BigAst<'a>(TreeVec<(&'a str, NodeKind)>);
