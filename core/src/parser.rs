@@ -48,4 +48,6 @@ enum NodeKind {
     For,
     While,
     Loop,
+
+    Error,
 }
