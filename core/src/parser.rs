@@ -2,6 +2,7 @@ use op::BinaryOp;
 use op::UnaryOp;
 use util::tree::TreeVec;
 
+mod string;
 mod num;
 mod op;
 

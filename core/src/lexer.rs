@@ -23,7 +23,7 @@ mod string;
 mod whitespace;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-enum Token<'a> {
+pub enum Token<'a> {
     Whitespace,
     Comment,
     Num,
