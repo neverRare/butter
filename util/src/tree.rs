@@ -212,13 +212,15 @@ pub struct Iter<'a, T>(&'a TreeSlice<T>);
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = TreeRef<'a, T>;
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.first_and_rest().map(|(tree, rest)| {
+        let Self(tree) = self;
+        tree.first_and_rest().map(|(tree, rest)| {
             self.0 = rest;
             tree
         })
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = (self.0).0.len();
+        let Self(TreeSlice(slice)) = self;
+        let len = slice.len();
         (1.min(len), Some(len))
     }
 }
@@ -227,19 +229,20 @@ pub struct IntoIter<T>(TreeVec<T>);
 impl<T> Iterator for IntoIter<T> {
     type Item = Tree<T>;
     fn next(&mut self) -> Option<Self::Item> {
-        let self_vec = &mut (self.0).0;
+        let Self(TreeVec(self_vec)) = self;
         if self_vec.is_empty() {
             None
         } else {
             let mut vec = vec![];
             swap(self_vec, &mut vec);
-            let (tree, rest) = TreeVec(vec).into_first_and_rest().unwrap();
-            *self_vec = rest.0;
+            let (tree, TreeVec(rest)) = TreeVec(vec).into_first_and_rest().unwrap();
+            *self_vec = rest;
             Some(tree)
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = (self.0).0.len();
+        let Self(TreeVec(vec)) = self;
+        let len = vec.len();
         (1.min(len), Some(len))
     }
 }
