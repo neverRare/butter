@@ -254,3 +254,20 @@ impl<T> Iterator for IntoIter<T> {
     }
 }
 impl<T> FusedIterator for IntoIter<T> {}
+#[macro_export]
+macro_rules! tree_vec {
+    () => {
+        $crate::tree::TreeVec::new()
+    };
+    ($($content:expr $(=> { $($tree:tt)* })?),* $(,)?) => {{
+        let tree_vec = $crate::tree::TreeVec::new();
+        $(
+            let tree = $crate::tree::Tree {
+                content: $content,
+                tree: $crate::tree_vec!($($($tree)*)?),
+            };
+            tree_vec.push(tree);
+        )*
+        tree_vec
+    }};
+}
