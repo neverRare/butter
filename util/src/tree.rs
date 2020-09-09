@@ -1,6 +1,3 @@
-use std::fmt;
-use std::fmt::Debug;
-use std::fmt::Formatter;
 use std::iter::FusedIterator;
 use std::mem::swap;
 use std::ops::Deref;
@@ -11,7 +8,7 @@ struct Node<T> {
     content: T,
     len: usize,
 }
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Tree<T> {
     pub content: T,
     pub children: TreeVec<T>,
@@ -38,6 +35,16 @@ impl<T> Tree<T> {
         vec.append(&mut children);
         TreeVec(vec)
     }
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TreeRef<'a, T> {
+    pub content: &'a T,
+    pub children: &'a TreeSlice<T>,
+}
+#[derive(PartialEq, Eq, Hash)]
+pub struct TreeMutRef<'a, T> {
+    pub content: &'a mut T,
+    pub children: &'a mut TreeSlice<T>,
 }
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct TreeVec<T>(Vec<Node<T>>);
@@ -116,12 +123,6 @@ impl<T> IntoIterator for TreeVec<T> {
         IntoIter(self)
     }
 }
-impl<T: Debug> Debug for TreeVec<T> {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        let tree: &TreeSlice<T> = self;
-        tree.fmt(fmt)
-    }
-}
 #[derive(PartialEq, Eq, Hash)]
 pub struct TreeSlice<T>([Node<T>]);
 impl<T> TreeSlice<T> {
@@ -145,17 +146,20 @@ impl<T> TreeSlice<T> {
     pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
-    pub fn first(&self) -> Option<(&T, &Self)> {
+    pub fn first(&self) -> Option<TreeRef<T>> {
         let arr = &self.0;
         if arr.is_empty() {
             None
         } else {
             let first = &arr[0];
             let children = &arr[1..1 + first.len];
-            Some((&first.content, Self::from_slice(children)))
+            Some(TreeRef {
+                content: &first.content,
+                children: Self::from_slice(children),
+            })
         }
     }
-    pub fn first_and_rest(&self) -> Option<(&T, &Self, &Self)> {
+    pub fn first_and_rest(&self) -> Option<(TreeRef<T>, &Self)> {
         let arr = &self.0;
         if arr.is_empty() {
             None
@@ -163,14 +167,14 @@ impl<T> TreeSlice<T> {
             let first = &arr[0];
             let children = &arr[1..1 + first.len];
             let rest = &arr[1 + first.len..];
-            Some((
-                &first.content,
-                Self::from_slice(children),
-                Self::from_slice(rest),
-            ))
+            let tree = TreeRef {
+                content: &first.content,
+                children: Self::from_slice(children),
+            };
+            Some((tree, Self::from_slice(rest)))
         }
     }
-    pub fn first_mut(&mut self) -> Option<(&mut T, &mut Self)> {
+    pub fn first_mut(&mut self) -> Option<TreeMutRef<T>> {
         let arr = &mut self.0;
         if arr.is_empty() {
             None
@@ -178,7 +182,10 @@ impl<T> TreeSlice<T> {
             let (first, rest) = arr.split_at_mut(1);
             let first = &mut first[0];
             let children = &mut rest[..first.len];
-            Some((&mut first.content, Self::from_mut_slice(children)))
+            Some(TreeMutRef {
+                content: &mut first.content,
+                children: Self::from_mut_slice(children),
+            })
         }
     }
     pub fn first_and_rest_mut(&mut self) -> Option<(&mut T, &mut Self, &mut Self)> {
@@ -208,24 +215,19 @@ impl<'a, T> Default for &'a mut TreeSlice<T> {
     }
 }
 impl<'a, T> IntoIterator for &'a TreeSlice<T> {
-    type Item = (&'a T, &'a TreeSlice<T>);
+    type Item = TreeRef<'a, T>;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
         Iter(self)
     }
 }
-impl<T: Debug> Debug for TreeSlice<T> {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        fmt.debug_list().entries(self.iter()).finish()
-    }
-}
 pub struct Iter<'a, T>(&'a TreeSlice<T>);
 impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = (&'a T, &'a TreeSlice<T>);
+    type Item = TreeRef<'a, T>;
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.first_and_rest().map(|(content, children, rest)| {
+        self.0.first_and_rest().map(|(tree, rest)| {
             self.0 = rest;
-            (content, children)
+            tree
         })
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
