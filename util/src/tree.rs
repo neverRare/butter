@@ -133,6 +133,13 @@ impl<T> TreeSlice<T> {
     pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
+    pub fn to_tree_vec(&self) -> TreeVec<T>
+    where
+        T: Clone,
+    {
+        let Self(slice) = self;
+        TreeVec(slice.to_vec())
+    }
     pub fn first(&self) -> Option<TreeRef<T>> {
         let arr = &self.0;
         if arr.is_empty() {
