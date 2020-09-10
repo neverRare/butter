@@ -260,14 +260,60 @@ macro_rules! tree_vec {
         $crate::tree::TreeVec::new()
     };
     ($($content:expr $(=> { $($tree:tt)* })?),* $(,)?) => {{
-        let tree_vec = $crate::tree::TreeVec::new();
+        let mut tree_vec = $crate::tree::TreeVec::new();
         $(
             let tree = $crate::tree::Tree {
                 content: $content,
-                tree: $crate::tree_vec!($($($tree)*)?),
+                children: $crate::tree_vec!($($($tree)*)?),
             };
             tree_vec.push(tree);
         )*
         tree_vec
     }};
+}
+#[cfg(test)]
+mod test {
+    #[test]
+    fn tree_vec() {
+        let tree_vec = tree_vec! {
+            7 => {
+                2,
+                10,
+                6 => {
+                    5,
+                    11,
+                },
+            },
+            5,
+        };
+        let mut iter = tree_vec.iter();
+        let tree = iter.next().unwrap();
+        assert_eq!(*tree.content, 7);
+        {
+            let mut iter = tree.children.iter();
+            let tree = iter.next().unwrap();
+            assert_eq!(*tree.content, 2);
+            assert!(tree.children.is_empty());
+            let tree = iter.next().unwrap();
+            assert_eq!(*tree.content, 10);
+            assert!(tree.children.is_empty());
+            let tree = iter.next().unwrap();
+            assert_eq!(*tree.content, 6);
+            {
+                let mut iter = tree.children.iter();
+                let tree = iter.next().unwrap();
+                assert_eq!(*tree.content, 5);
+                assert!(tree.children.is_empty());
+                let tree = iter.next().unwrap();
+                assert_eq!(*tree.content, 11);
+                assert!(tree.children.is_empty());
+                assert!(iter.next().is_none());
+            }
+            assert!(iter.next().is_none());
+        }
+        let tree = iter.next().unwrap();
+        assert_eq!(*tree.content, 5);
+        assert!(tree.children.is_empty());
+        assert!(iter.next().is_none());
+    }
 }
