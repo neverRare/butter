@@ -11,7 +11,7 @@ pub enum Num {
     Float(f64),
 }
 #[derive(Clone, Copy)]
-enum NodeKind {
+enum Node {
     Splat,
     Rest,
     Label,
@@ -50,4 +50,9 @@ enum NodeKind {
     Loop,
 
     Error,
+}
+#[derive(Clone, Copy)]
+pub enum NodeKind {
+    Unpack,
+    Expression,
 }
