@@ -73,13 +73,13 @@ mod test {
     #[test]
     fn simple_lex() {
         let vec: Vec<_> =
-            Token::lex_span("-- comment\n identifier true_false null => + ( ) ; <--").collect();
+            Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ; <--").collect();
         assert_eq!(
             vec,
             vec![
                 ("-- comment\n", Token::Comment),
                 (" ", Token::Whitespace),
-                ("identifier", Token::Identifier),
+                ("identifier_123", Token::Identifier),
                 (" ", Token::Whitespace),
                 ("true_false", Token::Identifier),
                 (" ", Token::Whitespace),
