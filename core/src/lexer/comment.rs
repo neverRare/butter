@@ -6,7 +6,6 @@ impl<'a> Lex<'a> for Comment {
         if let Some("--") = src.get(..2) {
             match src[2..].find('\n') {
                 None => Some((src.len(), Self)),
-                Some(0) => None,
                 Some(i) => Some((i + 3, Self)),
             }
         } else {
