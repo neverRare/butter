@@ -114,11 +114,11 @@ impl<T> IntoIterator for TreeVec<T> {
 pub struct TreeSlice<T>([(T, usize)]);
 impl<T> TreeSlice<T> {
     fn from_slice(slice: &[(T, usize)]) -> &Self {
-        let ptr = slice as *const [(T, usize)] as *const Self;
+        let ptr = slice as *const _ as *const Self;
         unsafe { &*ptr }
     }
     fn from_mut_slice(slice: &mut [(T, usize)]) -> &mut Self {
-        let ptr = slice as *mut [(T, usize)] as *mut Self;
+        let ptr = slice as *mut _ as *mut Self;
         unsafe { &mut *ptr }
     }
     pub fn is_empty(&self) -> bool {
