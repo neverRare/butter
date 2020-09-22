@@ -11,24 +11,19 @@ impl<'a> Lex<'a> for Num {
             first
         };
         if let Some('0'..='9') = num {
-            let mut e = false;
+            let mut prev_e = false;
             let mut chars = src[1..].char_indices().peekable();
             while let Some((i, ch)) = chars.next() {
+                let e = matches!(ch, 'e' | 'E');
                 let resume = match ch {
-                    '-' | '+' if e => {
-                        e = false;
-                        true
-                    }
-                    'e' | 'E' => {
-                        e = true;
-                        true
-                    }
-                    '.' if matches!(chars.peek(), Some((_, '0'..='9'))) => true,
+                    '-' | '+' => prev_e,
                     '_' => true,
-                    ch if ch.is_alphanumeric() => true,
-                    _ => false,
+                    '.' => matches!(chars.peek(), Some((_, '0'..='9'))),
+                    ch => ch.is_alphanumeric(),
                 };
-                if !resume {
+                if resume {
+                    prev_e = e;
+                } else {
                     return Some((i + 1, Self));
                 }
             }
