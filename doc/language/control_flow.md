@@ -126,6 +126,16 @@ TODO
 
 ## Label
 
-Loop expression such as `loop`, `while`, and `for` and be labelled. This is useful especially when using `break` or `continue` on deep loops.
+Labels are used to disambiguate nested loops, which is often useful for using `break` or `continue`.
 
-TODO example
+You can explicitly label the loop by preceding it with an identifier followed by a colon `:`.
+
+TODO example of explicit label
+
+When applicable, you can use the following as label.
+
+- Keyword (`for`, `while`, or `loop`)
+- Variable declared with the loop as value
+- Iteration variable of `for` loop
+
+TODO example using these kind of label.
