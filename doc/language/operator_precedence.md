@@ -3,7 +3,7 @@
 Butter defines the following operator precedence from strongest to weakest.
 
 - `.` `?.` array element access `[]` `?[]` function call `()`
-- unary `+` `-` `*` `?*` `&` `?&` `!` `!<>`
+- unary `+` `-` `&` `!` `!<>`
 - `*` `/` `//` `%`
 - `+` `-`
 - `<<` `>>`

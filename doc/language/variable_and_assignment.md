@@ -35,13 +35,6 @@ foo = 10;
 foo <- 20;
 ```
 
-You can reassign the underlying value of a reference with `*` and `<-`
-
-```butter
-foo = &10;
-*foo <- 20;
-```
-
 Reassign a value of field.
 
 ```butter

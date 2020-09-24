@@ -30,7 +30,7 @@ name = input ?? "unnamed";
 
 ## Optional Operator
 
-Few operators have counterparts for handling optionals. These are field access, array element access, reference, and dereference. The syntaxes have `?` before the usual operator, like `?.`, `?[...]`, `?&`, and `?*` respectively.
+Few operators have counterparts for handling optionals. These are field access and array element access. The syntaxes have `?` before the usual operator, like `?.` and `?[...]` respectively.
 
 These operators short-circuits, if the left expression is null, the whole expression will be evaluated to null without evaluating the right expression and without doing the actual operation.
 
