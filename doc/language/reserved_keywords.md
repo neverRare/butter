@@ -32,6 +32,7 @@ The following are reserved for possible future features. These will cause a warn
 - `extern`
 - `is`
 - `mod`
+- `ref`
 - `return`
 - `thread`
 - `use`
