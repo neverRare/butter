@@ -29,10 +29,14 @@ The following are reserved for possible future features. These will cause a warn
 - `box`
 - `chan`
 - `concur`
+- `curry`
 - `do`
 - `extern`
 - `is`
 - `mod`
+- `priv`
+- `pub`
+- `recur`
 - `ref`
 - `thread`
 - `use`
