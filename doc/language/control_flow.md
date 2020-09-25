@@ -95,7 +95,7 @@ while i < 10 {
 
 ## Loop
 
-`loop` creates an infinite loop. It can be exited with `break`.
+`loop` creates an infinite loop.
 
 ```butter
 loop {
@@ -103,39 +103,62 @@ loop {
 }
 ```
 
-`loop` is an expression when its `break` have an expression.
+## Break
+
+The break expression is used to immediately exit loop statements.
+
+```butter
+counter = 0;
+while counter < 6 {
+    if counter == 3 {
+        break;  -- immediately exit the loop despite not being counter < 6
+    }
+    counter <- counter + 1;
+}
+std::assert(counter == 3);
+```
+
+A break expression can be given an expression, this is only applicable to `loop`. It must be preceded by an equal sign `=` after the `break` keyword and the label if theres any. The loop expression will evaluate to the expression of whichever broke the loop.
 
 ```butter
 counter = 0;
 result = loop {
-    counter <- counter + 1;
+    counter += 1;
     if counter == 10 {
-        break = counter * 2;
+        break = counter * 2;  -- exit the loop and `result` will be counter * 2
     }
 };
 std::assert(result == 20);
 ```
 
-## Break
-
-TODO
-
 ## Continue
 
-TODO
+The continue expression will stop the current iteration then continues to next iteration.
+
+```butter
+filtered_num = [];
+for num in [1..=10] {
+    if num % 2 == 0 {
+        continue;
+    }
+    filtered_num <- [..filtered_num, num];
+}
+```
 
 ## Label
 
-Labels are used to disambiguate nested loops, which is often useful for using `break` or `continue`.
+Break and continue is normally associated with the innermost loop containing the expression.
 
-You can explicitly label the loop by preceding it with an identifier followed by a colon `:`.
+TODO example of nested loop without labels
+
+If you wish to associate higher loop, you can use labels. Labels are used to disambiguate nested loops. You can explicitly label the loop by preceding it with an identifier followed by a colon `:`. Then use it with `break` or `continue`.
 
 TODO example of explicit label
 
 When applicable, you can use the following as label.
 
-- Keyword (`for`, `while`, or `loop`)
-- Variable declared with the loop as value
+- Keyword of the loop (`for`, `while`, or `loop`)
+- Variable declaration with the loop as value
 - Iteration variable of `for` loop
 
 TODO example using these kind of label.
