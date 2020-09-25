@@ -14,10 +14,10 @@ fruits <- [..fruits, "banana"];
 
 ## Range notation
 
-You can define an array of consecutive integers with `..`. You can use `=` to denote inclusive bound. This is often used with `for` expression. Range can only be used with integers and in increasing count.
+When defining an array of consecutive integers, you can use range notation. This is often used with `for` loops. Refer to [range syntax] for more info.
 
 ```butter
-range = [=0..3];
+range = [0.<3];
 -- similar to
 range = [0, 1, 2];
 ```
@@ -40,8 +40,26 @@ std::assert(fruits.len == 3)
 
 ## Slicing
 
-Through slicing, you can get a portion of the array.
+Through slicing, you can get a portion of the array by specifying the indices of the bounds. This uses [range syntax].
 
 ```butter
-favorites = &fruits[1..3];
+favorites = &fruits[1.<3];
 ```
+
+## Range syntax
+
+You can use `..`, `.<`, `>.`, or `><` for ranges. An angle bracket `<` or `>` means exclusive bound on that side while the period `.` means inclusive. Omitting the bound means there is no bound on that side. The following is an exhaustive list of its possible syntax and its meaning.
+
+| Syntax                    | Meaning       |
+| ------------------------- | ------------- |
+| `a..b`                    | `a <= x <= b` |
+| `a.<b`                    | `a <= x < b`  |
+| `a>.b`                    | `a < x <= b`  |
+| `a><b`                    | `a < x < b`   |
+| `a..` or `a.<`            | `a <= x`      |
+| `a>.` or `a><`            | `a < x`       |
+| `..b` or `>.b`            | `x <= b`      |
+| `.<b` or `><b`            | `x < b`       |
+| `..`, `.<`, `>.`, or `><` | -             |
+
+[range syntax]: #range-syntax

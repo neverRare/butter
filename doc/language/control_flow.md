@@ -137,7 +137,7 @@ The continue expression will stop the current iteration then continues to next i
 
 ```butter
 filtered_num = [];
-for num in [1..=10] {
+for num in [1..10] {
     if num % 2 == 0 {
         continue;
     }
