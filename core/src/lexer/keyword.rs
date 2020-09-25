@@ -17,6 +17,7 @@ pub enum Keyword {
     While,
     Break,
     Continue,
+    Return,
 }
 impl<'a> Lex<'a> for Keyword {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
@@ -36,6 +37,7 @@ impl<'a> Lex<'a> for Keyword {
             "while" => Self::While,
             "break" => Self::Break,
             "continue" => Self::Continue,
+            "return" => Self::Return,
             _ => return None,
         };
         Some((ident.len(), keyword))

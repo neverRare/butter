@@ -9,6 +9,9 @@ pub enum Operator {
     DoubleColon,
     Dot,
     DoubleDot,
+    DotLess,
+    GreaterDot,
+    GreaterLess,
     Plus,
     Minus,
     Star,
@@ -33,8 +36,6 @@ pub enum Operator {
     RightThickArrow,
     Question,
     QuestionDot,
-    QuestionAmp,
-    QuestionStar,
     DoubleQuestion,
 }
 impl<'a> Lex<'a> for Operator {
@@ -49,6 +50,9 @@ impl<'a> Lex<'a> for Operator {
                 "!=" => Some(Self::NotEqual),
                 "::" => Some(Self::DoubleColon),
                 ".." => Some(Self::DoubleDot),
+                ".<" => Some(Self::DotLess),
+                ">." => Some(Self::GreaterDot),
+                "><" => Some(Self::GreaterLess),
                 "//" => Some(Self::DoubleSlash),
                 "&&" => Some(Self::DoubleAmp),
                 "||" => Some(Self::DoublePipe),
@@ -61,8 +65,6 @@ impl<'a> Lex<'a> for Operator {
                 "=>" => Some(Self::RightThickArrow),
                 "??" => Some(Self::DoubleQuestion),
                 "?." => Some(Self::QuestionDot),
-                "?&" => Some(Self::QuestionAmp),
-                "?*" => Some(Self::QuestionStar),
                 _ => None,
             });
             if let Some(operator) = operator {
