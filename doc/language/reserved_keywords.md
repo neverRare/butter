@@ -16,6 +16,7 @@ The following are keywords that have special meaning for current version. They c
 - `loop`
 - `move`
 - `null`
+- `return`
 - `true`
 - `while`
 
@@ -33,7 +34,6 @@ The following are reserved for possible future features. These will cause a warn
 - `is`
 - `mod`
 - `ref`
-- `return`
 - `thread`
 - `use`
 - `when`

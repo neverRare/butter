@@ -30,6 +30,10 @@ Notice `==>` is really `=` and `=>`.
 
 The body is evaluated on every call, if you wish to include more complex expression, you can use block.
 
+## Return
+
+TODO
+
 ## Calling
 
 Calling executes the body of a function. The arguments have similar syntax to struct initialization.
