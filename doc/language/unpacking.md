@@ -44,6 +44,8 @@ If you wish to ignore some fields, simply don't write it.
 (email) = user;
 ```
 
+TODO rest
+
 ## Nesting
 
 You can nest unpacking syntax.
