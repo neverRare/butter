@@ -14,7 +14,9 @@ reverse = arr => {
 
 ## Parameters
 
-The parameter have the same syntax as struct unpacking, except it cannot have rest syntax. It can have simpler syntax, if theres only at most one parameter, you can omit the parentheses.
+The parameter have the same syntax as struct unpacking, except it cannot have rest syntax. It is placed before the `=>`.
+
+It can have simpler syntax, if theres only at most one parameter, you can omit the parentheses.
 
 ```butter
 report_favorite = (name, favorite) => {
@@ -28,11 +30,24 @@ Notice `==>` is really `=` and `=>`.
 
 ## Body
 
-The body is evaluated on every call, if you wish to include more complex expression, you can use block.
+The body is evaluated on every call. It is placed after the `=>`. Body can only contain single expression, so block is used for more complex body.
 
 ## Return
 
-TODO
+Functions can contain return expression, these immediately exits the function body and use its expression as the value of the function call.
+
+```butter
+reverse = arr => {
+    if arr.len >= 1 {
+        return arr;
+    }
+    reverse = [];
+    for elem in arr {
+        reverse <- [elem, ..reverse];
+    }
+    reverse
+};
+```
 
 ## Calling
 
