@@ -20,7 +20,7 @@ arr = ["hello", "world"];
 std::print([..first, .." awesome world\n"]);
 ```
 
-You can unpack from its start or its end then unpack the rest. There can only be at most one rest syntax in array unpacking. This is the counterpart of splat.
+You can unpack from its start or its end then unpack the rest as an another array. There can only be at most one rest syntax in array unpacking. This is the counterpart of splat.
 
 ```butter
 [first, ..rest] = arr;
@@ -38,13 +38,24 @@ user = (
 (name: username, email) = user;
 ```
 
-If you wish to ignore some fields, simply don't write it.
+If you wish to ignore some fields, either don't write it or rename it to `_`.
 
 ```butter
 (email) = user;
+-- or
+(name: _, email) = user;
 ```
 
-TODO rest
+You can partially unpack fields and unpack the rest to another struct. There can be only at most one rest syntax in struct unpacking.
+
+```butter
+car = (
+    color: "red",
+    brand: "a nice brand",
+    price: 100,
+);
+(price, ..car) = car;
+```
 
 ## Nesting
 
