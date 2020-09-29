@@ -39,5 +39,7 @@ The following are reserved for possible future features. These will cause a warn
 - `recur`
 - `ref`
 - `thread`
+- `try`
 - `use`
 - `when`
+- `yield`
