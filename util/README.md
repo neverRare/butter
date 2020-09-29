@@ -2,4 +2,4 @@
 
 This contains various items that could be helpful for language development and designed to be less specific to Butter.
 
-I am making Butter for learning compilers, hence I've chose not to use any existing library but to write my own. I might use a code generation library however.
+While I'm making, I want to learn about compilers, so I chose not to use existing library as much as possible.
