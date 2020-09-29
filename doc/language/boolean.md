@@ -8,12 +8,14 @@ foo = true;
 
 ## Logical operators
 
-- AND `A && B`
-- OR `A || B`
+- AND `A & B`
+- OR `A | B`
+- Lazy AND `A && B`
+- Lazy OR `A || B`
 - NOT `!A`
 - NXOR `A == B`
 - XOR `A != B`
 
-AND and OR operators have short-circuiting behavior, this means the right expression only gets evaluated when needed, when the left expression of AND operator is false, the whole expression is immediately false, same for OR operator with true.
+Lazy operators performs short-circuit. It will not evaluate the right expression when the left expression is already sufficient as the value. For lazy AND, if the left expression is false, it is immediately false. For lazy OR, it is false.
 
 Note that NXOR and XOR are just equality operator.
