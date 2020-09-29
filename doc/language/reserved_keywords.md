@@ -14,7 +14,6 @@ The following are keywords that have special meaning for current version. They c
 - `if`
 - `in`
 - `loop`
-- `move`
 - `null`
 - `return`
 - `true`
@@ -34,6 +33,7 @@ The following are reserved for possible future features. These will cause a warn
 - `extern`
 - `is`
 - `mod`
+- `move`
 - `priv`
 - `pub`
 - `recur`
