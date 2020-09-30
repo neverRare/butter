@@ -50,3 +50,14 @@ Or reassign an element.
 foo = [10];
 foo[0] <- 20;
 ```
+
+## Static variables
+
+There is a special kind of variable called static variables. These have special scoping: it is also accessible in places before it is declared.
+
+```butter
+foo = max(10, 20);  -- `max` can be used from here because it is static
+max = (a, b) => if a > b { a } else { b };
+```
+
+TODO explain how static variable is made
