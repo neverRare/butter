@@ -44,11 +44,20 @@ foo = (
 foo.prop <- 20;
 ```
 
-Or reassign an element.
+Reassign an element.
 
 ```butter
 foo = [10];
 foo[0] <- 20;
+```
+
+Reassign where the reference refer to.
+
+```butter
+foo = 10;
+bar = 20;
+baz = &foo;
+&baz <- &bar;
 ```
 
 ## Static variables
