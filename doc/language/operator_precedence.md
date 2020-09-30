@@ -2,9 +2,9 @@
 
 Butter defines the following operator precedence from strongest to weakest.
 
-- `.` `?.` array element access `[]` `?[]` function call `()`
+- `.` `?.` element access or slice `[...]` `?[...]` `[...!]` `[...?]` function call `(...)`
 - unary `+` `-` `!`
-- `*` `/` `//` `%`
+- `*` `/` `//` `%` `/!` `//!` `%!` `/?` `//?` `%?`
 - `+` `-`
 - `==` `!=` `<` `>` `<=` `>=`
 - `&` `&&`
