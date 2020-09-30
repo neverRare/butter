@@ -7,14 +7,14 @@ foo = 10;
 bar = &foo;  -- just borrow the data from foo
 ```
 
-## Indirection
+## Indirection and dereference
 
-A reference is an indirection, it holds an address to a value. A reference can even hold multiple indirection.
+A reference is an indirection, it holds an address to a value. A reference can even hold multiple indirection. You'll need to use multiple `&` as Butter always perform dereference.
 
 ```butter
 foo = 10;  -- original value
 bar = &foo;  -- borrow foo, now bar is a reference to foo
-baz = &bar;  -- borrow bar, now baz is a reference to a reference to foo
+baz = &&bar;  -- borrow bar, now baz is a reference to a reference to foo
 ```
 
 Access of the referencing value, also known as dereferencing, is always performed. This is applied even to assignment.
@@ -22,7 +22,7 @@ Access of the referencing value, also known as dereferencing, is always performe
 ```butter
 foo = 10;
 bar = &foo;
-bar = 20;  -- since bar is a reference to foo, foo is assigned to 20
+bar <- 20;  -- since bar is a reference to foo, foo is assigned to 20
 ```
 
 If you wish to change or reassign the reference instead of the value its referring to, use `&`.
