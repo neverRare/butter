@@ -16,7 +16,7 @@ You can use `== null` or `!= null` to check whether the value is null or not.
 ```butter
 name = if input != null { input } else {
     std::println("invalid input");
-    abort -1;
+    abort;
 };
 ```
 

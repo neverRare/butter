@@ -1,7 +1,7 @@
 # Abort
 
-Abort immediately exit the execution of program with an exit code. An exit code should be an integer.
+Abort immediately exit the execution of program and indicates an error has occurred.
 
 ```butter
-abort -1;
+abort;
 ```
