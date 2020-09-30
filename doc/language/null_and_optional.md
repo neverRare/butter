@@ -56,5 +56,5 @@ adventurer = (
 dog_name = adventurer.dog?.name;
 cat_name = adventurer.cat?.name;
 std::assert(dog_name == null);
-std::assert(cat_name == null);
+std::assert(cat_name != null);
 ```
