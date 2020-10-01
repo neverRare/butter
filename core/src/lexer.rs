@@ -9,6 +9,7 @@ use operator::Operator;
 use separator::Separator;
 use string::Str;
 use util::lexer::Lex;
+use util::lexer::LexFilter;
 use util::match_lex;
 use whitespace::Whitespace;
 
@@ -78,7 +79,7 @@ mod test {
     use super::Operator;
     use super::Separator;
     use super::Token;
-    use util::lexer::Lex;
+    use util::lexer::LexFilter;
     #[test]
     fn simple_lex() {
         let vec: Vec<_> =
@@ -86,26 +87,15 @@ mod test {
         assert_eq!(
             vec,
             vec![
-                ("-- comment\n", Token::Comment),
-                (" ", Token::Whitespace),
                 ("identifier_123", Token::Identifier),
-                (" ", Token::Whitespace),
                 ("true_false", Token::Identifier),
-                (" ", Token::Whitespace),
                 ("null", Token::Keyword(Keyword::Null)),
-                (" ", Token::Whitespace),
                 ("=>", Token::Operator(Operator::RightThickArrow)),
-                (" ", Token::Whitespace),
                 ("+", Token::Operator(Operator::Plus)),
-                (" ", Token::Whitespace),
                 ("(", Token::Bracket(Opening::Open, Bracket::Paren)),
-                (" ", Token::Whitespace),
                 (")", Token::Bracket(Opening::Close, Bracket::Paren)),
-                (" ", Token::Whitespace),
                 (";", Token::Separator(Separator::Semicolon)),
-                (" ", Token::Whitespace),
                 ("<", Token::Operator(Operator::Less)),
-                ("--", Token::Comment),
             ],
         );
     }
@@ -122,13 +112,9 @@ mod test {
         assert_eq!(
             vec,
             vec![
-                ("\n", Token::Whitespace),
                 (r#""hello world""#, Token::Str("hello world")),
-                ("\n", Token::Whitespace),
                 (r#""hello \"world\"""#, Token::Str(r#"hello \"world\""#)),
-                ("\n", Token::Whitespace),
                 (r#""hello world \\""#, Token::Str(r"hello world \\")),
-                ("\n", Token::Whitespace),
             ],
         );
     }
@@ -147,18 +133,12 @@ mod test {
         assert_eq!(
             vec,
             vec![
-                ("\n", Token::Whitespace),
                 ("12", Token::Num),
-                ("\n", Token::Whitespace),
                 ("5", Token::Num),
                 (".", Token::Operator(Operator::Dot)),
-                ("\n", Token::Whitespace),
                 (".5", Token::Num),
-                ("\n", Token::Whitespace),
                 ("1e+10", Token::Num),
-                ("\n", Token::Whitespace),
                 ("1e-10", Token::Num),
-                ("\n", Token::Whitespace),
             ],
         );
     }
