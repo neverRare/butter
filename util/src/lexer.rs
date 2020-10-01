@@ -1,3 +1,4 @@
+use std::iter::Filter;
 use std::marker::PhantomData;
 
 pub trait Lex<'a>: Sized {
@@ -10,6 +11,17 @@ pub trait Lex<'a>: Sized {
     }
     fn lex_span(src: &'a str) -> SpanLexer<'a, Self> {
         src.into()
+    }
+}
+type FilterIter<'a, T> = Filter<Lexer<'a, T>, fn(&T) -> bool>;
+type SpanFilterIter<'a, T> = Filter<SpanLexer<'a, T>, fn(&(&'a str, T)) -> bool>;
+pub trait LexFilter<'a>: Lex<'a> {
+    fn significant(&self) -> bool;
+    fn lex(src: &'a str) -> FilterIter<'a, Self> {
+        <Self as Lex>::lex(src).filter(Self::significant)
+    }
+    fn lex_span(src: &'a str) -> SpanFilterIter<'a, Self> {
+        <Self as Lex>::lex_span(src).filter(|(_, token)| token.significant())
     }
 }
 pub struct Lexer<'a, T> {
