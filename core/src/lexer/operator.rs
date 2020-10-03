@@ -16,23 +16,24 @@ pub enum Operator {
     Minus,
     Star,
     Slash,
+    SlashBang,
+    SlashQuestion,
     DoubleSlash,
+    DoubleSlashBang,
+    DoubleSlashQuestion,
     Percent,
+    PercentBang,
+    PercentQuestion,
     Bang,
     Amp,
     Pipe,
-    Caret,
-    Tilde,
     DoubleAmp,
     DoublePipe,
     Greater,
     Less,
-    DoubleGreater,
-    DoubleLess,
     GreaterEqual,
     LessEqual,
     LeftArrow,
-    RightArrow,
     RightThickArrow,
     Question,
     QuestionDot,
@@ -40,10 +41,18 @@ pub enum Operator {
 }
 impl<'a> Lex<'a> for Operator {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
-        let special = src
-            .get(..3)
-            .map(|val| val == "<--" || val == "==>")
-            .unwrap_or(false);
+        let src3 = src.get(..3);
+        if let Some(operator) = src3 {
+            let operator = match operator {
+                "//!" => Some(Self::DoubleSlashBang),
+                "//?" => Some(Self::DoubleSlashQuestion),
+                _ => None,
+            };
+            if let Some(operator) = operator {
+                return Some((3, operator));
+            }
+        }
+        let special = src3.map(|val| val == "==>").unwrap_or(false);
         if !special {
             let operator = src.get(..2).and_then(|operator| match operator {
                 "==" => Some(Self::DoubleEqual),
@@ -53,15 +62,16 @@ impl<'a> Lex<'a> for Operator {
                 ".<" => Some(Self::DotLess),
                 ">." => Some(Self::GreaterDot),
                 "><" => Some(Self::GreaterLess),
+                "/!" => Some(Self::SlashBang),
+                "/?" => Some(Self::SlashQuestion),
                 "//" => Some(Self::DoubleSlash),
+                "%!" => Some(Self::PercentBang),
+                "%?" => Some(Self::PercentQuestion),
                 "&&" => Some(Self::DoubleAmp),
                 "||" => Some(Self::DoublePipe),
-                ">>" => Some(Self::DoubleGreater),
-                "<<" => Some(Self::DoubleLess),
                 ">=" => Some(Self::GreaterEqual),
                 "<=" => Some(Self::LessEqual),
                 "<-" => Some(Self::LeftArrow),
-                "->" => Some(Self::RightArrow),
                 "=>" => Some(Self::RightThickArrow),
                 "??" => Some(Self::DoubleQuestion),
                 "?." => Some(Self::QuestionDot),
@@ -84,8 +94,6 @@ impl<'a> Lex<'a> for Operator {
             "!" => Self::Bang,
             "&" => Self::Amp,
             "|" => Self::Pipe,
-            "^" => Self::Caret,
-            "~" => Self::Tilde,
             ">" => Self::Greater,
             "<" => Self::Less,
             "?" => Self::Question,
