@@ -158,7 +158,7 @@ TODO example of explicit label
 When applicable, you can use the following as label.
 
 - Keyword of the loop (`for`, `while`, or `loop`)
-- Variable declaration with the loop as value
-- Iteration variable of `for` loop
+- Variable declaration with the loop as value (the `var` in `var = loop { ... }`)
+- Iteration variable of `for` loop (the `i` in `for i in ... { ... }`)
 
 TODO example using these kind of label.
