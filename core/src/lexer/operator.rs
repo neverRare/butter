@@ -52,7 +52,9 @@ impl<'a> Lex<'a> for Operator {
                 return Some((3, operator));
             }
         }
-        let special = src3.map(|val| val == "==>").unwrap_or(false);
+        let special = src3
+            .map(|val| val == "==>" || val == "<--")
+            .unwrap_or(false);
         if !special {
             let operator = src.get(..2).and_then(|operator| match operator {
                 "==" => Some(Self::DoubleEqual),
