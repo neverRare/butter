@@ -9,14 +9,16 @@ letter = 'a';
 
 ## Escaping
 
-| Notation | Output                       |
-| -------- | ---------------------------- |
-| `\\`     | Backslash                    |
-| `\"`     | Double quote                 |
-| `\'`     | Single quote                 |
-| `\n`     | Line feed                    |
-| `\r`     | Carriage return              |
-| `\t`     | Horizontal tab               |
-| `\v`     | Vertical tab                 |
-| `\0`     | Null                         |
-| `\x7A`   | Byte unit ('z' in this case) |
+| Notation               | Output           |
+| ---------------------- | ---------------- |
+| `\\`                   | Backslash        |
+| `\"`                   | Double quote     |
+| `\'`                   | Single quote     |
+| `\n`                   | Line feed        |
+| `\r`                   | Carriage return  |
+| `\t`                   | Horizontal tab   |
+| `\v`                   | Vertical tab     |
+| `\0`                   | Null             |
+| `\xXX`                 | UTF-8 code unit  |
+| `\u{XXXX}` or `\uXXXX` | UTF-16 code unit |
+| `\u{XXXXXX}`           | UTF-32 code unit |
