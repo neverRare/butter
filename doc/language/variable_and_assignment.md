@@ -60,6 +60,18 @@ baz = &foo;
 &baz <- &bar;
 ```
 
+## Parallel assignment
+
+TODO explanation
+
+```butter
+foo = 10;
+bar = 20;
+foo, bar <- bar, foo;
+std::assert(foo == 20);
+std::assert(bar == 10);
+```
+
 ## Static variables
 
 There is a special kind of variable called static variables. These have special scoping: it is also accessible in places before it is declared.
