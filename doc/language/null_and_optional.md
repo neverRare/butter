@@ -9,17 +9,6 @@ input = {
 };
 ```
 
-## Checked operators
-
-Few operators can cause errors, these are `/`, `//`, `%`, for division/modulo to 0 and element access or slice `[...]` for out-of-bound error.
-
-These errors are checked at compile-time, but you can choose to handle errors at runtime with its checked counterpart, which are `/?`, `//?`, `%?`, and `[...?]`. If errors do happen, the result will be null instead.
-
-```butter
-num = 10 /? 0;
-std::assert(num == null);
-```
-
 ## Handling Null
 
 You can use `== null` or `!= null` to check whether the value is null or not.
