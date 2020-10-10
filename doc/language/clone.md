@@ -11,7 +11,7 @@ foo <- 20;
 std::assert(bar == 10);
 ```
 
-Clone performs automatic dereference. However, it doesn't deeply clone references that are withing structs or array, it will only copy its address and will refer to the same value.
+Clone also deep-copies references. The resulting value will not be a reference and instead, a deep-copy of its underlying value.
 
 ```butter
 foo = 10;
