@@ -20,10 +20,10 @@ It can have simpler syntax, if theres only at most one parameter, you can omit t
 
 ```butter
 report_favorite = (name, favorite) => {
-    std::print([..name, .."'s favorite is ", ..favorite, .."!\n"]);
+    std::println([..name, .."'s favorite is ", ..favorite, .."!"]);
 };
-report_niceness = favorite => std::print([..favorite, .." is really nice!\n"]);
-report_end ==> std::print("done!\n");
+report_niceness = favorite => std::println([..favorite, .." is really nice!"]);
+report_end ==> std::println("done!");
 ```
 
 Notice `==>` is really `=` and `=>`.
@@ -77,7 +77,7 @@ Additionally, if you omitted an argument, it will be `null`, make sure the funct
 ```butter
 say_hello = name => {
     name = name ?? "stranger";
-    std::print([.."Hello ", ..name]);
+    std::println([.."Hello ", ..name]);
 }
 say_hello();
 ```

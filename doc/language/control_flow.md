@@ -30,7 +30,7 @@ If block is used to conditionally execute statements.
 ```butter
 input = std::get_line();
 if input.len == 0 {
-    std::print("please input something meaningful\n");
+    std::println("please input something meaningful");
 }
 ```
 
@@ -39,9 +39,9 @@ You can add an `else` branch which gets executed when the condition isn't true
 ```butter
 input = std::get_line();
 if input.len == 0 {
-    std::print("please input something meaningful\n");
+    std::println("please input something meaningful");
 } else {
-    std::print("thanks for the input!\n");
+    std::println("thanks for the input!");
 }
 ```
 
@@ -51,11 +51,11 @@ And you can branch as many `if`s as necessary.
 password = std::get_line();
 len = input.len;
 if len == 0 {
-    std::print("please input a password\n");
+    std::println("please input a password");
 } else if len < 8 {
-    std::print("password too short\n");
+    std::println("password too short");
 } else {
-    std::print("alright!\n");
+    std::println("alright!");
 }
 ```
 
@@ -64,11 +64,11 @@ if len == 0 {
 ```butter
 input = std::get_line();
 message = if input.len == 0 {
-    "please input something meaningful\n"
+    "please input something meaningful"
 } else {
-    "thanks for the input!\n"
+    "thanks for the input!"
 };
-std::print(message);
+std::println(message);
 ```
 
 ## For
@@ -77,7 +77,7 @@ std::print(message);
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
-    std::print([..fruit, .." is yummy!"]);
+    std::println([..fruit, .." is yummy!"]);
 }
 ```
 
@@ -88,7 +88,7 @@ for fruit in ["apple", "banana", "cherry"] {
 ```butter
 i = 0;
 while i < 10 {
-    std::print("hello!\n");
+    std::println("hello!");
     i <- i + 1;
 }
 ```
@@ -99,7 +99,7 @@ while i < 10 {
 
 ```butter
 loop {
-    std::print("this is an infinite loop!\n");
+    std::println("this is an infinite loop!");
 }
 ```
 
