@@ -9,16 +9,16 @@ letter = 'a';
 
 ## Escaping
 
-| Notation               | Output           |
-| ---------------------- | ---------------- |
-| `\\`                   | Backslash        |
-| `\"`                   | Double quote     |
-| `\'`                   | Single quote     |
-| `\n`                   | Line feed        |
-| `\r`                   | Carriage return  |
-| `\t`                   | Horizontal tab   |
-| `\v`                   | Vertical tab     |
-| `\0`                   | Null             |
-| `\xXX`                 | UTF-8 code unit  |
-| `\u{XXXX}` or `\uXXXX` | UTF-16 code unit |
-| `\u{XXXXXX}`           | UTF-32 code unit |
+| Notation                 | Output           |
+| ------------------------ | ---------------- |
+| `\\`                     | Backslash        |
+| `\"`                     | Double quote     |
+| `\'`                     | Single quote     |
+| `\n`                     | Line feed        |
+| `\r`                     | Carriage return  |
+| `\t`                     | Horizontal tab   |
+| `\v`                     | Vertical tab     |
+| `\0`                     | Null             |
+| `\xXX`                   | UTF-8 code unit  |
+| `\uXXXX`                 | UTF-16 code unit |
+| `\u{X}` ... `\u{XXXXXX}` | UTF-32 code unit |
