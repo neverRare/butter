@@ -52,14 +52,14 @@ You can use `..`, `.<`, `>.`, or `><` for ranges. An angle bracket `<` or `>` me
 
 | Syntax                    | Meaning       |
 | ------------------------- | ------------- |
-| `a..b`                    | `a <= x <= b` |
-| `a.<b`                    | `a <= x < b`  |
-| `a>.b`                    | `a < x <= b`  |
-| `a><b`                    | `a < x < b`   |
-| `a..` or `a.<`            | `a <= x`      |
-| `a>.` or `a><`            | `a < x`       |
-| `..b` or `>.b`            | `x <= b`      |
-| `.<b` or `><b`            | `x < b`       |
+| `A..B`                    | `A <= x <= B` |
+| `A.<b`                    | `A <= x < B`  |
+| `A>.b`                    | `A < x <= B`  |
+| `A><b`                    | `A < x < B`   |
+| `A..` or `A.<`            | `A <= x`      |
+| `A>.` or `A><`            | `A < x`       |
+| `..B` or `>.B`            | `x <= B`      |
+| `.<B` or `><B`            | `x < B`       |
 | `..`, `.<`, `>.`, or `><` | -             |
 
 [range syntax]: #range-syntax
