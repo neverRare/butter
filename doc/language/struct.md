@@ -1,6 +1,6 @@
 # Struct
 
-Struct value is a collection of field whose fields are pairs of name and another value. Unlike other languages, you can create struct value on the fly without having to specify its type.
+Struct value is a collection of field whose fields are pairs of name and another value.
 
 ```butter
 car = (

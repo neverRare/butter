@@ -14,7 +14,7 @@ reverse = arr => {
 
 ## Parameters
 
-The parameter have the same syntax as struct unpacking, except it cannot have rest syntax. It is placed before the `=>`.
+The parameter have the same syntax as [struct unpacking](unpacking.md#struct), except it cannot have rest syntax. It is placed before the `=>`.
 
 It can have simpler syntax, if theres only at most one parameter, you can omit the parentheses.
 
@@ -84,7 +84,7 @@ say_hello();
 
 ## Scoping
 
-Variables assigned to function have special scoping rule. Firstly, the body can access the variable of the function itself, enabling recursion.
+[Variables](variable_and_assignment.md) assigned to function have special scoping rule. Firstly, the body can access the variable of the function itself, enabling recursion.
 
 ```butter
 fibonacci = nth => {

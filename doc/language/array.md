@@ -14,7 +14,7 @@ fruits <- [..fruits, "banana"];
 
 ## Range notation
 
-When defining an array of consecutive integers, you can use range notation. This is often used with `for` loops. Refer to [range syntax] for more info.
+When defining an array of consecutive integers, you can use [range notation](#range-notation). This is often used with [`for`](control_flow.md#for) loops.
 
 ```butter
 range = [0.<3];
@@ -22,9 +22,9 @@ range = [0.<3];
 range = [0, 1, 2];
 ```
 
-## Indexing
+## Element access
 
-You can access its elements via `[]`.
+You can access its elements via `[]`. This is also known as indexing.
 
 ```butter
 first_fruit = &fruits[0];
@@ -38,9 +38,9 @@ Arrays have special property `len` that have a value referring to its runtime le
 std::assert(fruits.len == 3)
 ```
 
-## Slicing
+## Slice
 
-Through slicing, you can get a portion of the array by specifying the indices of the bounds. This uses [range syntax].
+Through slicing, you can get a portion of the array by specifying the indices of the bounds. This uses [range syntax](#range-notation).
 
 ```butter
 favorites = &fruits[1.<3];
@@ -61,5 +61,3 @@ You can use `..`, `.<`, `>.`, or `><` for ranges. An angle bracket `<` or `>` me
 | `..B` or `>.B`            | `x <= B`      |
 | `.<B` or `><B`            | `x < B`       |
 | `..`, `.<`, `>.`, or `><` | -             |
-
-[range syntax]: #range-syntax

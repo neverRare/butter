@@ -2,7 +2,7 @@
 
 Unpacking syntax can be used in variable declaration as well as on function parameter. These are syntactic sugar to accessing field value or element and assigning it to a declared variable. Unpacking can be referred to as destructuring.
 
-## Array unpacking
+## Array
 
 Array unpacking have similar syntax to array declaration, but they are used on left hand side of declaration, and it does the exact opposite of array declaration.
 
@@ -26,7 +26,7 @@ You can unpack from its start or its end then unpack the rest as an another arra
 [first, ..rest] = arr;
 ```
 
-## Struct unpacking
+## Struct
 
 You can unpack a struct via `()`. These assigns field value to a variable with the same name, if you wish to use another variable name, use `:`.
 
