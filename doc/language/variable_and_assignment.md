@@ -71,16 +71,3 @@ foo, bar <- bar, foo;
 std::assert(foo == 20);
 std::assert(bar == 10);
 ```
-
-## Static variables
-
-There is a special kind of variable called static variables. These have special scoping: it is also accessible in places before it is declared.
-
-TODO redefine: non-capturing function should be only static, like javascript's hoisting
-
-```butter
-foo = max(10, 20);  -- `max` can be used from here because it is static
-max = (a, b) => if a > b { a } else { b };
-```
-
-TODO explain how static variable is made

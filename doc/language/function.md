@@ -81,3 +81,31 @@ say_hello = name => {
 }
 say_hello();
 ```
+
+## Scoping
+
+Variables assigned to function have special scoping rule. Firstly, the body can access the variable of the function itself, enabling recursion.
+
+```butter
+fibonacci = nth => {
+    if nth < 0 {
+        abort;
+    } else if nth <= 1 {
+        nth
+    } else {
+        fibonacci(nth - 1) + fibonacci(nth - 2)
+    }
+};
+```
+
+Secondly, the variable is accessible in places before it is declared.
+
+```butter
+foo = 10;
+increment(&foo);
+std::assert(foo == 11);
+
+increment = num => num <- num + 1;
+```
+
+These unique scoping rules only apply when there is only one variable with that name on the scope and if it doesn't capture mutable variable, TODO link to capturing semantics.
