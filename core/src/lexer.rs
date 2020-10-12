@@ -42,19 +42,16 @@ impl<'a> Lex<'a> for Token<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         match_lex! { src;
             Some(Whitespace) => Self::Whitespace,
-            Some(Comment) => Self::Comment,
             Some(Num) => Self::Num,
             Some(keyword) => Self::Keyword(keyword),
             Some(Ident) => Self::Identifier,
+            Some(Comment) => Self::Comment,
+            Some(operator) => Self::Operator(operator),
             Some(OpeningBracket(opening, bracket)) => Self::Bracket(opening, bracket),
             Some(separator) => Self::Separator(separator),
-            Some(operator) => Self::Operator(operator),
-            Some(string) => match string {
-                Str::Str(content) => Self::Str(content),
-                Str::Char(content) => Self::Char(content),
-                Str::Unterminated => Self::UnterminatedQuote,
-            },
-            Some(Num) => Self::Num,
+            Some(Str::Str(content)) => Self::Str(content),
+            Some(Str::Char(content)) => Self::Char(content),
+            Some(Str::Unterminated) => Self::UnterminatedQuote,
             else src => {
                 let len = src.chars().next().unwrap().len_utf8();
                 Some((len, Self::Invalid))
