@@ -18,7 +18,6 @@ A high level documentation of various operation in Butter. It describes its synt
 - [Number](language/number.md)
 - [Operator precedence](language/operator_precedence.md)
 - [Reference](language/reference.md)
-- [Reserved keywords](language/reserved_keywords.md)
 - [String and char](language/string_and_char.md)
 - [Struct](language/struct.md)
 - [Unpacking](language/unpacking.md)
