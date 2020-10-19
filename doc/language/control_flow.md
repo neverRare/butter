@@ -153,6 +153,14 @@ TODO example of nested loop without labels
 
 If you wish to associate higher loop, you can use labels. Labels are used to disambiguate nested loops. You can explicitly label the loop by preceding it with an identifier followed by a colon `:`. Then use it with `break` or `continue`.
 
+TODO replace the following spec with examples
+
+```butter
+break label;
+break label = expr;
+continue label;
+```
+
 TODO example of explicit label
 
 When applicable, you can use the following as label.
