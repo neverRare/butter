@@ -62,7 +62,7 @@ baz = &foo;
 
 ## Parallel assignment
 
-TODO explanation
+You can condense multiple assignment into single statement with parallel assignment. Parallel assignment will also simultaneously perform assignment, making value swapping possible in single statement.
 
 ```butter
 foo = 10;
