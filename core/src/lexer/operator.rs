@@ -33,6 +33,43 @@ pub enum Operator {
     QuestionDot,
     DoubleQuestion,
 }
+impl Operator {
+    fn new(src: &str) -> Option<Self> {
+        Some(match src {
+            "=" => Self::Equal,
+            "==" => Self::DoubleEqual,
+            "!=" => Self::NotEqual,
+            ":" => Self::Colon,
+            "::" => Self::DoubleColon,
+            "." => Self::Dot,
+            ".." => Self::DoubleDot,
+            ".<" => Self::DotLess,
+            ">." => Self::GreaterDot,
+            "><" => Self::GreaterLess,
+            "+" => Self::Plus,
+            "-" => Self::Minus,
+            "*" => Self::Star,
+            "/" => Self::Slash,
+            "//" => Self::DoubleSlash,
+            "%" => Self::Percent,
+            "!" => Self::Bang,
+            "&" => Self::Amp,
+            "|" => Self::Pipe,
+            "&&" => Self::DoubleAmp,
+            "||" => Self::DoublePipe,
+            ">" => Self::Greater,
+            "<" => Self::Less,
+            ">=" => Self::GreaterEqual,
+            "<=" => Self::LessEqual,
+            "<-" => Self::LeftArrow,
+            "=>" => Self::RightThickArrow,
+            "?" => Self::Question,
+            "?." => Self::QuestionDot,
+            "??" => Self::DoubleQuestion,
+            _ => return None,
+        })
+    }
+}
 impl<'a> Lex<'a> for Operator {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
         let special = src
@@ -40,47 +77,11 @@ impl<'a> Lex<'a> for Operator {
             .map(|val| val == "==>" || val == "<--")
             .unwrap_or(false);
         if !special {
-            let operator = src.get(..2).and_then(|operator| match operator {
-                "==" => Some(Self::DoubleEqual),
-                "!=" => Some(Self::NotEqual),
-                "::" => Some(Self::DoubleColon),
-                ".." => Some(Self::DoubleDot),
-                ".<" => Some(Self::DotLess),
-                ">." => Some(Self::GreaterDot),
-                "><" => Some(Self::GreaterLess),
-                "//" => Some(Self::DoubleSlash),
-                "&&" => Some(Self::DoubleAmp),
-                "||" => Some(Self::DoublePipe),
-                ">=" => Some(Self::GreaterEqual),
-                "<=" => Some(Self::LessEqual),
-                "<-" => Some(Self::LeftArrow),
-                "=>" => Some(Self::RightThickArrow),
-                "??" => Some(Self::DoubleQuestion),
-                "?." => Some(Self::QuestionDot),
-                _ => None,
-            });
-            if let Some(operator) = operator {
+            if let Some(operator) = src.get(..2).and_then(Operator::new) {
                 return Some((2, operator));
             }
         }
-        let operator = src.get(..1)?;
-        let operator = match operator {
-            "=" => Self::Equal,
-            ":" => Self::Colon,
-            "." => Self::Dot,
-            "+" => Self::Plus,
-            "-" => Self::Minus,
-            "*" => Self::Star,
-            "/" => Self::Slash,
-            "%" => Self::Percent,
-            "!" => Self::Bang,
-            "&" => Self::Amp,
-            "|" => Self::Pipe,
-            ">" => Self::Greater,
-            "<" => Self::Less,
-            "?" => Self::Question,
-            _ => return None,
-        };
+        let operator = src.get(..1).and_then(Operator::new)?;
         Some((1, operator))
     }
 }
