@@ -76,67 +76,42 @@ mod test {
     use super::Operator;
     use super::Separator;
     use super::Token;
+    use util::assert_iter;
     use util::lexer::LexFilter;
     #[test]
     fn simple_lex() {
-        let vec: Vec<_> =
-            Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ; <--").collect();
-        assert_eq!(
-            vec,
-            vec![
-                ("identifier_123", Token::Identifier),
-                ("true_false", Token::Identifier),
-                ("null", Token::Keyword(Keyword::Null)),
-                ("=>", Token::Operator(Operator::RightThickArrow)),
-                ("+", Token::Operator(Operator::Plus)),
-                ("(", Token::Bracket(Opening::Open, Bracket::Paren)),
-                (")", Token::Bracket(Opening::Close, Bracket::Paren)),
-                (";", Token::Separator(Separator::Semicolon)),
-                ("<", Token::Operator(Operator::Less)),
-            ],
-        );
+        assert_iter! {
+            Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ; <--"),
+            ("identifier_123", Token::Identifier),
+            ("true_false", Token::Identifier),
+            ("null", Token::Keyword(Keyword::Null)),
+            ("=>", Token::Operator(Operator::RightThickArrow)),
+            ("+", Token::Operator(Operator::Plus)),
+            ("(", Token::Bracket(Opening::Open, Bracket::Paren)),
+            (")", Token::Bracket(Opening::Close, Bracket::Paren)),
+            (";", Token::Separator(Separator::Semicolon)),
+            ("<", Token::Operator(Operator::Less)),
+        }
     }
     #[test]
     fn lex_string() {
-        let vec: Vec<_> = Token::lex_span(
-            r#"
-"hello world"
-"hello \"world\""
-"hello world \\"
-"#,
-        )
-        .collect();
-        assert_eq!(
-            vec,
-            vec![
-                (r#""hello world""#, Token::Str("hello world")),
-                (r#""hello \"world\"""#, Token::Str(r#"hello \"world\""#)),
-                (r#""hello world \\""#, Token::Str(r"hello world \\")),
-            ],
-        );
+        assert_iter! {
+            Token::lex_span(r#""hello world" "hello \"world\"" "hello world \\""#),
+            (r#""hello world""#, Token::Str("hello world")),
+            (r#""hello \"world\"""#, Token::Str(r#"hello \"world\""#)),
+            (r#""hello world \\""#, Token::Str(r"hello world \\")),
+        }
     }
     #[test]
     fn lex_number() {
-        let vec: Vec<_> = Token::lex_span(
-            r"
-12
-5.
-.5
-1e+10
-1e-10
-",
-        )
-        .collect();
-        assert_eq!(
-            vec,
-            vec![
-                ("12", Token::Num),
-                ("5", Token::Num),
-                (".", Token::Operator(Operator::Dot)),
-                (".5", Token::Num),
-                ("1e+10", Token::Num),
-                ("1e-10", Token::Num),
-            ],
-        );
+        assert_iter! {
+            Token::lex_span("12 5. .5 1e+10 1e-10"),
+            ("12", Token::Num),
+            ("5", Token::Num),
+            (".", Token::Operator(Operator::Dot)),
+            (".5", Token::Num),
+            ("1e+10", Token::Num),
+            ("1e-10", Token::Num),
+        }
     }
 }
