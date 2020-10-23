@@ -9,7 +9,7 @@ fruits = ["strawberry", "pineapple"];
 You can splat arrays, this is used to simulate pushing to array. You can splat as many array as you want.
 
 ```butter
-fruits <- [..fruits, "banana"];
+fruits <- [*fruits, "banana"];
 ```
 
 ## Range notation

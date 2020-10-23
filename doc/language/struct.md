@@ -13,7 +13,7 @@ You can create another struct value based on existing struct value and extend it
 
 ```butter
 car = (
-    ..car,
+    *car,
     price: 100,
 );
 ```
