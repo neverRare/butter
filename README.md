@@ -13,7 +13,7 @@ Butter aims to be a concise and friendly language for building efficient softwar
 reverse = arr => {
     reverse = [];
     for elem in arr {
-        reverse <- [elem, ..reverse];
+        reverse <- [elem, *reverse];
     }
     reverse
 };

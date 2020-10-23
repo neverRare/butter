@@ -77,7 +77,7 @@ std::println(message);
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
-    std::println([..fruit, .." is yummy!"]);
+    std::println([*fruit, *" is yummy!"]);
 }
 ```
 
@@ -141,7 +141,7 @@ for num in [1..10] {
     if num % 2 == 0 {
         continue;
     }
-    filtered_num <- [..filtered_num, num];
+    filtered_num <- [*filtered_num, num];
 }
 ```
 
