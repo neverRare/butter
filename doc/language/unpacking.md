@@ -9,7 +9,7 @@ Array unpacking have similar syntax to array declaration, but they are used on l
 ```butter
 arr = ["hello", "world"];
 [first, second] = arr;
-std::println([*first, ' ', *second]);
+std::println(first ++ " " ++ second);
 ```
 
 If you wish to ignore some element, use `_`.
@@ -17,7 +17,7 @@ If you wish to ignore some element, use `_`.
 ```butter
 arr = ["hello", "world"];
 [first, _] = arr;
-std::println([*first, *" awesome world"]);
+std::println(first ++ " awesome world");
 ```
 
 You can unpack from its start or its end then unpack the rest as an another array. There can only be at most one rest syntax in array unpacking. This is the counterpart of splat.

@@ -6,11 +6,21 @@ An array is an ordered collection of other values.
 fruits = ["strawberry", "pineapple"];
 ```
 
-You can splat arrays, this is used to simulate pushing to array. You can splat as many array as you want.
+## Splat and concat
+
+You can splat arrays, this flattens and combines array to elements or another splatted arrays.
 
 ```butter
 fruits <- [*fruits, "banana"];
 ```
+
+Additionally, you can concatenate, this joins two or more arrays into a single one.
+
+```butter
+fruits <- fruits ++ ["banana"];
+```
+
+Splatting and concatenation can serve similar purposes, the 2 examples above does similar task.
 
 ## Range notation
 

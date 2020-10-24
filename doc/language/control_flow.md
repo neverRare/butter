@@ -77,7 +77,7 @@ std::println(message);
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
-    std::println([*fruit, *" is yummy!"]);
+    std::println(fruit ++ " is yummy!");
 }
 ```
 

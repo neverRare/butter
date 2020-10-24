@@ -5,7 +5,7 @@ Butter defines the following operator precedence from strongest to weakest.
 - `.` `?.` element access or slice `[...]` `?[...]` function call `(...)`
 - unary `+` `-` `!` `&` `clone`
 - `*` `/` `//` `%`
-- `+` `-`
+- `+` `-` `++`
 - `==` `!=` `<` `>` `<=` `>=`
 - `&` `&&`
 - `|` `||`

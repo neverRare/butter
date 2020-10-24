@@ -6,7 +6,7 @@ Function is a reusable expression that are executed on every call. It is defined
 reverse = arr => {
     reverse = [];
     for elem in arr {
-        reverse <- [elem, *reverse];
+        reverse <- [elem] ++ reverse;
     }
     reverse
 };
@@ -20,9 +20,9 @@ It can have simpler syntax, if theres only at most one parameter, you can omit t
 
 ```butter
 report_favorite = (name, favorite) => {
-    std::println([*name, *"'s favorite is ", *favorite, *"!"]);
+    std::println(name ++ "'s favorite is " ++ favorite ++ "!");
 };
-report_niceness = favorite => std::println([*favorite, *" is really nice!"]);
+report_niceness = favorite => std::println([favorite ++ " is really nice!");
 report_end ==> std::println("done!");
 ```
 
@@ -43,7 +43,7 @@ reverse = arr => {
     }
     reverse = [];
     for elem in arr {
-        reverse <- [elem, *reverse];
+        reverse <- [elem] ++ reverse;
     }
     reverse
 };
@@ -77,7 +77,7 @@ Additionally, if you omitted an argument, it will be `null`, make sure the funct
 ```butter
 say_hello = name => {
     name = name ?? "stranger";
-    std::println([*"Hello ", *name]);
+    std::println("Hello " ++ name);
 }
 say_hello();
 ```
