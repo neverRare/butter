@@ -10,13 +10,13 @@ Butter aims to be a concise and friendly language for building efficient softwar
 
 ```butter
 -- reverses an array
-reverse = arr => {
+reverse(arr) => {
     reverse = [];
     for elem in arr {
         reverse <- [elem] ++ reverse;
     }
     reverse
-};
+}
 ```
 
 ## Goals
