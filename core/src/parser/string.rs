@@ -1,7 +1,7 @@
 use crate::lexer::Token;
 use crate::parser::Node;
-use util::tree::Tree;
-use util::tree::TreeVec;
+use util::tree_vec::Tree;
+use util::tree_vec::TreeVec;
 
 pub enum StrError {
     InvalidEscape,

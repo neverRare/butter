@@ -1,4 +1,4 @@
-use crate::tree::Tree;
+use crate::tree_vec::Tree;
 
 trait Parser: Sized {
     type Tokens: Iterator;
