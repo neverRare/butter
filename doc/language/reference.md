@@ -36,7 +36,9 @@ baz = &foo; -- baz refers to foo
 
 ## Clone
 
-[Clone](clone.md) deep-copies references. The resulting value will not be a reference and instead, a deep-copy of its underlying value.
+[Clone] deep-copies references. The resulting value will not be a reference and instead, a deep-copy of its underlying value.
+
+[Clone]: clone.md
 
 ```butter
 foo = 10;

@@ -73,7 +73,9 @@ std::println(message);
 
 ## For
 
-`for` iterates over an [array](array.md).
+`for` iterates over an [array].
+
+[array]: array.md
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {

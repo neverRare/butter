@@ -1,6 +1,8 @@
 # String
 
-Butter have string and char literals, but it is just a syntactic sugar to an [array](array.md) of bytes and a byte respectively. Strings are enclosed with `""` while chars are with `''`.
+Butter have string and char literals, but it is just a syntactic sugar to an [array] of bytes and a byte respectively. Strings are enclosed with `""` while chars are with `''`.
+
+[array]: array.md
 
 ```butter
 name = "bart";

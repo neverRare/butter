@@ -24,7 +24,10 @@ Splatting and concatenation can serve similar purposes, the 2 examples above doe
 
 ## Range notation
 
-When defining an array of consecutive integers, you can use [range notation](#range-notation). This is often used with [`for`](control_flow.md#for) loops.
+When defining an array of consecutive integers, you can use range notation. This is often used with [`for`] loops. This uses [range syntax].
+
+[range syntax]: #range-syntax
+[`for`]: control_flow.md#for
 
 ```butter
 range = [0.<3];
@@ -50,7 +53,9 @@ std::assert(fruits.len == 3)
 
 ## Slice
 
-Through slicing, you can get a portion of the array by specifying the indices of the bounds. This uses [range syntax](#range-notation).
+Through slicing, you can get a portion of the array by specifying the indices of the bounds. This uses [range syntax].
+
+[range syntax]: #range-syntax
 
 ```butter
 favorites = &fruits[1.<3];

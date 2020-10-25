@@ -35,7 +35,9 @@ foo = 10;
 foo <- 20;
 ```
 
-Reassign a value of field of a [struct](struct.md).
+Reassign a value of field of a [struct].
+
+[struct]: struct.md
 
 ```butter
 foo = (
@@ -44,14 +46,18 @@ foo = (
 foo.prop <- 20;
 ```
 
-Reassign an element of an [array](array.md).
+Reassign an element of an [array].
+
+[array]: array.md
 
 ```butter
 foo = [10];
 foo[0] <- 20;
 ```
 
-Reassign where the [reference](reference.md) refer to.
+Reassign where the [reference] refer to.
+
+[reference]: reference.md
 
 ```butter
 foo = 10;

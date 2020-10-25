@@ -13,7 +13,12 @@ Additionally, you can't clone a function.
 
 ## Implicit copy
 
-Few types have implicit copy, especially scalar ones, this includes [number](number.md) and [boolean](boolean.md), whether [optional](null_and_optional.md) or not. You can avoid this by using [references](reference.md).
+Few types have implicit copy, especially scalar ones, this includes [number] and [boolean], whether [optional] or not. You can avoid this by using [references].
+
+[number]: number.md
+[boolean]: boolean.md
+[optional]: null_and_optional.md
+[references]: reference.md
 
 The above example can be simplified as shown below as numbers can be implicitly copied.
 

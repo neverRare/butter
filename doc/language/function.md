@@ -22,7 +22,9 @@ compose(f, g) => (x) => f(g(x));
 
 ## Parameters
 
-The parameter have the same syntax as [struct unpacking](unpacking.md#struct), except it cannot have rest syntax.
+The parameter have the same syntax as [struct unpacking], except it cannot have rest syntax.
+
+[struct unpacking]: unpacking.md#struct
 
 Unnamed functions can have simplified parameter syntax when it have at most 1 parameter: the parentheses can be omitted. Unnamed functions with 1 parameter would look like `param => body` and those with no parameter would simply be `=> body`.
 
@@ -93,7 +95,9 @@ say_hello();
 
 ## Scoping of named function
 
-Named function can act like like [variables](variable_and_assignment.md), although it have special scoping rules.
+Named function can act like like [variables], although it have special scoping rules.
+
+[variables]: variable_and_assignment.md
 
 First, there must be no other named function nor variable with the same name on the same scope. This is unlike variable where shadowing will be performed.
 
