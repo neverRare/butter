@@ -4,6 +4,7 @@ pub mod lexer;
 pub mod parser;
 pub mod span;
 pub mod tree_vec;
+pub mod tree;
 
 #[macro_export]
 macro_rules! assert_iter {
