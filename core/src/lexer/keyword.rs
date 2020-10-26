@@ -4,7 +4,6 @@ use util::lexer::Lex;
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Keyword {
     Abort,
-    Move,
     True,
     False,
     Null,
@@ -24,7 +23,6 @@ impl<'a> Lex<'a> for Keyword {
         let (ident, Ident) = Lex::lex_first_span(src)?;
         let keyword = match ident {
             "abort" => Self::Abort,
-            "move" => Self::Move,
             "true" => Self::True,
             "false" => Self::False,
             "null" => Self::Null,
