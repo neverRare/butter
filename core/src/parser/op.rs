@@ -3,11 +3,8 @@ pub enum UnaryOp {
     Plus,
     Minus,
     Ref,
-    OptionalRef,
-    Deref,
-    OptionalDeref,
     Not,
-    NotType(NotType),
+    Clone,
 }
 #[derive(Clone, Copy)]
 pub enum BinaryOp {
@@ -17,29 +14,15 @@ pub enum BinaryOp {
     Div,
     FlrDiv,
     Mod,
-    Shl,
-    Shr,
-    BitAnd,
-    BitOr,
-    BitXor,
     And,
     Or,
+    LazyAnd,
+    LazyOr,
     Eq,
     NotEq,
     Gt,
     Gte,
     Lt,
     Lte,
-}
-#[derive(Clone, Copy)]
-pub enum NotType {
-    U8,
-    U16,
-    U32,
-    U64,
-    I,
-    I8,
-    I16,
-    I32,
-    I64,
+    Concat,
 }

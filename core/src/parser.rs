@@ -12,8 +12,7 @@ pub enum Num {
 }
 #[derive(Clone, Copy)]
 enum Node {
-    Splat,
-    Rest,
+    SplatOrRest,
     Label,
 
     CharInside(u8),
@@ -27,22 +26,28 @@ enum Node {
     Num(Num),
     Path,
 
-    Clone,
     Abort,
     Break,
     Continue,
+    Return,
 
     Unary(UnaryOp),
     Binary(BinaryOp),
 
     Declare,
+    FunDeclare,
     Assign,
 
     Array,
     Struct,
 
+    Property,
+    OptionalProperty,
+    Index,
+    OptionalIndex,
+    
     Block(bool),
-    Fun(bool),
+    Fun,
     If,
     Else,
     For,
@@ -50,9 +55,4 @@ enum Node {
     Loop,
 
     Error,
-}
-#[derive(Clone, Copy)]
-pub enum NodeKind {
-    Unpack,
-    Expression,
 }
