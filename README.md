@@ -15,7 +15,7 @@ Butter aims to be a concise and friendly language for building efficient softwar
 -- reverses an array in place
 reverse(arr) => {
     for i in [0.< arr.len // 2] {
-        opposite = arr.len - i;
+        opposite = arr.len - i - 1;
         arr[i], arr[opposite] <- arr[opposite], arr[i];
     }
 }
