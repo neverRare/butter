@@ -1,14 +1,35 @@
-use op::BinaryOp;
-use op::UnaryOp;
-
-mod num;
-mod op;
-mod string;
-
 #[derive(Clone, Copy)]
-pub enum Num {
+enum Num {
     UInt(u64),
     Float(f64),
+}
+#[derive(Clone, Copy)]
+enum UnaryOp {
+    Plus,
+    Minus,
+    Ref,
+    Not,
+    Clone,
+}
+#[derive(Clone, Copy)]
+enum BinaryOp {
+    Add,
+    Sub,
+    Mult,
+    Div,
+    FlrDiv,
+    Mod,
+    And,
+    Or,
+    LazyAnd,
+    LazyOr,
+    Eq,
+    NotEq,
+    Gt,
+    Gte,
+    Lt,
+    Lte,
+    Concat,
 }
 #[derive(Clone, Copy)]
 enum Node {
@@ -45,7 +66,7 @@ enum Node {
     OptionalProperty,
     Index,
     OptionalIndex,
-    
+
     Block(bool),
     Fun,
     If,
