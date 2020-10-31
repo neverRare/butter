@@ -3,15 +3,19 @@ use crate::lexer::Token;
 use crate::parser::Node;
 use crate::parser::NodeType;
 use crate::parser::SpanToken;
+use crate::parser::UnaryOp;
 use std::iter::Peekable;
-use util::tree_vec::Tree;
 use util::parser::Parser;
+use util::tree_vec::Tree;
 
 pub(super) fn keyword_literal<'a>(
     prefix: SpanToken<'a>,
     _: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>,
 ) -> Option<Tree<Node<'a>>> {
-    let SpanToken {span, token: prefix} = prefix;
+    let SpanToken {
+        span,
+        token: prefix,
+    } = prefix;
     if let Token::Keyword(keyword) = prefix {
         let node = match keyword {
             Keyword::Abort => NodeType::Abort,
@@ -33,11 +37,19 @@ pub(super) fn clone<'a>(
     prefix: SpanToken<'a>,
     tokens: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>,
 ) -> Option<Tree<Node<'a>>> {
-    let SpanToken {span: src, token: prefix} = prefix;
+    let SpanToken {
+        span,
+        token: prefix,
+    } = prefix;
     if let Token::Keyword(Keyword::Clone) = prefix {
+        let operand = Node::partial_parse(tokens, 90);
         Some(Tree {
-            content: todo!(),
-            children: Node::partial_parse(tokens, 90).into_tree_vec(),
+            content: Node {
+                span: span.up_to(operand.content.span),
+                node: NodeType::Unary(UnaryOp::Clone),
+                unpack: false,
+            },
+            children: operand.into_tree_vec(),
         })
     } else {
         None
