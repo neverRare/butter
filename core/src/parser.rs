@@ -1,3 +1,5 @@
+use crate::lexer::Bracket;
+use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
 use std::iter::Peekable;
@@ -109,24 +111,33 @@ impl<'a> Parser for Node<'a> {
         todo!();
     }
     fn infix_precedence((_, token): &Self::Token) -> Option<u32> {
-        if let Token::Operator(operator) = token {
-            Some(match operator {
-                Operator::Star | Operator::Slash | Operator::DoubleSlash | Operator::Percent => 80,
-                Operator::Plus | Operator::Minus | Operator::PlusPlus => 70,
-                Operator::DoubleEqual
-                | Operator::NotEqual
-                | Operator::Less
-                | Operator::LessEqual
-                | Operator::Greater
-                | Operator::GreaterEqual => 60,
-                Operator::Amp | Operator::DoubleAmp => 50,
-                Operator::Pipe | Operator::DoublePipe => 40,
+        Some(match token {
+            Token::Bracket(Opening::Open, Bracket::Bracket) => 90,
+            Token::Bracket(Opening::Open, Bracket::Paren) => 90,
+            Token::Operator(operator) => match operator {
+                Operator::Dot => 90,
+                Operator::Star => 80,
+                Operator::Slash => 80,
+                Operator::DoubleSlash => 80,
+                Operator::Percent => 80,
+                Operator::Plus => 70,
+                Operator::Minus => 70,
+                Operator::PlusPlus => 70,
+                Operator::DoubleEqual => 60,
+                Operator::NotEqual => 60,
+                Operator::Less => 60,
+                Operator::LessEqual => 60,
+                Operator::Greater => 60,
+                Operator::GreaterEqual => 60,
+                Operator::Amp => 50,
+                Operator::DoubleAmp => 50,
+                Operator::Pipe => 40,
+                Operator::DoublePipe => 40,
                 Operator::DoubleQuestion => 30,
                 Operator::LeftArrow => 20,
                 _ => return None,
-            })
-        } else {
-            None
-        }
+            },
+            _ => return None,
+        })
     }
 }
