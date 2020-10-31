@@ -1,7 +1,6 @@
 use crate::tree_vec::Tree;
 use std::iter::Peekable;
 
-// TODO: better error handling
 pub trait Parser: Sized {
     type Token;
     fn prefix_parse(tokens: &mut Peekable<impl Iterator<Item = Self::Token>>) -> Tree<Self>;

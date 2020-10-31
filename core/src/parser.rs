@@ -3,10 +3,14 @@ use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
 use std::iter::Peekable;
+use util::lexer::LexFilter;
 use util::parser::Parser;
 use util::tree_vec::Tree;
 use util::tree_vec::TreeVec;
-use util::lexer::LexFilter;
+
+mod prefix_parselet;
+
+type SrcToken<'a> = (&'a str, Token<'a>);
 
 #[derive(Clone, Copy)]
 enum Num {
@@ -84,17 +88,14 @@ enum NodeType {
     For,
     While,
     Loop,
-
-    Error,
 }
 struct Node<'a> {
     src: &'a str,
     node: NodeType,
     unpack: bool,
-    place: bool,
 }
 impl<'a> Node<'a> {
-    fn get_statements(tokens: &mut Peekable<impl Iterator<Item = (&'a str, Token<'a>)>>) -> TreeVec<Self> {
+    fn get_statements(tokens: &mut Peekable<impl Iterator<Item = SrcToken<'a>>>) -> TreeVec<Self> {
         todo!();
     }
     fn parse(src: &'a str) -> TreeVec<Self> {
@@ -102,50 +103,28 @@ impl<'a> Node<'a> {
         Self::get_statements(&mut Token::lex_span(src).peekable())
     }
 }
+macro_rules! prefix_parselets {
+    (($prefix:expr, $tokens:expr $(,)?); $($path:path,)* => else $else:expr $(,)?) => {{
+        let prefix = $prefix;
+        let tokens = $tokens;
+        $(
+            if let Some(node) = $path(prefix, tokens) {
+                node
+            } else
+        )* {
+            $else
+        }
+    }};
+}
 impl<'a> Parser for Node<'a> {
-    type Token = (&'a str, Token<'a>);
+    type Token = SrcToken<'a>;
     fn prefix_parse(tokens: &mut Peekable<impl Iterator<Item = Self::Token>>) -> Tree<Self> {
-        let (src, token) = match tokens.next() {
-            Some(token) => token,
-            None => {
-                return Tree::new(Self {
-                    src: "",
-                    node: NodeType::Error,
-                    unpack: false,
-                    place: false,
-                })
-            }
-        };
-        match token {
-            Token::Whitespace | Token::Comment => {
-                panic!("unexpected insignificant token, use LexFilter")
-            }
-            Token::Num => todo!(),
-            Token::Str(content) => todo!(),
-            Token::Char(content) => todo!(),
-            Token::Keyword(keyword) => todo!(),
-            Token::Identifier => todo!(),
-            Token::Separator(_) => panic!("separators must be handled beforehand"),
-            Token::Bracket(Opening::Open, bracket) => todo!(),
-            Token::Bracket(Opening::Close, _) => Tree::new(Self {
-                src,
-                node: NodeType::Error,
-                unpack: false,
-                place: false,
-            }),
-            Token::Operator(operator) => todo!(),
-            Token::UnterminatedQuote => Tree::new(Self {
-                src,
-                node: NodeType::Error,
-                unpack: false,
-                place: false,
-            }),
-            Token::Invalid => Tree::new(Self {
-                src,
-                node: NodeType::Error,
-                unpack: false,
-                place: false,
-            }),
+        let prefix = tokens.next().unwrap();
+        prefix_parselets! {
+            (prefix, tokens);
+            prefix_parselet::keyword_literal,
+            prefix_parselet::clone,
+            => else panic!("Prefix token remained unhandled: {:?}", prefix),
         }
     }
     fn infix_parse(
@@ -153,14 +132,15 @@ impl<'a> Parser for Node<'a> {
         infix: Self::Token,
         tokens: &mut Peekable<impl Iterator<Item = Self::Token>>,
     ) -> Tree<Self> {
-        todo!();
+        // TODO infix parselets here
+        panic!("Infix token remained unhandled: {:?}", infix);
     }
     fn infix_precedence((_, token): &Self::Token) -> Option<u32> {
         Some(match token {
-            Token::Bracket(Opening::Open, Bracket::Bracket) => 90,
-            Token::Bracket(Opening::Open, Bracket::Paren) => 90,
+            Token::Bracket(Opening::Open, Bracket::Bracket) => 100,
+            Token::Bracket(Opening::Open, Bracket::Paren) => 100,
             Token::Operator(operator) => match operator {
-                Operator::Dot => 90,
+                Operator::Dot => 100,
                 Operator::Star => 80,
                 Operator::Slash => 80,
                 Operator::DoubleSlash => 80,
