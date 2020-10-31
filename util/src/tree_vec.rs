@@ -1,9 +1,10 @@
+use std::fmt::Debug;
 use std::iter::FusedIterator;
 use std::mem::swap;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Tree<T> {
     pub content: T,
     pub children: TreeVec<T>,
@@ -28,12 +29,12 @@ impl<T> Tree<T> {
         TreeVec(vec)
     }
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct TreeRef<'a, T> {
     pub content: &'a T,
     pub children: &'a TreeSlice<T>,
 }
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 pub struct TreeMutRef<'a, T> {
     pub content: &'a mut T,
     pub children: &'a mut TreeSlice<T>,
@@ -108,6 +109,11 @@ impl<T> IntoIterator for TreeVec<T> {
     type IntoIter = IntoIter<T>;
     fn into_iter(self) -> Self::IntoIter {
         IntoIter(self)
+    }
+}
+impl<T: Debug> Debug for TreeVec<T> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        TreeSlice::fmt(self, formatter)
     }
 }
 #[derive(PartialEq, Eq, Hash)]
@@ -213,6 +219,11 @@ impl<'a, T> IntoIterator for &'a TreeSlice<T> {
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
         Iter(self)
+    }
+}
+impl<T: Debug> Debug for TreeSlice<T> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.debug_list().entries(self).finish()
     }
 }
 pub struct Iter<'a, T>(&'a TreeSlice<T>);
