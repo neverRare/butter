@@ -26,7 +26,7 @@ pub trait Parser: Sized {
         let mut node = Self::prefix_parse(token, tokens);
         while let Some(token) = tokens.peek() {
             if Self::infix_precedence(token)
-                .map(|num| num < precedence)
+                .map(|num| num <= precedence)
                 .unwrap_or(true)
             {
                 break;
