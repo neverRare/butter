@@ -1,25 +1,31 @@
-pub trait Span<'a>: Sized {
-    fn from_range(src: &'a str, start: usize, end: usize) -> Self;
-    fn start_on(&self, src: &'a str) -> usize;
-    fn end_on(&self, src: &'a str) -> usize;
-    fn span_len(&self) -> usize;
-    fn from_spans(src: &'a str, start: &Self, end: &Self) -> Self {
-        let start = start.start_on(src);
-        let end = end.end_on(src);
-        Self::from_range(src, start, end)
-    }
+#[derive(Clone, Copy)]
+pub struct Span<'a> {
+    src: &'a str,
+    start: usize,
+    end: usize,
 }
-impl<'a> Span<'a> for &'a str {
-    fn from_range(src: &'a str, start: usize, end: usize) -> Self {
-        &src[start..end]
+impl<'a> Span<'a> {
+    pub fn from_str(src: &'a str, span: &'a str) -> Self {
+        assert!(
+            src.as_ptr() <= span.as_ptr()
+                && src.as_ptr() as usize + src.len() >= span.as_ptr() as usize + span.len()
+        );
+        let start = span.as_ptr() as usize - src.as_ptr() as usize;
+        Self {
+            src,
+            start,
+            end: start + span.len(),
+        }
     }
-    fn start_on(&self, src: &'a str) -> usize {
-        self.as_ptr() as usize - src.as_ptr() as usize
+    pub fn up_to(self, end: Self) -> Self {
+        assert!(std::ptr::eq(self.src, end.src));
+        Self {
+            src: self.src,
+            start: self.start,
+            end: end.end,
+        }
     }
-    fn end_on(&self, src: &'a str) -> usize {
-        self.start_on(src) + self.len()
-    }
-    fn span_len(&self) -> usize {
-        self.len()
+    pub fn span(self) -> &'a str {
+        &self.src[self.start..self.end]
     }
 }
