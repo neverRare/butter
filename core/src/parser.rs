@@ -5,6 +5,8 @@ use crate::lexer::Token;
 use std::iter::Peekable;
 use util::parser::Parser;
 use util::tree_vec::Tree;
+use util::tree_vec::TreeVec;
+use util::lexer::LexFilter;
 
 #[derive(Clone, Copy)]
 enum Num {
@@ -88,11 +90,63 @@ enum NodeType {
 struct Node<'a> {
     src: &'a str,
     node: NodeType,
+    unpack: bool,
+    place: bool,
+}
+impl<'a> Node<'a> {
+    fn get_statements(tokens: &mut Peekable<impl Iterator<Item = (&'a str, Token<'a>)>>) -> TreeVec<Self> {
+        todo!();
+    }
+    fn parse(src: &'a str) -> TreeVec<Self> {
+        // TODO handle unparsed tokens
+        Self::get_statements(&mut Token::lex_span(src).peekable())
+    }
 }
 impl<'a> Parser for Node<'a> {
     type Token = (&'a str, Token<'a>);
     fn prefix_parse(tokens: &mut Peekable<impl Iterator<Item = Self::Token>>) -> Tree<Self> {
-        todo!();
+        let (src, token) = match tokens.next() {
+            Some(token) => token,
+            None => {
+                return Tree::new(Self {
+                    src: "",
+                    node: NodeType::Error,
+                    unpack: false,
+                    place: false,
+                })
+            }
+        };
+        match token {
+            Token::Whitespace | Token::Comment => {
+                panic!("unexpected insignificant token, use LexFilter")
+            }
+            Token::Num => todo!(),
+            Token::Str(content) => todo!(),
+            Token::Char(content) => todo!(),
+            Token::Keyword(keyword) => todo!(),
+            Token::Identifier => todo!(),
+            Token::Separator(_) => panic!("separators must be handled beforehand"),
+            Token::Bracket(Opening::Open, bracket) => todo!(),
+            Token::Bracket(Opening::Close, _) => Tree::new(Self {
+                src,
+                node: NodeType::Error,
+                unpack: false,
+                place: false,
+            }),
+            Token::Operator(operator) => todo!(),
+            Token::UnterminatedQuote => Tree::new(Self {
+                src,
+                node: NodeType::Error,
+                unpack: false,
+                place: false,
+            }),
+            Token::Invalid => Tree::new(Self {
+                src,
+                node: NodeType::Error,
+                unpack: false,
+                place: false,
+            }),
+        }
     }
     fn infix_parse(
         left_node: Tree<Self>,
