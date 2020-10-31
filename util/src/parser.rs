@@ -81,25 +81,14 @@ mod test {
             infix: Self::Token,
             tokens: &mut Peekable<impl Iterator<Item = Self::Token>>,
         ) -> Tree<Self> {
-            match infix {
-                Token::InfixLeft => Tree {
-                    content: Self::InfixLeft,
-                    children: {
-                        let mut children = left_node.into_tree_vec();
-                        children.push(Self::partial_parse(tokens, 10));
-                        children
-                    },
-                },
-                Token::InfixRight => Tree {
-                    content: Self::InfixRight,
-                    children: {
-                        let mut children = left_node.into_tree_vec();
-                        children.push(Self::partial_parse(tokens, 19));
-                        children
-                    },
-                },
+            let (content, precedence) = match infix {
+                Token::InfixLeft => (Self::InfixLeft, 10),
+                Token::InfixRight => (Self::InfixRight, 19),
                 _ => unreachable!(),
-            }
+            };
+            let mut children = left_node.into_tree_vec();
+            children.push(Self::partial_parse(tokens, precedence));
+            Tree { content, children }
         }
         fn infix_precedence(token: &Self::Token) -> Option<u32> {
             Some(match token {
