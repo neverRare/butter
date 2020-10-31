@@ -1,12 +1,12 @@
-use bracket::Bracket;
-use bracket::Opening;
+pub use bracket::Bracket;
+pub use bracket::Opening;
 use bracket::OpeningBracket;
 use comment::Comment;
 use ident::Ident;
-use keyword::Keyword;
+pub use keyword::Keyword;
 use number::Num;
-use operator::Operator;
-use separator::Separator;
+pub use operator::Operator;
+pub use separator::Separator;
 use string::Str;
 use util::lexer::Lex;
 use util::lexer::LexFilter;

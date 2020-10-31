@@ -3,7 +3,7 @@ use std::iter::Peekable;
 
 // TODO: better error handling
 // TODO: test
-trait Parser<'a>: Sized {
+pub trait Parser: Sized {
     type Token;
     fn error_node() -> Self;
     fn prefix_parse(
