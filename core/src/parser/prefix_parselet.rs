@@ -1,4 +1,5 @@
 use crate::lexer::Keyword;
+use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::Node;
 use crate::parser::NodeType;
@@ -47,6 +48,35 @@ pub(super) fn clone<'a>(
             content: Node {
                 span: span.up_to(operand.content.span),
                 node: NodeType::Unary(UnaryOp::Clone),
+                unpack: false,
+            },
+            children: operand.into_tree_vec(),
+        })
+    } else {
+        None
+    }
+}
+pub(super) fn operator<'a>(
+    prefix: SpanToken<'a>,
+    tokens: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>,
+) -> Option<Tree<Node<'a>>> {
+    let SpanToken {
+        span,
+        token: prefix,
+    } = prefix;
+    if let Token::Operator(operator) = prefix {
+        let operator = match operator {
+            Operator::Plus => UnaryOp::Plus,
+            Operator::Minus => UnaryOp::Minus,
+            Operator::Bang => UnaryOp::Not,
+            Operator::Amp => UnaryOp::Ref,
+            _ => return None,
+        };
+        let operand = Node::partial_parse(tokens, 90);
+        Some(Tree {
+            content: Node {
+                span: span.up_to(operand.content.span),
+                node: NodeType::Unary(operator),
                 unpack: false,
             },
             children: operand.into_tree_vec(),

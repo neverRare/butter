@@ -134,8 +134,9 @@ impl<'a> Parser for Node<'a> {
         let prefix = tokens.next().unwrap();
         prefix_parselets! {
             (prefix, tokens);
-            prefix_parselet::keyword_literal,
+            prefix_parselet::operator,
             prefix_parselet::clone,
+            prefix_parselet::keyword_literal,
             => else panic!("Prefix token remained unhandled: {:?}", prefix.token),
         }
     }
