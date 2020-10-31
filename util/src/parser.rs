@@ -25,14 +25,14 @@ pub trait Parser: Sized {
             None => return Tree::new(Self::error_node()),
         };
         let mut node = Self::prefix_parse(token, tokens);
-        while let Some(token) = tokens.next() {
-            if Self::infix_precedence(&token)
+        while let Some(token) = tokens.peek() {
+            if Self::infix_precedence(token)
                 .map(|num| num < precedence)
                 .unwrap_or(true)
             {
                 break;
             }
-            node = Self::infix_parse(node, token, tokens);
+            node = Self::infix_parse(node, tokens.next().unwrap(), tokens);
         }
         node
     }
