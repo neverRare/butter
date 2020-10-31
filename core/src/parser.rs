@@ -91,16 +91,7 @@ struct Node<'a> {
 }
 impl<'a> Parser for Node<'a> {
     type Token = (&'a str, Token<'a>);
-    fn error_node() -> Self {
-        Self {
-            src: "",
-            node: NodeType::Error,
-        }
-    }
-    fn prefix_parse(
-        prefix: Self::Token,
-        tokens: &mut Peekable<impl Iterator<Item = Self::Token>>,
-    ) -> Tree<Self> {
+    fn prefix_parse(tokens: &mut Peekable<impl Iterator<Item = Self::Token>>) -> Tree<Self> {
         todo!();
     }
     fn infix_parse(
