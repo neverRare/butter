@@ -5,13 +5,17 @@ use crate::lexer::Token;
 use std::iter::Peekable;
 use util::lexer::LexFilter;
 use util::parser::Parser;
+use util::span::Span;
 use util::tree_vec::Tree;
 use util::tree_vec::TreeVec;
 
 mod prefix_parselet;
 
-type SrcToken<'a> = (&'a str, Token<'a>);
-
+#[derive(Clone, Copy)]
+struct SpanToken<'a> {
+    span: Span<'a>,
+    token: Token<'a>,
+}
 #[derive(Clone, Copy)]
 enum Num {
     UInt(u64),
@@ -89,18 +93,26 @@ enum NodeType {
     While,
     Loop,
 }
+#[derive(Clone, Copy)]
 struct Node<'a> {
-    src: &'a str,
+    span: Span<'a>,
     node: NodeType,
     unpack: bool,
 }
 impl<'a> Node<'a> {
-    fn get_statements(tokens: &mut Peekable<impl Iterator<Item = SrcToken<'a>>>) -> TreeVec<Self> {
+    fn get_statements(tokens: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>) -> TreeVec<Self> {
         todo!();
     }
     fn parse(src: &'a str) -> TreeVec<Self> {
         // TODO handle unparsed tokens
-        Self::get_statements(&mut Token::lex_span(src).peekable())
+        Self::get_statements(
+            &mut Token::lex_span(src)
+                .map(|(span, token)| SpanToken {
+                    span: Span::from_str(src, span),
+                    token,
+                })
+                .peekable(),
+        )
     }
 }
 macro_rules! prefix_parselets {
@@ -117,14 +129,14 @@ macro_rules! prefix_parselets {
     }};
 }
 impl<'a> Parser for Node<'a> {
-    type Token = SrcToken<'a>;
+    type Token = SpanToken<'a>;
     fn prefix_parse(tokens: &mut Peekable<impl Iterator<Item = Self::Token>>) -> Tree<Self> {
         let prefix = tokens.next().unwrap();
         prefix_parselets! {
             (prefix, tokens);
             prefix_parselet::keyword_literal,
             prefix_parselet::clone,
-            => else panic!("Prefix token remained unhandled: {:?}", prefix),
+            => else panic!("Prefix token remained unhandled: {:?}", prefix.token),
         }
     }
     fn infix_parse(
@@ -133,9 +145,10 @@ impl<'a> Parser for Node<'a> {
         tokens: &mut Peekable<impl Iterator<Item = Self::Token>>,
     ) -> Tree<Self> {
         // TODO infix parselets here
-        panic!("Infix token remained unhandled: {:?}", infix);
+        panic!("Infix token remained unhandled: {:?}", infix.token);
     }
-    fn infix_precedence((_, token): &Self::Token) -> Option<u32> {
+    fn infix_precedence(token: &Self::Token) -> Option<u32> {
+        let SpanToken { span: _, token } = token;
         Some(match token {
             Token::Bracket(Opening::Open, Bracket::Bracket) => 100,
             Token::Bracket(Opening::Open, Bracket::Paren) => 100,
