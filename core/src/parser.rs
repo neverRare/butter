@@ -4,11 +4,13 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use std::iter::Peekable;
 use util::lexer::LexFilter;
+use util::mini_fn;
 use util::parser::Parser;
 use util::span::Span;
 use util::tree_vec::Tree;
 use util::tree_vec::TreeVec;
 
+mod infix_parselet;
 mod prefix_parselet;
 
 #[derive(Clone, Copy)]
@@ -48,6 +50,7 @@ enum BinaryOp {
     Lt,
     Lte,
     Concat,
+    NullOr,
 }
 #[derive(Clone, Copy)]
 enum NodeType {
@@ -115,24 +118,11 @@ impl<'a> Node<'a> {
         )
     }
 }
-macro_rules! prefix_parselets {
-    (($prefix:expr, $tokens:expr $(,)?); $($path:path,)* => else $else:expr $(,)?) => {{
-        let prefix = $prefix;
-        let tokens = $tokens;
-        $(
-            if let Some(node) = $path(prefix, tokens) {
-                node
-            } else
-        )* {
-            $else
-        }
-    }};
-}
 impl<'a> Parser for Node<'a> {
     type Token = SpanToken<'a>;
     fn prefix_parse(tokens: &mut Peekable<impl Iterator<Item = Self::Token>>) -> Tree<Self> {
         let prefix = tokens.next().unwrap();
-        prefix_parselets! {
+        mini_fn! {
             (prefix, tokens);
             prefix_parselet::operator,
             prefix_parselet::clone,
@@ -145,8 +135,11 @@ impl<'a> Parser for Node<'a> {
         infix: Self::Token,
         tokens: &mut Peekable<impl Iterator<Item = Self::Token>>,
     ) -> Tree<Self> {
-        // TODO infix parselets here
-        panic!("Infix token remained unhandled: {:?}", infix.token);
+        mini_fn! {
+            (left_node, infix, tokens);
+            infix_parselet::operator,
+            => else panic!("Prefix token remained unhandled: {:?}", infix.token),
+        }
     }
     fn infix_precedence(token: &Self::Token) -> Option<u32> {
         let SpanToken { span: _, token } = token;
