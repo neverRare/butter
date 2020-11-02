@@ -1,17 +1,16 @@
 use crate::lexer::Keyword;
 use crate::lexer::Operator;
 use crate::lexer::Token;
+use crate::parser::node_type::NodeType;
+use crate::parser::node_type::UnaryOp;
 use crate::parser::Node;
-use crate::parser::NodeType;
 use crate::parser::SpanToken;
-use crate::parser::UnaryOp;
-use std::iter::Peekable;
 use util::parser::Parser;
 use util::tree_vec::Tree;
 
 pub(super) fn keyword_literal<'a>(
     prefix: SpanToken<'a>,
-    _: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>,
+    _: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
 ) -> Option<Tree<Node<'a>>> {
     let SpanToken {
         span,
@@ -35,14 +34,14 @@ pub(super) fn keyword_literal<'a>(
 }
 pub(super) fn clone<'a>(
     prefix: SpanToken<'a>,
-    tokens: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
 ) -> Option<Tree<Node<'a>>> {
     let SpanToken {
         span,
         token: prefix,
     } = prefix;
     if let Token::Keyword(Keyword::Clone) = prefix {
-        let operand = Node::partial_parse(tokens, 90);
+        let operand = tokens.partial_parse(90);
         Some(Tree {
             content: Node {
                 span: span.up_to(operand.content.span),
@@ -57,7 +56,7 @@ pub(super) fn clone<'a>(
 }
 pub(super) fn operator<'a>(
     prefix: SpanToken<'a>,
-    tokens: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
 ) -> Option<Tree<Node<'a>>> {
     let SpanToken {
         span,
@@ -71,7 +70,7 @@ pub(super) fn operator<'a>(
             Operator::Amp => UnaryOp::Ref,
             _ => return None,
         };
-        let operand = Node::partial_parse(tokens, 90);
+        let operand = tokens.partial_parse(90);
         Some(Tree {
             content: Node {
                 span: span.up_to(operand.content.span),

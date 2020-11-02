@@ -1,17 +1,16 @@
 use crate::lexer::Operator;
 use crate::lexer::Token;
-use crate::parser::BinaryOp;
+use crate::parser::node_type::BinaryOp;
+use crate::parser::node_type::NodeType;
 use crate::parser::Node;
-use crate::parser::NodeType;
 use crate::parser::SpanToken;
-use std::iter::Peekable;
 use util::parser::Parser;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
     left_node: Tree<Node<'a>>,
     infix: SpanToken<'a>,
-    tokens: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
 ) -> Option<Tree<Node<'a>>> {
     if let Token::Operator(operator) = infix.token {
         let (operator, precedence) = match operator {
@@ -37,9 +36,9 @@ pub(super) fn operator<'a>(
         };
         let left_span = left_node.content.span;
         let mut children = left_node.into_tree_vec();
-        let right = Node::partial_parse(tokens, precedence);
+        let right = tokens.partial_parse(precedence);
         let right_span = right.content.span;
-        children.push(Node::partial_parse(tokens, precedence));
+        children.push(tokens.partial_parse(precedence));
         Some(Tree {
             content: Node {
                 span: left_span.up_to(right_span),

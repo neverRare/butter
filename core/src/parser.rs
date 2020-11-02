@@ -2,124 +2,31 @@ use crate::lexer::Bracket;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
-use std::iter::Peekable;
-use util::lexer::LexFilter;
+use crate::parser::node_type::NodeType;
 use util::mini_fn;
+use util::parser::Parse;
 use util::parser::Parser;
 use util::span::Span;
 use util::tree_vec::Tree;
-use util::tree_vec::TreeVec;
 
 mod infix_parselet;
+mod node_type;
 mod prefix_parselet;
 
-#[derive(Clone, Copy)]
-struct SpanToken<'a> {
-    span: Span<'a>,
-    token: Token<'a>,
-}
-#[derive(Clone, Copy)]
-enum Num {
-    UInt(u64),
-    Float(f64),
-}
-#[derive(Clone, Copy)]
-enum UnaryOp {
-    Plus,
-    Minus,
-    Ref,
-    Not,
-    Clone,
-}
-#[derive(Clone, Copy)]
-enum BinaryOp {
-    Add,
-    Sub,
-    Mult,
-    Div,
-    FlrDiv,
-    Mod,
-    And,
-    Or,
-    LazyAnd,
-    LazyOr,
-    Eq,
-    NotEq,
-    Gt,
-    Gte,
-    Lt,
-    Lte,
-    Concat,
-    NullOr,
-}
-#[derive(Clone, Copy)]
-enum NodeType {
-    SplatOrRest,
-    Label,
-
-    CharInside(u8),
-
-    True,
-    False,
-    Null,
-    Ident,
-    Char,
-    Str,
-    Num(Num),
-    Path,
-
-    Break,
-    Continue,
-    Return,
-
-    Unary(UnaryOp),
-    Binary(BinaryOp),
-
-    Declare,
-    FunDeclare,
-    Assign,
-
-    Array,
-    Struct,
-
-    Property,
-    OptionalProperty,
-    Index,
-    OptionalIndex,
-
-    Block(bool),
-    Fun,
-    If,
-    Else,
-    For,
-    While,
-    Loop,
-}
 #[derive(Clone, Copy)]
 struct Node<'a> {
     span: Span<'a>,
     node: NodeType,
     unpack: bool,
 }
-impl<'a> Node<'a> {
-    fn get_statements(tokens: &mut Peekable<impl Iterator<Item = SpanToken<'a>>>) -> TreeVec<Self> {
-        todo!();
-    }
-    fn parse(src: &'a str) -> TreeVec<Self> {
-        // TODO handle unparsed tokens
-        Self::get_statements(
-            &mut Token::lex_span(src)
-                .map(|(span, token)| SpanToken {
-                    span: Span::from_str(src, span),
-                    token,
-                })
-                .peekable(),
-        )
-    }
+#[derive(Clone, Copy)]
+struct SpanToken<'a> {
+    span: Span<'a>,
+    token: Token<'a>,
 }
-impl<'a> Parser for Node<'a> {
-    type Token = SpanToken<'a>;
-    fn prefix_parse(tokens: &mut Peekable<impl Iterator<Item = Self::Token>>) -> Tree<Self> {
+impl<'a> Parse for SpanToken<'a> {
+    type Node = Tree<Node<'a>>;
+    fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node {
         let prefix = tokens.next().unwrap();
         mini_fn! {
             (prefix, tokens);
@@ -130,19 +37,18 @@ impl<'a> Parser for Node<'a> {
         }
     }
     fn infix_parse(
-        left_node: Tree<Self>,
-        infix: Self::Token,
-        tokens: &mut Peekable<impl Iterator<Item = Self::Token>>,
-    ) -> Tree<Self> {
+        left_node: Self::Node,
+        infix: Self,
+        tokens: &mut Parser<impl Iterator<Item = Self>>,
+    ) -> Self::Node {
         mini_fn! {
             (left_node, infix, tokens);
             infix_parselet::operator,
             => else panic!("Prefix token remained unhandled: {:?}", infix.token),
         }
     }
-    fn infix_precedence(token: &Self::Token) -> Option<u32> {
-        let SpanToken { span: _, token } = token;
-        Some(match token {
+    fn infix_precedence(&self) -> Option<u32> {
+        Some(match self.token {
             Token::Bracket(Opening::Open, Bracket::Bracket) => 100,
             Token::Bracket(Opening::Open, Bracket::Paren) => 100,
             Token::Operator(operator) => match operator {
