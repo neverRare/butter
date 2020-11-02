@@ -4,7 +4,6 @@
 
 | Keywords   | Purpose             |
 | ---------- | ------------------- |
-| `abort`    | Abort expression    |
 | `true`     | Boolean literal     |
 | `false`    | Boolean literal     |
 | `null`     | Null literal        |
