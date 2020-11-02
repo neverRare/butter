@@ -6,7 +6,6 @@ Butter is still in development. Some of the documentation could be outdated, som
 
 A high level documentation of various operation in Butter. It describes its syntaxes through examples.
 
-- [Abort](language/abort.md)
 - [Array](language/array.md)
 - [Boolean](language/boolean.md)
 - [Clone](language/clone.md)
@@ -16,7 +15,7 @@ A high level documentation of various operation in Butter. It describes its synt
 - [Module](language/module.md)
 - [Null and optional](language/null_and_optional.md)
 - [Number](language/number.md)
-- [Operator precedence](language/operator_precedence.md)
+- [Miscellaneous](language/miscellaneous.md)
 - [Reference](language/reference.md)
 - [String and char](language/string_and_char.md)
 - [Struct](language/struct.md)
