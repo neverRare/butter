@@ -4,19 +4,19 @@
 
 | Keywords   | Purpose             |
 | ---------- | ------------------- |
-| `true`     | Boolean literal     |
-| `false`    | Boolean literal     |
-| `null`     | Null literal        |
+| `break`    | Break expression    |
 | `clone`    | Clone operator      |
-| `if`       | If expression       |
+| `continue` | Continue expression |
 | `else`     | If expression       |
+| `false`    | Boolean literal     |
 | `for`      | For statement       |
+| `if`       | If expression       |
 | `in`       | For statement       |
 | `loop`     | Loop expression     |
-| `while`    | While statement     |
-| `break`    | Break expression    |
-| `continue` | Continue expression |
+| `null`     | Null literal        |
 | `return`   | Return expression   |
+| `true`     | Boolean literal     |
+| `while`    | While statement     |
 
 ## Punctuation reference
 
