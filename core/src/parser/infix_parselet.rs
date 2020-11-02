@@ -3,15 +3,16 @@ use crate::lexer::Token;
 use crate::parser::node_type::BinaryOp;
 use crate::parser::node_type::NodeType;
 use crate::parser::Node;
+use crate::parser::ParseResult;
 use crate::parser::SpanToken;
 use util::parser::Parser;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
-    left_node: Tree<Node<'a>>,
+    left_node: ParseResult<'a>,
     infix: SpanToken<'a>,
     tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
-) -> Option<Tree<Node<'a>>> {
+) -> Option<ParseResult<'a>> {
     if let Token::Operator(operator) = infix.token {
         let (operator, precedence) = match operator {
             Operator::Star => (BinaryOp::Mult, 80),
@@ -34,19 +35,28 @@ pub(super) fn operator<'a>(
             Operator::DoubleQuestion => (BinaryOp::NullOr, 30),
             _ => return None,
         };
-        let left_span = left_node.content.span;
-        let mut children = left_node.into_tree_vec();
         let right = tokens.partial_parse(precedence);
-        let right_span = right.content.span;
-        children.push(tokens.partial_parse(precedence));
-        Some(Tree {
-            content: Node {
-                span: left_span.up_to(right_span),
-                node: NodeType::Binary(operator),
-                unpack: false,
-            },
-            children,
-        })
+        match (left_node, right) {
+            (Ok(left_node), Ok(right)) => {
+                let left_span = left_node.content.span;
+                let mut children = left_node.into_tree_vec();
+                let right_span = right.content.span;
+                children.push(right);
+                Some(Ok(Tree {
+                    content: Node {
+                        span: left_span.up_to(right_span),
+                        node: NodeType::Binary(operator),
+                        unpack: false,
+                    },
+                    children,
+                }))
+            }
+            (Err(mut left), Err(mut right)) => {
+                left.append(&mut right);
+                Some(Err(left))
+            }
+            (Err(err), _) | (_, Err(err)) => Some(Err(err)),
+        }
     } else {
         None
     }

@@ -2,6 +2,7 @@ use crate::lexer::Bracket;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
+use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
 use util::mini_fn;
 use util::parser::Parse;
@@ -9,6 +10,7 @@ use util::parser::Parser;
 use util::span::Span;
 use util::tree_vec::Tree;
 
+mod error;
 mod infix_parselet;
 mod node_type;
 mod prefix_parselet;
@@ -24,8 +26,13 @@ struct SpanToken<'a> {
     span: Span<'a>,
     token: Token<'a>,
 }
+struct Error<'a> {
+    span: Span<'a>,
+    error: ErrorType,
+}
+type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
 impl<'a> Parse for SpanToken<'a> {
-    type Node = Tree<Node<'a>>;
+    type Node = ParseResult<'a>;
     fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node {
         let prefix = tokens.next().unwrap();
         mini_fn! {

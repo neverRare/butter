@@ -4,6 +4,7 @@ use crate::lexer::Token;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::UnaryOp;
 use crate::parser::Node;
+use crate::parser::ParseResult;
 use crate::parser::SpanToken;
 use util::parser::Parser;
 use util::tree_vec::Tree;
@@ -11,7 +12,7 @@ use util::tree_vec::Tree;
 pub(super) fn keyword_literal<'a>(
     prefix: SpanToken<'a>,
     _: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
-) -> Option<Tree<Node<'a>>> {
+) -> Option<ParseResult<'a>> {
     let SpanToken {
         span,
         token: prefix,
@@ -23,11 +24,11 @@ pub(super) fn keyword_literal<'a>(
             Keyword::Null => NodeType::Null,
             _ => return None,
         };
-        Some(Tree::new(Node {
+        Some(Ok(Tree::new(Node {
             span,
             node,
             unpack: false,
-        }))
+        })))
     } else {
         None
     }
@@ -35,21 +36,24 @@ pub(super) fn keyword_literal<'a>(
 pub(super) fn clone<'a>(
     prefix: SpanToken<'a>,
     tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
-) -> Option<Tree<Node<'a>>> {
+) -> Option<ParseResult<'a>> {
     let SpanToken {
         span,
         token: prefix,
     } = prefix;
     if let Token::Keyword(Keyword::Clone) = prefix {
-        let operand = tokens.partial_parse(90);
-        Some(Tree {
+        let operand = match tokens.partial_parse(90) {
+            Ok(node) => node,
+            Err(err) => return Some(Err(err)),
+        };
+        Some(Ok(Tree {
             content: Node {
                 span: span.up_to(operand.content.span),
                 node: NodeType::Unary(UnaryOp::Clone),
                 unpack: false,
             },
             children: operand.into_tree_vec(),
-        })
+        }))
     } else {
         None
     }
@@ -57,7 +61,7 @@ pub(super) fn clone<'a>(
 pub(super) fn operator<'a>(
     prefix: SpanToken<'a>,
     tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
-) -> Option<Tree<Node<'a>>> {
+) -> Option<ParseResult<'a>> {
     let SpanToken {
         span,
         token: prefix,
@@ -70,15 +74,18 @@ pub(super) fn operator<'a>(
             Operator::Amp => UnaryOp::Ref,
             _ => return None,
         };
-        let operand = tokens.partial_parse(90);
-        Some(Tree {
+        let operand = match tokens.partial_parse(90) {
+            Ok(node) => node,
+            Err(err) => return Some(Err(err)),
+        };
+        Some(Ok(Tree {
             content: Node {
                 span: span.up_to(operand.content.span),
                 node: NodeType::Unary(operator),
                 unpack: false,
             },
             children: operand.into_tree_vec(),
-        })
+        }))
     } else {
         None
     }
