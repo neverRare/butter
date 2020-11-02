@@ -1,4 +1,3 @@
-use crate::tree_vec::Tree;
 use std::iter::Peekable;
 
 pub struct Parser<I: Iterator>(Peekable<I>);
@@ -65,8 +64,14 @@ mod test {
     use crate::parser::Parser;
     use crate::tree_vec;
     use crate::tree_vec::Tree;
-    use std::iter::Peekable;
 
+    #[derive(PartialEq, Eq, Clone, Copy, Debug)]
+    enum Node {
+        Num,
+        Prefix,
+        InfixLeft,
+        InfixRight,
+    }
     #[derive(PartialEq, Eq, Clone, Copy, Debug)]
     enum Token {
         Num,
@@ -77,28 +82,24 @@ mod test {
         InfixRight,
     }
     impl Parse for Token {
-        type Node = Tree<Node>;
+        type Node = Option<Tree<Node>>;
 
         fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node {
-            let prefix = match tokens.next() {
-                Some(token) => token,
-                None => return Tree::new(Node::Error),
-            };
-            match prefix {
-                Token::Num => Tree::new(Node::Num),
+            match tokens.next()? {
+                Token::Num => Some(Tree::new(Node::Num)),
                 Token::OpenGroup => {
                     let inside = tokens.partial_parse(0);
-                    if let Some(Token::CloseGroup) = tokens.peek() {
+                    if let Token::CloseGroup = tokens.peek()? {
                         inside
                     } else {
-                        Tree::new(Node::Error)
+                        None
                     }
                 }
-                Token::Prefix => Tree {
+                Token::Prefix => Some(Tree {
                     content: Node::Prefix,
-                    children: tokens.partial_parse(30).into_tree_vec(),
-                },
-                _ => Tree::new(Node::Error),
+                    children: tokens.partial_parse(30)?.into_tree_vec(),
+                }),
+                _ => None,
             }
         }
         fn infix_parse(
@@ -111,9 +112,9 @@ mod test {
                 Token::InfixRight => (Node::InfixRight, 19),
                 _ => unreachable!(),
             };
-            let mut children = left_node.into_tree_vec();
-            children.push(tokens.partial_parse(precedence));
-            Tree { content, children }
+            let mut children = left_node?.into_tree_vec();
+            children.push(tokens.partial_parse(precedence)?);
+            Some(Tree { content, children })
         }
         fn infix_precedence(&self) -> Option<u32> {
             Some(match self {
@@ -123,22 +124,14 @@ mod test {
             })
         }
     }
-    #[derive(PartialEq, Eq, Clone, Copy, Debug)]
-    enum Node {
-        Num,
-        Prefix,
-        InfixLeft,
-        InfixRight,
-        Error,
-    }
     macro_rules! assert_parser {
         ([$($token:expr),* $(,)?], $content:expr => {$($children:tt)*} $(,)?) => {
             assert_eq!(
                 Parser::new([$($token),*].iter().copied()).partial_parse(0),
-                Tree {
+                Some(Tree {
                     content: $content,
                     children: tree_vec! { $($children)* },
-                },
+                }),
             );
         };
     }
