@@ -68,7 +68,6 @@ enum NodeType {
     Num(Num),
     Path,
 
-    Abort,
     Break,
     Continue,
     Return,

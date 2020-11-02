@@ -19,7 +19,6 @@ pub(super) fn keyword_literal<'a>(
     } = prefix;
     if let Token::Keyword(keyword) = prefix {
         let node = match keyword {
-            Keyword::Abort => NodeType::Abort,
             Keyword::True => NodeType::True,
             Keyword::False => NodeType::False,
             Keyword::Null => NodeType::Null,
