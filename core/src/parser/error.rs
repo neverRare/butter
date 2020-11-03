@@ -1,1 +1,4 @@
-pub enum ErrorType {}
+#[derive(Clone, Copy)]
+pub enum ErrorType {
+    NonPlaceAssign,
+}

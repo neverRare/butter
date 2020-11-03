@@ -25,6 +25,7 @@ struct SpanToken<'a> {
     span: Span<'a>,
     token: Token<'a>,
 }
+#[derive(Clone, Copy)]
 struct Error<'a> {
     span: Span<'a>,
     error: ErrorType,
@@ -51,6 +52,7 @@ impl<'a> Parse for SpanToken<'a> {
         mini_fn! {
             (left_node, infix, tokens);
             infix_parselet::operator,
+            infix_parselet::assign,
             => else panic!("Prefix token remained unhandled: {:?}", infix.token),
         }
     }

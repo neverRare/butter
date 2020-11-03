@@ -88,7 +88,6 @@ pub(super) fn operator<'a>(
         None
     }
 }
-
 pub(super) fn double_ref<'a>(
     prefix: SpanToken<'a>,
     tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,

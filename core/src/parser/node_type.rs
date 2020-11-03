@@ -75,3 +75,14 @@ pub enum NodeType {
     While,
     Loop,
 }
+impl NodeType {
+    pub fn place(self) -> bool {
+        match self {
+            Self::Ident => true,
+            Self::Property => true,
+            Self::Index => true,
+            Self::Unary(UnaryOp::Ref) => true,
+            _ => false,
+        }
+    }
+}
