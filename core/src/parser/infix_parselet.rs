@@ -46,7 +46,6 @@ pub(super) fn operator<'a>(
                     content: Node {
                         span: left_span.up_to(right_span),
                         node: NodeType::Binary(operator),
-                        unpack: false,
                     },
                     children,
                 }))

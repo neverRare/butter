@@ -19,7 +19,6 @@ mod prefix_parselet;
 struct Node<'a> {
     span: Span<'a>,
     node: NodeType,
-    unpack: bool,
 }
 #[derive(Clone, Copy)]
 struct SpanToken<'a> {

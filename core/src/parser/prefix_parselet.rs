@@ -28,7 +28,6 @@ pub(super) fn keyword_literal<'a>(
         Some(Ok(Tree::new(Node {
             span,
             node,
-            unpack: false,
         })))
     } else {
         None
@@ -51,7 +50,6 @@ pub(super) fn clone<'a>(
             content: Node {
                 span: span.up_to(operand.content.span),
                 node: NodeType::Unary(UnaryOp::Clone),
-                unpack: false,
             },
             children: operand.into_tree_vec(),
         }))
@@ -83,7 +81,6 @@ pub(super) fn operator<'a>(
             content: Node {
                 span: span.up_to(operand.content.span),
                 node: NodeType::Unary(operator),
-                unpack: false,
             },
             children: operand.into_tree_vec(),
         }))
@@ -108,13 +105,11 @@ pub(super) fn double_ref<'a>(
             content: Node {
                 span: Span::from_str(src, &span[..1]),
                 node: NodeType::Unary(UnaryOp::Ref),
-                unpack: false,
             },
             children: Tree {
                 content: Node {
                     span: Span::from_str(src, &span[1..]),
                     node: NodeType::Unary(UnaryOp::Ref),
-                    unpack: false,
                 },
                 children: operand.into_tree_vec(),
             }
