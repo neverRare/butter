@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::iter::FusedIterator;
+use std::marker::PhantomData;
 use std::mem::swap;
 use std::ops::Deref;
 use std::ops::DerefMut;
@@ -65,20 +66,7 @@ impl<T> TreeVec<T> {
     pub fn append(&mut self, Self(children): &mut Self) {
         self.0.append(children);
     }
-    pub fn into_first(self) -> Option<Tree<T>> {
-        let Self(mut vec) = self;
-        if vec.is_empty() {
-            None
-        } else {
-            let (content, len) = vec.remove(0);
-            vec.truncate(len);
-            Some(Tree {
-                content,
-                children: Self(vec),
-            })
-        }
-    }
-    pub fn into_first_and_rest(self) -> Option<(Tree<T>, Self)> {
+    fn into_first_and_rest(self) -> Option<(Tree<T>, Self)> {
         let Self(mut vec) = self;
         if vec.is_empty() {
             None
@@ -146,63 +134,6 @@ impl<T> TreeSlice<T> {
         let Self(slice) = self;
         TreeVec(slice.to_vec())
     }
-    pub fn first(&self) -> Option<TreeRef<T>> {
-        let arr = &self.0;
-        if arr.is_empty() {
-            None
-        } else {
-            let (content, len) = &arr[0];
-            let children = &arr[1..1 + len];
-            Some(TreeRef {
-                content,
-                children: Self::from_slice(children),
-            })
-        }
-    }
-    pub fn first_and_rest(&self) -> Option<(TreeRef<T>, &Self)> {
-        let arr = &self.0;
-        if arr.is_empty() {
-            None
-        } else {
-            let (content, len) = &arr[0];
-            let children = &arr[1..1 + len];
-            let rest = &arr[1 + len..];
-            let tree = TreeRef {
-                content,
-                children: Self::from_slice(children),
-            };
-            Some((tree, Self::from_slice(rest)))
-        }
-    }
-    pub fn first_mut(&mut self) -> Option<TreeMutRef<T>> {
-        let arr = &mut self.0;
-        if arr.is_empty() {
-            None
-        } else {
-            let (first, rest) = arr.split_at_mut(1);
-            let (content, len) = &mut first[0];
-            let children = &mut rest[..*len];
-            Some(TreeMutRef {
-                content,
-                children: Self::from_mut_slice(children),
-            })
-        }
-    }
-    pub fn first_and_rest_mut(&mut self) -> Option<(TreeMutRef<T>, &mut Self)> {
-        let arr = &mut self.0;
-        if arr.is_empty() {
-            None
-        } else {
-            let (first, rest) = arr.split_at_mut(1);
-            let (content, len) = &mut first[0];
-            let (children, rest) = rest.split_at_mut(*len);
-            let tree = TreeMutRef {
-                content,
-                children: Self::from_mut_slice(children),
-            };
-            Some((tree, Self::from_mut_slice(rest)))
-        }
-    }
 }
 impl<'a, T> Default for &'a TreeSlice<T> {
     fn default() -> Self {
@@ -218,7 +149,24 @@ impl<'a, T> IntoIterator for &'a TreeSlice<T> {
     type Item = TreeRef<'a, T>;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        Iter(self)
+        let ptr = self.0.as_ptr();
+        Iter {
+            start: ptr,
+            end: unsafe { ptr.add(self.0.len()) },
+            phantom: PhantomData,
+        }
+    }
+}
+impl<'a, T> IntoIterator for &'a mut TreeSlice<T> {
+    type Item = TreeMutRef<'a, T>;
+    type IntoIter = IterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        let ptr = self.0.as_mut_ptr();
+        IterMut {
+            start: ptr,
+            end: unsafe { ptr.add(self.0.len()) },
+            phantom: PhantomData,
+        }
     }
 }
 impl<T: Debug> Debug for TreeSlice<T> {
@@ -226,23 +174,61 @@ impl<T: Debug> Debug for TreeSlice<T> {
         formatter.debug_list().entries(self).finish()
     }
 }
-pub struct Iter<'a, T>(&'a TreeSlice<T>);
+pub struct Iter<'a, T> {
+    start: *const (T, usize),
+    end: *const (T, usize),
+    phantom: PhantomData<&'a (T, usize)>,
+}
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = TreeRef<'a, T>;
     fn next(&mut self) -> Option<Self::Item> {
-        let Self(tree) = self;
-        tree.first_and_rest().map(|(tree, rest)| {
-            self.0 = rest;
-            tree
-        })
+        if self.start == self.end {
+            None
+        } else {
+            unsafe {
+                let (content, len) = &*self.start;
+                let children = std::slice::from_raw_parts(self.start.add(1), *len);
+                self.start = self.start.add(*len + 1);
+                Some(TreeRef {
+                    content,
+                    children: TreeSlice::from_slice(children),
+                })
+            }
+        }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let Self(TreeSlice(slice)) = self;
-        let len = slice.len();
+        let len = unsafe { self.start.offset_from(self.end) as usize };
         (1.min(len), Some(len))
     }
 }
 impl<'a, T> FusedIterator for Iter<'a, T> {}
+pub struct IterMut<'a, T> {
+    start: *mut (T, usize),
+    end: *mut (T, usize),
+    phantom: PhantomData<&'a mut (T, usize)>,
+}
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = TreeMutRef<'a, T>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start == self.end {
+            None
+        } else {
+            unsafe {
+                let (content, len) = &mut *self.start;
+                let children = std::slice::from_raw_parts_mut(self.start.add(1), *len);
+                self.start = self.start.add(*len + 1);
+                Some(TreeMutRef {
+                    content,
+                    children: TreeSlice::from_mut_slice(children),
+                })
+            }
+        }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = unsafe { self.start.offset_from(self.end) as usize };
+        (1.min(len), Some(len))
+    }
+}
 pub struct IntoIter<T>(TreeVec<T>);
 impl<T> Iterator for IntoIter<T> {
     type Item = Tree<T>;
