@@ -6,7 +6,7 @@ pub struct Span<'a> {
 }
 impl<'a> Span<'a> {
     pub fn from_str(src: &'a str, span: &'a str) -> Self {
-        assert!(
+        debug_assert!(
             src.as_ptr() <= span.as_ptr()
                 && src.as_ptr() as usize + src.len() >= span.as_ptr() as usize + span.len()
         );
@@ -24,6 +24,9 @@ impl<'a> Span<'a> {
             start: self.start,
             end: end.end,
         }
+    }
+    pub fn src(self) -> &'a str {
+        self.src
     }
     pub fn span(self) -> &'a str {
         &self.src[self.start..self.end]
