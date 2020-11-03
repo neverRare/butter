@@ -40,6 +40,7 @@ impl<'a> Parse for SpanToken<'a> {
             prefix_parselet::operator,
             prefix_parselet::clone,
             prefix_parselet::keyword_literal,
+            prefix_parselet::double_ref,
             => else panic!("Prefix token remained unhandled: {:?}", prefix.token),
         }
     }

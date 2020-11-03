@@ -7,6 +7,7 @@ use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::SpanToken;
 use util::parser::Parser;
+use util::span::Span;
 use util::tree_vec::Tree;
 
 pub(super) fn keyword_literal<'a>(
@@ -85,6 +86,39 @@ pub(super) fn operator<'a>(
                 unpack: false,
             },
             children: operand.into_tree_vec(),
+        }))
+    } else {
+        None
+    }
+}
+
+pub(super) fn double_ref<'a>(
+    prefix: SpanToken<'a>,
+    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+) -> Option<ParseResult<'a>> {
+    if let Token::Operator(Operator::DoubleAmp) = prefix.token {
+        let operand = match tokens.partial_parse(90) {
+            Ok(node) => node,
+            Err(err) => return Some(Err(err)),
+        };
+        let src = prefix.span.src();
+        let span = prefix.span.span();
+        debug_assert!(span.len() == 2);
+        Some(Ok(Tree {
+            content: Node {
+                span: Span::from_str(src, &span[..1]),
+                node: NodeType::Unary(UnaryOp::Ref),
+                unpack: false,
+            },
+            children: Tree {
+                content: Node {
+                    span: Span::from_str(src, &span[1..]),
+                    node: NodeType::Unary(UnaryOp::Ref),
+                    unpack: false,
+                },
+                children: operand.into_tree_vec(),
+            }
+            .into_tree_vec(),
         }))
     } else {
         None
