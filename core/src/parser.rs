@@ -4,7 +4,6 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
-use util::mini_fn;
 use util::parser::Parse;
 use util::parser::Parser;
 use util::span::Span;
@@ -34,14 +33,13 @@ type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
 impl<'a> Parse for SpanToken<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node {
+        // TODO handle empty expression
         let prefix = tokens.next().unwrap();
-        mini_fn! {
-            (prefix, tokens);
-            prefix_parselet::operator,
-            prefix_parselet::clone,
-            prefix_parselet::keyword_literal,
-            prefix_parselet::double_ref,
-            => else panic!("Prefix token remained unhandled: {:?}", prefix.token),
+        match prefix.token {
+            Token::Keyword(keyword) => prefix_parselet::keyword(prefix.span, keyword, tokens),
+            Token::Operator(operator) => prefix_parselet::operator(prefix.span, operator, tokens),
+            Token::Whitespace | Token::Comment => unreachable!("unexpected insignificant token"),
+            _ => todo!(),
         }
     }
     fn infix_parse(

@@ -30,39 +30,3 @@ macro_rules! assert_iter {
         std::assert_eq!(Iterator::next(&mut iter), Option::None);
     }};
 }
-#[macro_export]
-macro_rules! mini_fn {
-    (($a:expr $(,)?); $($path:path,)* => else $else:expr $(,)?) => {{
-        let a = $a;
-        $(
-            if let Some(val) = $path(a) {
-                val
-            } else
-        )* {
-            $else
-        }
-    }};
-    (($a:expr, $b:expr $(,)?); $($path:path,)* => else $else:expr $(,)?) => {{
-        let a = $a;
-        let b = $b;
-        $(
-            if let Some(val) = $path(a, b) {
-                val
-            } else
-        )* {
-            $else
-        }
-    }};
-    (($a:expr, $b:expr, $c: expr $(,)?); $($path:path,)* => else $else:expr $(,)?) => {{
-        let a = $a;
-        let b = $b;
-        let c = $c;
-        $(
-            if let Some(val) = $path(a, b, c) {
-                val
-            } else
-        )* {
-            $else
-        }
-    }};
-}
