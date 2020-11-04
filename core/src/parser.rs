@@ -49,11 +49,10 @@ impl<'a> Parse for SpanToken<'a> {
         infix: Self,
         tokens: &mut Parser<impl Iterator<Item = Self>>,
     ) -> Self::Node {
-        mini_fn! {
-            (left_node, infix, tokens);
-            infix_parselet::operator,
-            infix_parselet::assign,
-            => else panic!("Prefix token remained unhandled: {:?}", infix.token),
+        match infix.token {
+            Token::Operator(operator) => infix_parselet::operator(left_node, operator, tokens),
+            Token::Bracket(Opening::Open, bracket) => todo!(),
+            _ => unreachable!(),
         }
     }
     fn infix_precedence(&self) -> Option<u32> {
