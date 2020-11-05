@@ -127,12 +127,26 @@ impl<T> TreeSlice<T> {
     pub fn iter(&self) -> Iter<T> {
         self.into_iter()
     }
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        self.into_iter()
+    }
     pub fn to_tree_vec(&self) -> TreeVec<T>
     where
         T: Clone,
     {
         let Self(slice) = self;
         TreeVec(slice.to_vec())
+    }
+    fn check_internal(&self) -> bool {
+        fn fine<T>(slice: &[(T, usize)]) -> bool {
+            if slice.is_empty() {
+                true
+            } else {
+                let point = slice[0].1 + 1;
+                point <= slice.len() && fine(&slice[1..point]) && fine(&slice[point..])
+            }
+        }
+        fine(&self.0)
     }
 }
 impl<'a, T> Default for &'a TreeSlice<T> {
@@ -149,6 +163,7 @@ impl<'a, T> IntoIterator for &'a TreeSlice<T> {
     type Item = TreeRef<'a, T>;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
+        debug_assert!(self.check_internal());
         let ptr = self.0.as_ptr();
         Iter {
             start: ptr,
@@ -161,6 +176,7 @@ impl<'a, T> IntoIterator for &'a mut TreeSlice<T> {
     type Item = TreeMutRef<'a, T>;
     type IntoIter = IterMut<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
+        debug_assert!(self.check_internal());
         let ptr = self.0.as_mut_ptr();
         IterMut {
             start: ptr,
