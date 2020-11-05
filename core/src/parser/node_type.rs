@@ -4,7 +4,7 @@ pub enum Num {
     Float(f64),
 }
 #[derive(Clone, Copy)]
-pub enum UnaryOp {
+pub enum Unary {
     Plus,
     Minus,
     Ref,
@@ -12,12 +12,12 @@ pub enum UnaryOp {
     Clone,
 }
 #[derive(Clone, Copy)]
-pub enum BinaryOp {
+pub enum Binary {
     Add,
     Sub,
-    Mult,
+    Multiply,
     Div,
-    FlrDiv,
+    FloorDiv,
     Mod,
     And,
     Or,
@@ -25,11 +25,11 @@ pub enum BinaryOp {
     LazyOr,
     Eq,
     NotEq,
-    Gt,
-    Gte,
-    Lt,
-    Lte,
-    Concat,
+    Greater,
+    GreaterEqual,
+    Less,
+    LessEqual,
+    Concatenate,
     NullOr,
 }
 #[derive(Clone, Copy)]
@@ -52,8 +52,8 @@ pub enum NodeType {
     Continue,
     Return,
 
-    Unary(UnaryOp),
-    Binary(BinaryOp),
+    Unary(Unary),
+    Binary(Binary),
 
     Declare,
     FunDeclare,
@@ -81,7 +81,7 @@ impl NodeType {
             Self::Ident => true,
             Self::Property => true,
             Self::Index => true,
-            Self::Unary(UnaryOp::Ref) => true,
+            Self::Unary(Unary::Ref) => true,
             _ => false,
         }
     }

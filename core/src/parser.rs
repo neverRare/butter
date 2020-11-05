@@ -10,9 +10,9 @@ use util::span::Span;
 use util::tree_vec::Tree;
 
 mod error;
-mod infix_parselet;
+mod infix;
 mod node_type;
-mod prefix_parselet;
+mod prefix;
 
 #[derive(Clone, Copy)]
 struct Node<'a> {
@@ -36,8 +36,8 @@ impl<'a> Parse for SpanToken<'a> {
         // TODO handle empty expression
         let prefix = tokens.next().unwrap();
         match prefix.token {
-            Token::Keyword(keyword) => prefix_parselet::keyword(prefix.span, keyword, tokens),
-            Token::Operator(operator) => prefix_parselet::operator(prefix.span, operator, tokens),
+            Token::Keyword(keyword) => prefix::keyword(prefix.span, keyword, tokens),
+            Token::Operator(operator) => prefix::operator(prefix.span, operator, tokens),
             Token::Whitespace | Token::Comment => unreachable!("unexpected insignificant token"),
             _ => todo!(),
         }
@@ -48,7 +48,7 @@ impl<'a> Parse for SpanToken<'a> {
         tokens: &mut Parser<impl Iterator<Item = Self>>,
     ) -> Self::Node {
         match self.token {
-            Token::Operator(operator) => infix_parselet::operator(left_node, operator, tokens),
+            Token::Operator(operator) => infix::operator(left_node, operator, tokens),
             Token::Bracket(Opening::Open, bracket) => todo!(),
             _ => unreachable!(),
         }
@@ -56,7 +56,7 @@ impl<'a> Parse for SpanToken<'a> {
     fn infix_precedence(&self) -> Option<u32> {
         Some(match self.token {
             Token::Bracket(Opening::Open, Bracket::Bracket) => 100,
-            Token::Bracket(Opening::Open, Bracket::Paren) => 100,
+            Token::Bracket(Opening::Open, Bracket::Parenthesis) => 100,
             Token::Operator(operator) => match operator {
                 Operator::Dot => 100,
                 Operator::Star => 80,
@@ -65,7 +65,7 @@ impl<'a> Parse for SpanToken<'a> {
                 Operator::Percent => 80,
                 Operator::Plus => 70,
                 Operator::Minus => 70,
-                Operator::PlusPlus => 70,
+                Operator::DoublePlus => 70,
                 Operator::DoubleEqual => 60,
                 Operator::NotEqual => 60,
                 Operator::Less => 60,

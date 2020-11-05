@@ -1,6 +1,6 @@
 use crate::lexer::Operator;
 use crate::parser::error::ErrorType;
-use crate::parser::node_type::BinaryOp;
+use crate::parser::node_type::Binary;
 use crate::parser::node_type::NodeType;
 use crate::parser::Error;
 use crate::parser::Node;
@@ -28,24 +28,24 @@ fn expr_operator<'a>(
     tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     let (operator, precedence) = match operator {
-        Operator::Star => (BinaryOp::Mult, 80),
-        Operator::Slash => (BinaryOp::Div, 80),
-        Operator::DoubleSlash => (BinaryOp::FlrDiv, 80),
-        Operator::Percent => (BinaryOp::Mod, 80),
-        Operator::Plus => (BinaryOp::Add, 70),
-        Operator::Minus => (BinaryOp::Sub, 70),
-        Operator::PlusPlus => (BinaryOp::Concat, 70),
-        Operator::DoubleEqual => (BinaryOp::Eq, 60),
-        Operator::NotEqual => (BinaryOp::NotEq, 60),
-        Operator::Less => (BinaryOp::Lt, 60),
-        Operator::LessEqual => (BinaryOp::Lte, 60),
-        Operator::Greater => (BinaryOp::Gt, 60),
-        Operator::GreaterEqual => (BinaryOp::Gte, 60),
-        Operator::Amp => (BinaryOp::And, 50),
-        Operator::DoubleAmp => (BinaryOp::LazyAnd, 50),
-        Operator::Pipe => (BinaryOp::Or, 40),
-        Operator::DoublePipe => (BinaryOp::LazyOr, 40),
-        Operator::DoubleQuestion => (BinaryOp::NullOr, 30),
+        Operator::Star => (Binary::Multiply, 80),
+        Operator::Slash => (Binary::Div, 80),
+        Operator::DoubleSlash => (Binary::FloorDiv, 80),
+        Operator::Percent => (Binary::Mod, 80),
+        Operator::Plus => (Binary::Add, 70),
+        Operator::Minus => (Binary::Sub, 70),
+        Operator::DoublePlus => (Binary::Concatenate, 70),
+        Operator::DoubleEqual => (Binary::Eq, 60),
+        Operator::NotEqual => (Binary::NotEq, 60),
+        Operator::Less => (Binary::Less, 60),
+        Operator::LessEqual => (Binary::LessEqual, 60),
+        Operator::Greater => (Binary::Greater, 60),
+        Operator::GreaterEqual => (Binary::GreaterEqual, 60),
+        Operator::Amp => (Binary::And, 50),
+        Operator::DoubleAmp => (Binary::LazyAnd, 50),
+        Operator::Pipe => (Binary::Or, 40),
+        Operator::DoublePipe => (Binary::LazyOr, 40),
+        Operator::DoubleQuestion => (Binary::NullOr, 30),
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
     let (left_node, right) = aggregate_error(left_node, tokens.partial_parse(precedence))?;

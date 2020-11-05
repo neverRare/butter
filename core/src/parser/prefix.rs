@@ -1,7 +1,7 @@
 use crate::lexer::Keyword;
 use crate::lexer::Operator;
 use crate::parser::node_type::NodeType;
-use crate::parser::node_type::UnaryOp;
+use crate::parser::node_type::Unary;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::SpanToken;
@@ -52,7 +52,7 @@ fn clone<'a>(
     Ok(Tree {
         content: Node {
             span: span.up_to(operand.content.span),
-            node: NodeType::Unary(UnaryOp::Clone),
+            node: NodeType::Unary(Unary::Clone),
         },
         children: operand.into_tree_vec(),
     })
@@ -63,10 +63,10 @@ fn unary_operator<'a>(
     tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     let operator = match operator {
-        Operator::Plus => UnaryOp::Plus,
-        Operator::Minus => UnaryOp::Minus,
-        Operator::Bang => UnaryOp::Not,
-        Operator::Amp => UnaryOp::Ref,
+        Operator::Plus => Unary::Plus,
+        Operator::Minus => Unary::Minus,
+        Operator::Bang => Unary::Not,
+        Operator::Amp => Unary::Ref,
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
     let operand = tokens.partial_parse(90)?;
@@ -89,12 +89,12 @@ fn double_ref<'a>(
     Ok(Tree {
         content: Node {
             span: Span::from_str(src, &span[..1]),
-            node: NodeType::Unary(UnaryOp::Ref),
+            node: NodeType::Unary(Unary::Ref),
         },
         children: Tree {
             content: Node {
                 span: Span::from_str(src, &span[1..]),
-                node: NodeType::Unary(UnaryOp::Ref),
+                node: NodeType::Unary(Unary::Ref),
             },
             children: operand.into_tree_vec(),
         }
