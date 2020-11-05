@@ -43,11 +43,11 @@ impl<'a> Parse for SpanToken<'a> {
         }
     }
     fn infix_parse(
+        &self,
         left_node: Self::Node,
-        infix: Self,
         tokens: &mut Parser<impl Iterator<Item = Self>>,
     ) -> Self::Node {
-        match infix.token {
+        match self.token {
             Token::Operator(operator) => infix_parselet::operator(left_node, operator, tokens),
             Token::Bracket(Opening::Open, bracket) => todo!(),
             _ => unreachable!(),

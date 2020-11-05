@@ -39,7 +39,7 @@ impl<I: Iterator> Parser<I> {
         T: Parse,
         I: Iterator<Item = T>,
     {
-        T::infix_parse(left_node, infix, self)
+        infix.infix_parse(left_node, self)
     }
 }
 impl<T: Iterator> Iterator for Parser<T> {
@@ -52,8 +52,8 @@ pub trait Parse: Sized {
     type Node;
     fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node;
     fn infix_parse(
+        &self,
         left_node: Self::Node,
-        infix: Self,
         tokens: &mut Parser<impl Iterator<Item = Self>>,
     ) -> Self::Node;
     fn infix_precedence(&self) -> Option<u32>;
@@ -103,11 +103,11 @@ mod test {
             }
         }
         fn infix_parse(
+            &self,
             left_node: Self::Node,
-            infix: Self,
             tokens: &mut Parser<impl Iterator<Item = Self>>,
         ) -> Self::Node {
-            let (content, precedence) = match infix {
+            let (content, precedence) = match self {
                 Token::InfixLeft => (Node::InfixLeft, 10),
                 Token::InfixRight => (Node::InfixRight, 19),
                 _ => unreachable!(),
