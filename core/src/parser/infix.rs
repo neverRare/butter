@@ -21,7 +21,6 @@ pub(super) fn operator<'a>(
         operator => expr_operator(left_node, operator, tokens),
     }
 }
-// TODO: handle operands not being valid expression
 fn expr_operator<'a>(
     left_node: ParseResult<'a>,
     operator: Operator,
@@ -48,7 +47,17 @@ fn expr_operator<'a>(
         Operator::DoubleQuestion => (Binary::NullOr, 30),
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
-    let (left_node, right) = aggregate_error(left_node, tokens.partial_parse(precedence))?;
+    let right = tokens.partial_parse(precedence).and_then(|node| {
+        if node.content.node.expr() {
+            Ok(node)
+        } else {
+            Err(vec![Error {
+                span: node.content.span,
+                error: ErrorType::NonExprOperand,
+            }])
+        }
+    });
+    let (left_node, right) = aggregate_error(left_node, right)?;
     let left_span = left_node.content.span;
     let mut children = left_node.into_tree_vec();
     let right_span = right.content.span;
@@ -75,7 +84,17 @@ fn assign<'a>(
             Ok(node)
         }
     });
-    let (left_node, right) = aggregate_error(left_node, tokens.partial_parse(19))?;
+    let right = tokens.partial_parse(19).and_then(|node| {
+        if node.content.node.expr() {
+            Ok(node)
+        } else {
+            Err(vec![Error {
+                span: node.content.span,
+                error: ErrorType::NonExprOperand,
+            }])
+        }
+    });
+    let (left_node, right) = aggregate_error(left_node, right)?;
     let left_span = left_node.content.span;
     let mut children = left_node.into_tree_vec();
     let right_span = right.content.span;

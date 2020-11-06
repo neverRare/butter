@@ -85,4 +85,17 @@ impl NodeType {
             _ => false,
         }
     }
+    pub fn expr(self) -> bool {
+        !matches!(
+            self,
+            Self::SplatOrRest
+                | Self::Label
+                | Self::CharInside(_)
+                | Self::Declare
+                | Self::FunDeclare
+                | Self::Else
+                | Self::For
+                | Self::While
+        )
+    }
 }
