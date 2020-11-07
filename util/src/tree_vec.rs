@@ -25,7 +25,8 @@ impl<T> Tree<T> {
             content,
             children: TreeVec(mut children),
         } = self;
-        let mut vec = vec![(content, children.len())];
+        let mut vec = Vec::with_capacity(1 + children.len());
+        vec.push((content, children.len()));
         vec.append(&mut children);
         TreeVec(vec)
     }
@@ -60,11 +61,12 @@ impl<T> TreeVec<T> {
             children: Self(mut children),
         } = tree;
         let Self(vec) = self;
+        vec.reserve(1 + children.len());
         vec.push((content, children.len()));
         vec.append(&mut children);
     }
-    pub fn append(&mut self, Self(children): &mut Self) {
-        self.0.append(children);
+    pub fn append(&mut self, other: &mut Self) {
+        self.0.append(&mut other.0);
     }
     fn into_first_and_rest(self) -> Option<(Tree<T>, Self)> {
         let Self(mut vec) = self;
@@ -100,7 +102,7 @@ impl<T> IntoIterator for TreeVec<T> {
     }
 }
 impl<T: Debug> Debug for TreeVec<T> {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         TreeSlice::fmt(self, formatter)
     }
 }
@@ -137,17 +139,6 @@ impl<T> TreeSlice<T> {
         let Self(slice) = self;
         TreeVec(slice.to_vec())
     }
-    fn check_internal(&self) -> bool {
-        fn fine<T>(slice: &[(T, usize)]) -> bool {
-            if slice.is_empty() {
-                true
-            } else {
-                let point = slice[0].1 + 1;
-                point <= slice.len() && fine(&slice[1..point]) && fine(&slice[point..])
-            }
-        }
-        fine(&self.0)
-    }
 }
 impl<'a, T> Default for &'a TreeSlice<T> {
     fn default() -> Self {
@@ -163,7 +154,6 @@ impl<'a, T> IntoIterator for &'a TreeSlice<T> {
     type Item = TreeRef<'a, T>;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        debug_assert!(self.check_internal());
         let ptr = self.0.as_ptr();
         Iter {
             start: ptr,
@@ -176,7 +166,6 @@ impl<'a, T> IntoIterator for &'a mut TreeSlice<T> {
     type Item = TreeMutRef<'a, T>;
     type IntoIter = IterMut<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        debug_assert!(self.check_internal());
         let ptr = self.0.as_mut_ptr();
         IterMut {
             start: ptr,
@@ -186,7 +175,7 @@ impl<'a, T> IntoIterator for &'a mut TreeSlice<T> {
     }
 }
 impl<T: Debug> Debug for TreeSlice<T> {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.debug_list().entries(self).finish()
     }
 }
