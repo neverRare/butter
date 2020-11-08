@@ -127,14 +127,16 @@ where
     T: PeekableIter<Item = SpanToken<'a>>,
 {
     fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
-        let node = self.partial_parse(precedence)?;
-        if node.content.node.expr() {
-            Ok(node)
-        } else {
-            Err(vec![Error {
-                span: node.content.span,
-                error: ErrorType::NonExprOperand,
-            }])
-        }
+        self.partial_parse(precedence).and_then(assert_expr)
+    }
+}
+fn assert_expr(node: Tree<Node>) -> ParseResult {
+    if node.content.node.expr() {
+        Ok(node)
+    } else {
+        Err(vec![Error {
+            span: node.content.span,
+            error: ErrorType::NonExprOperand,
+        }])
     }
 }

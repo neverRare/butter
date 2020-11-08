@@ -1,4 +1,5 @@
 use crate::lexer::Operator;
+use crate::parser::assert_expr;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::Binary;
 use crate::parser::node_type::NodeType;
@@ -48,7 +49,10 @@ fn expr_operator<'a>(
         Operator::DoubleQuestion => (Binary::NullOr, 30),
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
-    let (left_node, right) = aggregate_error(left_node, tokens.parse_expr(precedence))?;
+    let (left_node, right) = aggregate_error(
+        left_node.and_then(assert_expr),
+        tokens.parse_expr(precedence),
+    )?;
     let left_span = left_node.content.span;
     let mut children = left_node.into_tree_vec();
     let right_span = right.content.span;
@@ -67,12 +71,12 @@ fn assign<'a>(
 ) -> ParseResult<'a> {
     let left_node = left_node.and_then(|node| {
         if node.content.node.place() {
+            Ok(node)
+        } else {
             Err(vec![Error {
                 span: node.content.span,
                 error: ErrorType::NonPlaceAssign,
             }])
-        } else {
-            Ok(node)
         }
     });
     let (left_node, right) = aggregate_error(left_node, tokens.parse_expr(19))?;
