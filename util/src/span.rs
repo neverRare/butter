@@ -33,7 +33,7 @@ impl<'a> Span<'a> {
             (SpanOrEof::Eof, SpanOrEof::Span(end)) => {
                 assert!(end.src.len() == end.start);
                 (end.src, end.start, end.end)
-            },
+            }
             (SpanOrEof::Span(start), SpanOrEof::Eof) => (start.src, start.start, start.src.len()),
             (SpanOrEof::Span(start), SpanOrEof::Span(end)) => {
                 assert!(std::ptr::eq(start.src, end.src));
