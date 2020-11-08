@@ -33,13 +33,19 @@ type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
 impl<'a> Parse for SpanToken<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node {
-        // TODO handle empty expression
-        let prefix = tokens.next().unwrap();
-        match prefix.token {
-            Token::Keyword(keyword) => prefix::keyword(prefix.span, keyword, tokens),
-            Token::Operator(operator) => prefix::operator(prefix.span, operator, tokens),
-            Token::Whitespace | Token::Comment => unreachable!("unexpected insignificant token"),
-            _ => todo!(),
+        match tokens.next() {
+            Some(prefix) => match prefix.token {
+                Token::Keyword(keyword) => prefix::keyword(prefix.span, keyword, tokens),
+                Token::Operator(operator) => prefix::operator(prefix.span, operator, tokens),
+                Token::Whitespace | Token::Comment => {
+                    unreachable!("unexpected insignificant token")
+                }
+                _ => todo!(),
+            },
+            None => Err(vec![Error {
+                span: Span::eof(),
+                error: ErrorType::NoExpr,
+            }]),
         }
     }
     fn infix_parse(
