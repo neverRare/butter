@@ -13,18 +13,18 @@ use util::iter::PeekableIter;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
-    left_node: ParseResult<'a>,
+    left: ParseResult<'a>,
     operator: Operator,
     tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     match operator {
         Operator::Dot => todo!(),
-        Operator::LeftArrow => assign(left_node, tokens),
-        operator => expr_operator(left_node, operator, tokens),
+        Operator::LeftArrow => assign(left, tokens),
+        operator => expr_operator(left, operator, tokens),
     }
 }
 fn expr_operator<'a>(
-    left_node: ParseResult<'a>,
+    left: ParseResult<'a>,
     operator: Operator,
     tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
@@ -36,8 +36,8 @@ fn expr_operator<'a>(
         Operator::Plus => (Binary::Add, 70),
         Operator::Minus => (Binary::Sub, 70),
         Operator::DoublePlus => (Binary::Concatenate, 70),
-        Operator::DoubleEqual => (Binary::Eq, 60),
-        Operator::NotEqual => (Binary::NotEq, 60),
+        Operator::DoubleEqual => (Binary::Equal, 60),
+        Operator::NotEqual => (Binary::NotEqual, 60),
         Operator::Less => (Binary::Less, 60),
         Operator::LessEqual => (Binary::LessEqual, 60),
         Operator::Greater => (Binary::Greater, 60),
@@ -49,12 +49,9 @@ fn expr_operator<'a>(
         Operator::DoubleQuestion => (Binary::NullOr, 30),
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
-    let (left_node, right) = aggregate_error(
-        left_node.and_then(assert_expr),
-        tokens.parse_expr(precedence),
-    )?;
-    let left_span = left_node.content.span;
-    let mut children = left_node.into_tree_vec();
+    let (left, right) = aggregate_error(left.and_then(assert_expr), tokens.parse_expr(precedence))?;
+    let left_span = left.content.span;
+    let mut children = left.into_tree_vec();
     let right_span = right.content.span;
     children.push(right);
     Ok(Tree {
@@ -66,10 +63,10 @@ fn expr_operator<'a>(
     })
 }
 fn assign<'a>(
-    left_node: ParseResult<'a>,
+    left: ParseResult<'a>,
     tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
-    let left_node = left_node.and_then(|node| {
+    let left_node = left.and_then(|node| {
         if node.content.node.place() {
             Ok(node)
         } else {
@@ -79,9 +76,9 @@ fn assign<'a>(
             }])
         }
     });
-    let (left_node, right) = aggregate_error(left_node, tokens.parse_expr(19))?;
-    let left_span = left_node.content.span;
-    let mut children = left_node.into_tree_vec();
+    let (left, right) = aggregate_error(left_node, tokens.parse_expr(19))?;
+    let left_span = left.content.span;
+    let mut children = left.into_tree_vec();
     let right_span = right.content.span;
     children.push(right);
     Ok(Tree {

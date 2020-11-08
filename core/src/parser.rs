@@ -80,7 +80,7 @@ where
             },
             None => Err(vec![Error {
                 span: Span::eof(),
-                error: ErrorType::NoExpr,
+                error: ErrorType::SuddenEof,
             }]),
         }
     }
@@ -136,7 +136,7 @@ fn assert_expr(node: Tree<Node>) -> ParseResult {
     } else {
         Err(vec![Error {
             span: node.content.span,
-            error: ErrorType::NonExprOperand,
+            error: ErrorType::NonExpr,
         }])
     }
 }
