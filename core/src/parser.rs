@@ -37,6 +37,14 @@ impl<'a> Parse for SpanToken<'a> {
             Some(prefix) => match prefix.token {
                 Token::Keyword(keyword) => prefix::keyword(prefix.span, keyword, tokens),
                 Token::Operator(operator) => prefix::operator(prefix.span, operator, tokens),
+                Token::UnterminatedQuote => Err(vec![Error {
+                    span: prefix.span,
+                    error: ErrorType::UnterminatedQuote,
+                }]),
+                Token::Unknown => Err(vec![Error {
+                    span: prefix.span,
+                    error: ErrorType::UnknownToken,
+                }]),
                 Token::Whitespace | Token::Comment => {
                     unreachable!("unexpected insignificant token")
                 }

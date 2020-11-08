@@ -36,7 +36,7 @@ pub enum Token<'a> {
     Bracket(Opening, Bracket),
     Operator(Operator),
     UnterminatedQuote,
-    Invalid,
+    Unknown,
 }
 impl<'a> Lex<'a> for Token<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
@@ -54,7 +54,7 @@ impl<'a> Lex<'a> for Token<'a> {
             Str::Unterminated => Self::UnterminatedQuote,
             => else src => {
                 let len = src.chars().next().unwrap().len_utf8();
-                Some((len, Self::Invalid))
+                Some((len, Self::Unknown))
             }
         }
     }
