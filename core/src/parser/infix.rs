@@ -1,4 +1,5 @@
 use crate::lexer::Operator;
+use crate::lexer::Token;
 use crate::parser::assert_expr;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::Binary;
@@ -10,15 +11,17 @@ use crate::parser::Parser;
 use crate::parser::SpanToken;
 use util::aggregate_error;
 use util::iter::PeekableIter;
+use util::span::Span;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
     left: ParseResult<'a>,
+    span: Span<'a>,
     operator: Operator,
     tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     match operator {
-        Operator::Dot => todo!(),
+        Operator::Dot => property_access(left, span, tokens),
         Operator::LeftArrow => assign(left, tokens),
         operator => expr_operator(left, operator, tokens),
     }
@@ -85,6 +88,40 @@ fn assign<'a>(
         content: Node {
             span: left_span.up_to(right_span),
             node: NodeType::Assign,
+        },
+        children,
+    })
+}
+fn property_access<'a>(
+    left: ParseResult<'a>,
+    span: Span<'a>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
+) -> ParseResult<'a> {
+    let right = if let Some(SpanToken {
+        span: _,
+        token: Token::Ident,
+    }) = tokens.peek()
+    {
+        let span = tokens.next().unwrap().span;
+        Ok(Tree::new(Node {
+            span,
+            node: NodeType::Ident,
+        }))
+    } else {
+        Err(vec![Error {
+            span,
+            error: ErrorType::NonIdent,
+        }])
+    };
+    let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;
+    let left_span = left.content.span;
+    let mut children = left.into_tree_vec();
+    let right_span = right.content.span;
+    children.push(right);
+    Ok(Tree {
+        content: Node {
+            span: left_span.up_to(right_span),
+            node: NodeType::Property,
         },
         children,
     })

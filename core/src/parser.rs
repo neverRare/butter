@@ -86,7 +86,7 @@ where
     }
     fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node {
         match infix.token {
-            Token::Operator(operator) => infix::operator(left_node, operator, self),
+            Token::Operator(operator) => infix::operator(left_node, infix.span, operator, self),
             Token::Bracket(Opening::Open, bracket) => todo!(),
             _ => unreachable!(),
         }
