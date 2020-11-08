@@ -100,8 +100,7 @@ fn double_ref<'a>(
 ) -> ParseResult<'a> {
     let operand = tokens.partial_parse(90)?;
     if operand.content.node.expr() {
-        let src = span.src();
-        let span = span.span();
+        let (src, span) = span.src_and_span().unwrap();
         debug_assert!(span.len() == 2);
         Ok(Tree {
             content: Node {
