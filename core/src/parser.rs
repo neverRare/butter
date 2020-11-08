@@ -136,7 +136,7 @@ fn assert_expr(node: Tree<Node>) -> ParseResult {
     } else {
         Err(vec![Error {
             span: node.content.span,
-            error: ErrorType::NonExpr,
+            error: ErrorType::NonExprOperand,
         }])
     }
 }

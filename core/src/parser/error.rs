@@ -1,8 +1,8 @@
 #[derive(Clone, Copy)]
 pub enum ErrorType {
     NonPlaceAssign,
-    NonExpr,
-    NonIdent,
+    NonExprOperand,
+    NoIdentAfterDot,
     SuddenEof,
     UnknownToken,
     UnterminatedQuote,

@@ -110,7 +110,7 @@ fn property_access<'a>(
     } else {
         Err(vec![Error {
             span,
-            error: ErrorType::NonIdent,
+            error: ErrorType::NoIdentAfterDot,
         }])
     };
     let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;
