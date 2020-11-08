@@ -6,15 +6,17 @@ use crate::parser::node_type::Unary;
 use crate::parser::Error;
 use crate::parser::Node;
 use crate::parser::ParseResult;
+use crate::parser::Parser;
 use crate::parser::SpanToken;
-use util::parser::Parser;
+use util::iter::PeekableIter;
+use util::parser::ParserIter;
 use util::span::Span;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
     span: Span<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     match operator {
         Operator::Plus | Operator::Minus | Operator::Bang | Operator::Amp => {
@@ -27,7 +29,7 @@ pub(super) fn operator<'a>(
 pub(super) fn keyword<'a>(
     span: Span<'a>,
     keyword: Keyword,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     match keyword {
         Keyword::True | Keyword::False | Keyword::Null => Ok(Tree::new(Node {
@@ -48,7 +50,7 @@ fn keyword_literal(keyword: Keyword) -> NodeType {
 }
 fn clone<'a>(
     span: Span<'a>,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     let operand = tokens.partial_parse(90)?;
     if operand.content.node.expr() {
@@ -69,7 +71,7 @@ fn clone<'a>(
 fn unary_operator<'a>(
     span: Span<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     let operator = match operator {
         Operator::Plus => Unary::Plus,
@@ -96,7 +98,7 @@ fn unary_operator<'a>(
 }
 fn double_ref<'a>(
     span: Span<'a>,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     let operand = tokens.partial_parse(90)?;
     if operand.content.node.expr() {

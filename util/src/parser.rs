@@ -1,22 +1,14 @@
-use std::iter::Peekable;
+use crate::iter::PeekableIter;
 
-pub struct Parser<I: Iterator>(Peekable<I>);
-impl<I: Iterator> Parser<I> {
-    pub fn new(iter: I) -> Self {
-        Self(iter.peekable())
-    }
-    pub fn peek(&mut self) -> Option<&I::Item> {
-        self.0.peek()
-    }
-    pub fn partial_parse<T>(&mut self, precedence: u32) -> T::Node
-    where
-        T: Parse,
-        I: Iterator<Item = T>,
-    {
+pub trait ParserIter: PeekableIter {
+    type Node;
+    fn prefix_parse(&mut self) -> Self::Node;
+    fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node;
+    fn infix_precedence(token: &Self::Item) -> Option<u32>;
+    fn partial_parse(&mut self, precedence: u32) -> Self::Node {
         let mut node = Self::prefix_parse(self);
         while let Some(token) = self.peek() {
-            if token
-                .infix_precedence()
+            if Self::infix_precedence(token)
                 .map(|num| num <= precedence)
                 .unwrap_or(true)
             {
@@ -27,41 +19,11 @@ impl<I: Iterator> Parser<I> {
         }
         node
     }
-    pub fn prefix_parse<T>(&mut self) -> T::Node
-    where
-        T: Parse,
-        I: Iterator<Item = T>,
-    {
-        T::prefix_parse(self)
-    }
-    pub fn infix_parse<T>(&mut self, left_node: T::Node, infix: T) -> T::Node
-    where
-        T: Parse,
-        I: Iterator<Item = T>,
-    {
-        infix.infix_parse(left_node, self)
-    }
-}
-impl<T: Iterator> Iterator for Parser<T> {
-    type Item = T::Item;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
-    }
-}
-pub trait Parse: Sized {
-    type Node;
-    fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node;
-    fn infix_parse(
-        &self,
-        left_node: Self::Node,
-        tokens: &mut Parser<impl Iterator<Item = Self>>,
-    ) -> Self::Node;
-    fn infix_precedence(&self) -> Option<u32>;
 }
 #[cfg(test)]
 mod test {
-    use crate::parser::Parse;
-    use crate::parser::Parser;
+    use crate::iter::PeekableIter;
+    use crate::parser::ParserIter;
     use crate::tree_vec;
     use crate::tree_vec::Tree;
 
@@ -81,15 +43,26 @@ mod test {
         InfixLeft,
         InfixRight,
     }
-    impl Parse for Token {
+    struct Parser<T>(T);
+    impl<T: Iterator> Iterator for Parser<T> {
+        type Item = T::Item;
+        fn next(&mut self) -> Option<Self::Item> {
+            T::next(&mut self.0)
+        }
+    }
+    impl<T: PeekableIter> PeekableIter for Parser<T> {
+        fn peek(&mut self) -> Option<&Self::Item> {
+            T::peek(&mut self.0)
+        }
+    }
+    impl<T: PeekableIter<Item = Token>> ParserIter for Parser<T> {
         type Node = Option<Tree<Node>>;
-
-        fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node {
-            match tokens.next()? {
+        fn prefix_parse(&mut self) -> Self::Node {
+            match self.next()? {
                 Token::Num => Some(Tree::new(Node::Num)),
                 Token::OpenGroup => {
-                    let inside = tokens.partial_parse(0);
-                    if let Token::CloseGroup = tokens.peek()? {
+                    let inside = self.partial_parse(0);
+                    if let Token::CloseGroup = self.peek()? {
                         inside
                     } else {
                         None
@@ -97,27 +70,23 @@ mod test {
                 }
                 Token::Prefix => Some(Tree {
                     content: Node::Prefix,
-                    children: tokens.partial_parse(30)?.into_tree_vec(),
+                    children: self.partial_parse(30)?.into_tree_vec(),
                 }),
                 _ => None,
             }
         }
-        fn infix_parse(
-            &self,
-            left_node: Self::Node,
-            tokens: &mut Parser<impl Iterator<Item = Self>>,
-        ) -> Self::Node {
-            let (content, precedence) = match self {
+        fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node {
+            let (content, precedence) = match infix {
                 Token::InfixLeft => (Node::InfixLeft, 10),
                 Token::InfixRight => (Node::InfixRight, 19),
                 _ => unreachable!(),
             };
             let mut children = left_node?.into_tree_vec();
-            children.push(tokens.partial_parse(precedence)?);
+            children.push(self.partial_parse(precedence)?);
             Some(Tree { content, children })
         }
-        fn infix_precedence(&self) -> Option<u32> {
-            Some(match self {
+        fn infix_precedence(infix: &Self::Item) -> Option<u32> {
+            Some(match infix {
                 Token::InfixLeft => 10,
                 Token::InfixRight => 20,
                 _ => return None,
@@ -127,7 +96,7 @@ mod test {
     macro_rules! assert_parser {
         ([$($token:expr),* $(,)?], $content:expr => {$($children:tt)*} $(,)?) => {
             assert_eq!(
-                Parser::new([$($token),*].iter().copied()).partial_parse(0),
+                Parser([$($token),*].iter().copied().peekable()).partial_parse(0),
                 Some(Tree {
                     content: $content,
                     children: tree_vec! { $($children)* },

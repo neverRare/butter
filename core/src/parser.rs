@@ -4,8 +4,9 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
-use util::parser::Parse;
-use util::parser::Parser;
+use util::iter::PeekableIter;
+use util::lexer::LexFilter;
+use util::parser::ParserIter;
 use util::span::Span;
 use util::tree_vec::Tree;
 
@@ -30,13 +31,40 @@ struct Error<'a> {
     error: ErrorType,
 }
 type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
-impl<'a> Parse for SpanToken<'a> {
+struct Parser<T>(T);
+impl<T> Parser<T> {
+    pub fn from_str(src: &str) -> Parser<impl PeekableIter<Item = SpanToken>> {
+        Parser(
+            Token::lex_span(src)
+                .map(move |(span, token)| SpanToken {
+                    span: Span::from_str(src, span),
+                    token,
+                })
+                .peekable(),
+        )
+    }
+}
+impl<T: Iterator> Iterator for Parser<T> {
+    type Item = T::Item;
+    fn next(&mut self) -> Option<Self::Item> {
+        T::next(&mut self.0)
+    }
+}
+impl<T: PeekableIter> PeekableIter for Parser<T> {
+    fn peek(&mut self) -> Option<&Self::Item> {
+        T::peek(&mut self.0)
+    }
+}
+impl<'a, T> ParserIter for Parser<T>
+where
+    T: PeekableIter<Item = SpanToken<'a>>,
+{
     type Node = ParseResult<'a>;
-    fn prefix_parse(tokens: &mut Parser<impl Iterator<Item = Self>>) -> Self::Node {
-        match tokens.next() {
+    fn prefix_parse(&mut self) -> Self::Node {
+        match self.next() {
             Some(prefix) => match prefix.token {
-                Token::Keyword(keyword) => prefix::keyword(prefix.span, keyword, tokens),
-                Token::Operator(operator) => prefix::operator(prefix.span, operator, tokens),
+                Token::Keyword(keyword) => prefix::keyword(prefix.span, keyword, self),
+                Token::Operator(operator) => prefix::operator(prefix.span, operator, self),
                 Token::UnterminatedQuote => Err(vec![Error {
                     span: prefix.span,
                     error: ErrorType::UnterminatedQuote,
@@ -56,19 +84,15 @@ impl<'a> Parse for SpanToken<'a> {
             }]),
         }
     }
-    fn infix_parse(
-        &self,
-        left_node: Self::Node,
-        tokens: &mut Parser<impl Iterator<Item = Self>>,
-    ) -> Self::Node {
-        match self.token {
-            Token::Operator(operator) => infix::operator(left_node, operator, tokens),
+    fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node {
+        match infix.token {
+            Token::Operator(operator) => infix::operator(left_node, operator, self),
             Token::Bracket(Opening::Open, bracket) => todo!(),
             _ => unreachable!(),
         }
     }
-    fn infix_precedence(&self) -> Option<u32> {
-        Some(match self.token {
+    fn infix_precedence(infix: &Self::Item) -> Option<u32> {
+        Some(match infix.token {
             Token::Bracket(Opening::Open, Bracket::Bracket) => 100,
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => 100,
             Token::Operator(operator) => match operator {

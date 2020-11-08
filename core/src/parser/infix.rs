@@ -5,15 +5,17 @@ use crate::parser::node_type::NodeType;
 use crate::parser::Error;
 use crate::parser::Node;
 use crate::parser::ParseResult;
+use crate::parser::Parser;
 use crate::parser::SpanToken;
 use util::aggregate_error;
-use util::parser::Parser;
+use util::iter::PeekableIter;
+use util::parser::ParserIter;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
     left_node: ParseResult<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     match operator {
         Operator::Dot => todo!(),
@@ -24,7 +26,7 @@ pub(super) fn operator<'a>(
 fn expr_operator<'a>(
     left_node: ParseResult<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     let (operator, precedence) = match operator {
         Operator::Star => (Binary::Multiply, 80),
@@ -72,7 +74,7 @@ fn expr_operator<'a>(
 }
 fn assign<'a>(
     left_node: ParseResult<'a>,
-    tokens: &mut Parser<impl Iterator<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
     let left_node = left_node.and_then(|node| {
         if node.content.node.place() {
