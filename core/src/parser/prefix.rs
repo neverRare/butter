@@ -1,15 +1,12 @@
 use crate::lexer::Keyword;
 use crate::lexer::Operator;
-use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
-use crate::parser::Error;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
 use crate::parser::SpanToken;
 use util::iter::PeekableIter;
-use util::parser::ParserIter;
 use util::span::Span;
 use util::tree_vec::Tree;
 
@@ -52,21 +49,14 @@ fn clone<'a>(
     span: Span<'a>,
     tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
-    let operand = tokens.partial_parse(90)?;
-    if operand.content.node.expr() {
-        Ok(Tree {
-            content: Node {
-                span: span.up_to(operand.content.span),
-                node: NodeType::Unary(Unary::Clone),
-            },
-            children: operand.into_tree_vec(),
-        })
-    } else {
-        Err(vec![Error {
-            span: operand.content.span,
-            error: ErrorType::NonExprOperand,
-        }])
-    }
+    let operand = tokens.parse_expr(90)?;
+    Ok(Tree {
+        content: Node {
+            span: span.up_to(operand.content.span),
+            node: NodeType::Unary(Unary::Clone),
+        },
+        children: operand.into_tree_vec(),
+    })
 }
 fn unary_operator<'a>(
     span: Span<'a>,
@@ -80,48 +70,34 @@ fn unary_operator<'a>(
         Operator::Amp => Unary::Ref,
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
-    let operand = tokens.partial_parse(90)?;
-    if operand.content.node.expr() {
-        Ok(Tree {
-            content: Node {
-                span: span.up_to(operand.content.span),
-                node: NodeType::Unary(operator),
-            },
-            children: operand.into_tree_vec(),
-        })
-    } else {
-        Err(vec![Error {
-            span: operand.content.span,
-            error: ErrorType::NonExprOperand,
-        }])
-    }
+    let operand = tokens.parse_expr(90)?;
+    Ok(Tree {
+        content: Node {
+            span: span.up_to(operand.content.span),
+            node: NodeType::Unary(operator),
+        },
+        children: operand.into_tree_vec(),
+    })
 }
 fn double_ref<'a>(
     span: Span<'a>,
     tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
 ) -> ParseResult<'a> {
-    let operand = tokens.partial_parse(90)?;
-    if operand.content.node.expr() {
-        let (src, span) = span.src_and_span().unwrap();
-        debug_assert!(span.len() == 2);
-        Ok(Tree {
+    let operand = tokens.parse_expr(90)?;
+    let (src, span) = span.src_and_span().unwrap();
+    debug_assert!(span.len() == 2);
+    Ok(Tree {
+        content: Node {
+            span: Span::from_str(src, &span[..1]),
+            node: NodeType::Unary(Unary::Ref),
+        },
+        children: Tree {
             content: Node {
-                span: Span::from_str(src, &span[..1]),
+                span: Span::from_str(src, &span[1..]),
                 node: NodeType::Unary(Unary::Ref),
             },
-            children: Tree {
-                content: Node {
-                    span: Span::from_str(src, &span[1..]),
-                    node: NodeType::Unary(Unary::Ref),
-                },
-                children: operand.into_tree_vec(),
-            }
-            .into_tree_vec(),
-        })
-    } else {
-        Err(vec![Error {
-            span: operand.content.span,
-            error: ErrorType::NonExprOperand,
-        }])
-    }
+            children: operand.into_tree_vec(),
+        }
+        .into_tree_vec(),
+    })
 }
