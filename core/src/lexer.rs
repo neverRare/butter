@@ -81,7 +81,7 @@ mod test {
     #[test]
     fn simple_lex() {
         assert_iter! {
-            Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ; <--"),
+            Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ;"),
             ("identifier_123", Token::Ident),
             ("true_false", Token::Ident),
             ("null", Token::Keyword(Keyword::Null)),
@@ -90,7 +90,6 @@ mod test {
             ("(", Token::Bracket(Opening::Open, Bracket::Parenthesis)),
             (")", Token::Bracket(Opening::Close, Bracket::Parenthesis)),
             (";", Token::Separator(Separator::Semicolon)),
-            ("<", Token::Operator(Operator::Less)),
         }
     }
     #[test]
