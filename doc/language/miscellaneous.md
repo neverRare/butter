@@ -2,21 +2,19 @@
 
 ## Keyword reference
 
-| Keywords   | Purpose  |
-| ---------- | -------- |
-| `break`    | Break    |
-| `clone`    | Clone    |
-| `continue` | Continue |
-| `else`     | If       |
-| `false`    | False    |
-| `for`      | For      |
-| `if`       | If       |
-| `in`       | For      |
-| `loop`     | Loop     |
-| `null`     | Null     |
-| `return`   | Return   |
-| `true`     | True     |
-| `while`    | While    |
+- `break`
+- `clone`
+- `continue`
+- `else`
+- `false`
+- `for`
+- `if`
+- `in`
+- `loop`
+- `null`
+- `return`
+- `true`
+- `while`
 
 ## Punctuation reference
 
