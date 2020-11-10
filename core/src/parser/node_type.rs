@@ -46,7 +46,6 @@ pub enum NodeType {
     Char,
     Str,
     Num(Num),
-    Path,
 
     Break,
     Continue,
