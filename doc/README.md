@@ -31,9 +31,3 @@ This section is still empty
 ## Standard library
 
 TODO
-
-## Low level representation
-
-Describes how Butter's high-level value roughly represents low-level values. Roughly means if Butter does naive compilation, as it can have more optimization.
-
-This section is still empty
