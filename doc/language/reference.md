@@ -45,5 +45,5 @@ foo = 10;
 bar = &foo;
 baz = clone baz;  -- this will dereference and copies 10
 foo <- 20;
-std::assert(baz == 10);
+std.assert(baz == 10);
 ```

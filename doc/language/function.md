@@ -61,9 +61,9 @@ Calling executes the body of a function. The arguments have similar syntax to st
 
 ```butter
 report_favorite(name, favorite) => {
-    std::println(name ++ "'s favorite is " ++ favorite ++ "!");
+    std.println(name ++ "'s favorite is " ++ favorite ++ "!");
 }
-report_favorite(name: "Alex", favorite: "butter toast");
+report_favorite(name = "Alex", favorite = "butter toast");
 ```
 
 You can omit the names and Butter will use the order of parameter.
@@ -75,12 +75,12 @@ report_favorite("Alex", "butter toast");
 If there's only one parameter, then you can use any name on argument.
 
 ```butter
-report_niceness(something) => std::println(something ++ " is really nice!");
+report_niceness(something) => std.println(something ++ " is really nice!");
 
-report_niceness(any_arbitrary_name: "tomato salad");
+report_niceness(any_arbitrary_name = "tomato salad");
 
 food = "tomato salad";
-report_niceness(food);  -- note that this is actually report_niceness(food: food)
+report_niceness(food);  -- note that this is actually report_niceness(food = food)
 ```
 
 Additionally, if you omitted an argument, it will be `null`, make sure the function can handle it.
@@ -88,7 +88,7 @@ Additionally, if you omitted an argument, it will be `null`, make sure the funct
 ```butter
 say_hello(name) => {
     name = name ?? "stranger";
-    std::println("Hello " ++ name);
+    std.println("Hello " ++ name);
 }
 say_hello();
 ```
@@ -126,7 +126,7 @@ Third, unless shadowed, the variable is accessible in places before it is declar
 ```butter
 foo = 10;
 increment(&foo);
-std::assert(foo == 11);
+std.assert(foo == 11);
 
 increment(num) => num <- num + 1;
 ```

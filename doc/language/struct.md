@@ -4,8 +4,8 @@ Struct value is a collection of field whose fields are pairs of name and another
 
 ```butter
 car = (
-    color: "red",
-    brand: "a nice brand",
+    color = "red",
+    brand = "a nice brand",
 );
 ```
 
@@ -14,7 +14,7 @@ You can create another struct value based on existing struct value and extend it
 ```butter
 car = (
     *car,
-    price: 100,
+    price = 100,
 );
 ```
 

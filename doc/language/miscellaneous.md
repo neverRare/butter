@@ -25,8 +25,6 @@
 | `=`         | Variable declaration, Break expression                     |
 | `==`        | Equal operator                                             |
 | `!=`        | Not equal operator                                         |
-| `:`         | Struct field                                               |
-| `::`        | Path                                                       |
 | `.`         | Field access                                               |
 | `..`        | Inclusive range                                            |
 | `.<`        | Inclusive-exclusive range                                  |

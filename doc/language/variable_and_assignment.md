@@ -17,13 +17,13 @@ Variables can shadow previously declared variable with the same name, either on 
 foo = 10;
 {
     foo = false;
-    std::assert(foo == false);
+    std.assert(foo == false);
 }
-std::assert(foo == 10);
+std.assert(foo == 10);
 foo = 20;
-std::assert(foo == 20);
+std.assert(foo == 20);
 foo = foo == 20;
-std::assert(foo == true);
+std.assert(foo == true);
 ```
 
 ## Assignment
@@ -41,7 +41,7 @@ Reassign a value of field of a [struct].
 
 ```butter
 foo = (
-    prop: 10,
+    prop = 10,
 );
 foo.prop <- 20;
 ```
@@ -74,6 +74,6 @@ You can condense multiple assignment into single statement with parallel assignm
 foo = 10;
 bar = 20;
 foo, bar <- bar, foo;
-std::assert(foo == 20);
-std::assert(bar == 10);
+std.assert(foo == 20);
+std.assert(bar == 10);
 ```

@@ -6,7 +6,7 @@ Clone creates a deep-copy of a value. Any mutation within the original value wil
 foo = 10;
 bar = clone foo;
 foo <- 20;
-std::assert(bar == 10);
+std.assert(bar == 10);
 ```
 
 Additionally, you can't clone a function.
@@ -26,5 +26,5 @@ The above example can be simplified as shown below as numbers can be implicitly 
 foo = 10;
 bar = foo;
 foo <- 20;
-std::assert(bar == 10);
+std.assert(bar == 10);
 ```

@@ -28,47 +28,47 @@ len = {
 If block is used to conditionally execute statements.
 
 ```butter
-input = std::get_line();
+input = std.get_line();
 if input.len == 0 {
-    std::println("please input something meaningful");
+    std.println("please input something meaningful");
 }
 ```
 
 You can add an `else` branch which gets executed when the condition isn't true
 
 ```butter
-input = std::get_line();
+input = std.get_line();
 if input.len == 0 {
-    std::println("please input something meaningful");
+    std.println("please input something meaningful");
 } else {
-    std::println("thanks for the input!");
+    std.println("thanks for the input!");
 }
 ```
 
 And you can branch as many `if`s as necessary.
 
 ```butter
-password = std::get_line();
+password = std.get_line();
 len = input.len;
 if len == 0 {
-    std::println("please input a password");
+    std.println("please input a password");
 } else if len < 8 {
-    std::println("password too short");
+    std.println("password too short");
 } else {
-    std::println("alright!");
+    std.println("alright!");
 }
 ```
 
 `if` is an expression, just like blocks, it will evaluate to the last expression if its last semicolon is omitted. In this case, there should be a hanging `else`.
 
 ```butter
-input = std::get_line();
+input = std.get_line();
 message = if input.len == 0 {
     "please input something meaningful"
 } else {
     "thanks for the input!"
 };
-std::println(message);
+std.println(message);
 ```
 
 ## For
@@ -79,7 +79,7 @@ std::println(message);
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
-    std::println(fruit ++ " is yummy!");
+    std.println(fruit ++ " is yummy!");
 }
 ```
 
@@ -90,7 +90,7 @@ for fruit in ["apple", "banana", "cherry"] {
 ```butter
 i = 0;
 while i < 10 {
-    std::println("hello!");
+    std.println("hello!");
     i <- i + 1;
 }
 ```
@@ -101,7 +101,7 @@ while i < 10 {
 
 ```butter
 loop {
-    std::println("this is an infinite loop!");
+    std.println("this is an infinite loop!");
 }
 ```
 
@@ -117,7 +117,7 @@ while counter < 6 {
     }
     counter <- counter + 1;
 }
-std::assert(counter == 3);
+std.assert(counter == 3);
 ```
 
 A break expression can be given an expression, this is only applicable to `loop`. It must be preceded by an equal sign `=` after the `break` keyword and the label if theres any. The loop expression will evaluate to the expression of whichever broke the loop.
@@ -130,7 +130,7 @@ result = loop {
         break = counter * 2;  -- exit the loop and `result` will be counter * 2
     }
 };
-std::assert(result == 20);
+std.assert(result == 20);
 ```
 
 ## Continue
