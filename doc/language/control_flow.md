@@ -151,24 +151,12 @@ for num in [1..10] {
 
 Break and continue is normally associated with the innermost loop containing the expression.
 
-TODO example of nested loop without labels
-
-If you wish to associate higher loop, you can use labels. Labels are used to disambiguate nested loops. You can explicitly label the loop by preceding it with an identifier followed by a colon `:`. Then use it with `break` or `continue`.
-
-TODO replace the following spec with examples
-
-```butter
-break label;
-break label = expr;
-continue label;
-```
-
-TODO example of explicit label
-
-When applicable, you can use the following as label.
+If you wish to associate higher loop, you can use labels. Labels are used to disambiguate nested loops. You can use the following as label.
 
 - Keyword of the loop (`for`, `while`, or `loop`)
-- Variable declaration with the loop as value (the `var` in `var = loop { ... }`)
+- Variable declaration with `loop` as value (the `var` in `var = loop { ... }`)
 - Iteration variable of `for` loop (the `i` in `for i in ... { ... }`)
 
-TODO example using these kind of label.
+There are cases where above is not enough, Butter doesn't currently have a system for those.
+
+TODO example
