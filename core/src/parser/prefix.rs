@@ -5,15 +5,13 @@ use crate::parser::node_type::Unary;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
-use crate::parser::SpanToken;
-use util::iter::PeekableIter;
 use util::span::Span;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
     span: Span<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     match operator {
         Operator::Plus | Operator::Minus | Operator::Bang | Operator::Amp => {
@@ -26,7 +24,7 @@ pub(super) fn operator<'a>(
 pub(super) fn keyword<'a>(
     span: Span<'a>,
     keyword: Keyword,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     match keyword {
         Keyword::True | Keyword::False | Keyword::Null => Ok(Tree::new(Node {
@@ -45,10 +43,7 @@ fn keyword_literal(keyword: Keyword) -> NodeType {
         keyword => unreachable!("expected keyword literal, found {:?}", keyword),
     }
 }
-fn clone<'a>(
-    span: Span<'a>,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
-) -> ParseResult<'a> {
+fn clone<'a>(span: Span<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a> {
     let operand = tokens.parse_expr(90)?;
     Ok(Tree {
         content: Node {
@@ -61,7 +56,7 @@ fn clone<'a>(
 fn unary_operator<'a>(
     span: Span<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     let operator = match operator {
         Operator::Plus => Unary::Plus,
@@ -79,10 +74,7 @@ fn unary_operator<'a>(
         children: operand.into_tree_vec(),
     })
 }
-fn double_ref<'a>(
-    span: Span<'a>,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
-) -> ParseResult<'a> {
+fn double_ref<'a>(span: Span<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a> {
     let operand = tokens.parse_expr(90)?;
     let (src, span) = span.src_and_span().unwrap();
     debug_assert!(span.len() == 2);

@@ -4,8 +4,9 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
+use crate::parser::raw::RawLexer;
+use std::iter::Peekable;
 use util::iter::PeekableIter;
-use util::lexer::LexFilter;
 use util::parser::ParserIter;
 use util::span::Span;
 use util::tree_vec::Tree;
@@ -14,6 +15,7 @@ mod error;
 mod infix;
 mod node_type;
 mod prefix;
+mod raw;
 
 #[derive(Clone, Copy)]
 struct Node<'a> {
@@ -31,34 +33,24 @@ struct Error<'a> {
     error: ErrorType,
 }
 type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
-struct Parser<T>(T);
-impl<T> Parser<T> {
-    pub fn from_str(src: &str) -> Parser<impl PeekableIter<Item = SpanToken>> {
-        Parser(
-            Token::lex_span(src)
-                .map(move |(span, token)| SpanToken {
-                    span: Span::from_str(src, span),
-                    token,
-                })
-                .peekable(),
-        )
+struct Parser<'a>(Peekable<RawLexer<'a>>);
+impl<'a> Parser<'a> {
+    fn new(src: &'a str) -> Self {
+        Self(RawLexer::new(src).peekable())
     }
 }
-impl<T: Iterator> Iterator for Parser<T> {
-    type Item = T::Item;
+impl<'a> Iterator for Parser<'a> {
+    type Item = SpanToken<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        T::next(&mut self.0)
+        self.0.next()
     }
 }
-impl<T: PeekableIter> PeekableIter for Parser<T> {
+impl<'a> PeekableIter for Parser<'a> {
     fn peek(&mut self) -> Option<&Self::Item> {
-        T::peek(&mut self.0)
+        self.0.peek()
     }
 }
-impl<'a, T> ParserIter for Parser<T>
-where
-    T: PeekableIter<Item = SpanToken<'a>>,
-{
+impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {
         match self.next() {
@@ -123,10 +115,7 @@ where
         })
     }
 }
-impl<'a, T> Parser<T>
-where
-    T: PeekableIter<Item = SpanToken<'a>>,
-{
+impl<'a> Parser<'a> {
     fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
         self.partial_parse(precedence).and_then(assert_expr)
     }

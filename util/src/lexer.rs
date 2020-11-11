@@ -13,8 +13,8 @@ pub trait Lex<'a>: Sized {
         src.into()
     }
 }
-type FilterIter<'a, T> = Filter<Lexer<'a, T>, fn(&T) -> bool>;
-type SpanFilterIter<'a, T> = Filter<SpanLexer<'a, T>, fn(&(&'a str, T)) -> bool>;
+pub type FilterIter<'a, T> = Filter<Lexer<'a, T>, fn(&T) -> bool>;
+pub type SpanFilterIter<'a, T> = Filter<SpanLexer<'a, T>, fn(&(&'a str, T)) -> bool>;
 pub trait LexFilter<'a>: Lex<'a> {
     fn significant(&self) -> bool;
     fn lex(src: &'a str) -> FilterIter<'a, Self> {

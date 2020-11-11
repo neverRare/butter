@@ -18,7 +18,7 @@ pub(super) fn operator<'a>(
     left: ParseResult<'a>,
     span: Span<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     match operator {
         Operator::Dot => property_access(left, span, tokens),
@@ -30,7 +30,7 @@ pub(super) fn operator<'a>(
 fn expr_operator<'a>(
     left: ParseResult<'a>,
     operator: Operator,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     let (operator, precedence) = match operator {
         Operator::Star => (Binary::Multiply, 80),
@@ -66,10 +66,7 @@ fn expr_operator<'a>(
         children,
     })
 }
-fn assign<'a>(
-    left: ParseResult<'a>,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
-) -> ParseResult<'a> {
+fn assign<'a>(left: ParseResult<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a> {
     let left_node = left.and_then(|node| {
         if node.content.node.place() {
             Ok(node)
@@ -96,7 +93,7 @@ fn assign<'a>(
 fn property_access<'a>(
     left: ParseResult<'a>,
     span: Span<'a>,
-    tokens: &mut Parser<impl PeekableIter<Item = SpanToken<'a>>>,
+    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     let right = if let Some(SpanToken {
         span: _,
