@@ -11,12 +11,11 @@ use crate::parser::Parser;
 use crate::parser::SpanToken;
 use util::aggregate_error;
 use util::iter::PeekableIter;
-use util::span::Span;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
     left: ParseResult<'a>,
-    span: Span<'a>,
+    span: &'a str,
     operator: Operator,
     tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
@@ -60,7 +59,7 @@ fn expr_operator<'a>(
     children.push(right);
     Ok(Tree {
         content: Node {
-            span: left_span.up_to(right_span),
+            span: tokens.span_from_spans(left_span, right_span),
             node: NodeType::Binary(operator),
         },
         children,
@@ -84,7 +83,7 @@ fn assign<'a>(left: ParseResult<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a>
     children.push(right);
     Ok(Tree {
         content: Node {
-            span: left_span.up_to(right_span),
+            span: tokens.span_from_spans(left_span, right_span),
             node: NodeType::Assign,
         },
         children,
@@ -92,7 +91,7 @@ fn assign<'a>(left: ParseResult<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a>
 }
 fn property_access<'a>(
     left: ParseResult<'a>,
-    span: Span<'a>,
+    span: &'a str,
     tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     let right = if let Some(SpanToken {
@@ -118,7 +117,7 @@ fn property_access<'a>(
     children.push(right);
     Ok(Tree {
         content: Node {
-            span: left_span.up_to(right_span),
+            span: tokens.span_from_spans(left_span, right_span),
             node: NodeType::Property,
         },
         children,

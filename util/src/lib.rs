@@ -3,7 +3,6 @@
 pub mod iter;
 pub mod lexer;
 pub mod parser;
-pub mod span;
 pub mod tree_vec;
 
 pub fn aggregate_error<T, U, E>(

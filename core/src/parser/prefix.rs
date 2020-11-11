@@ -5,11 +5,10 @@ use crate::parser::node_type::Unary;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
-use util::span::Span;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
-    span: Span<'a>,
+    span: &'a str,
     operator: Operator,
     tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
@@ -22,7 +21,7 @@ pub(super) fn operator<'a>(
     }
 }
 pub(super) fn keyword<'a>(
-    span: Span<'a>,
+    span: &'a str,
     keyword: Keyword,
     tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
@@ -43,18 +42,18 @@ fn keyword_literal(keyword: Keyword) -> NodeType {
         keyword => unreachable!("expected keyword literal, found {:?}", keyword),
     }
 }
-fn clone<'a>(span: Span<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a> {
+fn clone<'a>(span: &'a str, tokens: &mut Parser<'a>) -> ParseResult<'a> {
     let operand = tokens.parse_expr(90)?;
     Ok(Tree {
         content: Node {
-            span: span.up_to(operand.content.span),
+            span: tokens.span_from_spans(span, operand.content.span),
             node: NodeType::Unary(Unary::Clone),
         },
         children: operand.into_tree_vec(),
     })
 }
 fn unary_operator<'a>(
-    span: Span<'a>,
+    span: &'a str,
     operator: Operator,
     tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
@@ -68,24 +67,23 @@ fn unary_operator<'a>(
     let operand = tokens.parse_expr(90)?;
     Ok(Tree {
         content: Node {
-            span: span.up_to(operand.content.span),
+            span: tokens.span_from_spans(span, operand.content.span),
             node: NodeType::Unary(operator),
         },
         children: operand.into_tree_vec(),
     })
 }
-fn double_ref<'a>(span: Span<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a> {
+fn double_ref<'a>(span: &'a str, tokens: &mut Parser<'a>) -> ParseResult<'a> {
     let operand = tokens.parse_expr(90)?;
-    let (src, span) = span.src_and_span().unwrap();
     debug_assert!(span.len() == 2);
     Ok(Tree {
         content: Node {
-            span: Span::from_str(src, &span[..1]),
+            span: &span[..1],
             node: NodeType::Unary(Unary::Ref),
         },
         children: Tree {
             content: Node {
-                span: Span::from_str(src, &span[1..]),
+                span: &span[1..],
                 node: NodeType::Unary(Unary::Ref),
             },
             children: operand.into_tree_vec(),
