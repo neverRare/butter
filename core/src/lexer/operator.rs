@@ -29,7 +29,6 @@ pub enum Operator {
     LeftArrow,
     RightThickArrow,
     Question,
-    QuestionDot,
     DoubleQuestion,
 }
 impl Operator {
@@ -62,7 +61,6 @@ impl Operator {
             "<-" => Self::LeftArrow,
             "=>" => Self::RightThickArrow,
             "?" => Self::Question,
-            "?." => Self::QuestionDot,
             "??" => Self::DoubleQuestion,
             _ => return None,
         })

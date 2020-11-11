@@ -97,6 +97,7 @@ where
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => 100,
             Token::Operator(operator) => match operator {
                 Operator::Dot => 100,
+                Operator::Question => 100,
                 Operator::Star => 80,
                 Operator::Slash => 80,
                 Operator::DoubleSlash => 80,

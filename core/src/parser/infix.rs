@@ -23,6 +23,7 @@ pub(super) fn operator<'a>(
     match operator {
         Operator::Dot => property_access(left, span, tokens),
         Operator::LeftArrow => assign(left, tokens),
+        Operator::Question => todo!(),
         operator => expr_operator(left, operator, tokens),
     }
 }
