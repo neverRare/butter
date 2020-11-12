@@ -33,17 +33,17 @@ struct Error<'a> {
     error: ErrorType,
 }
 type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
+type RawParserMapper<'a> = fn((&'a str, Token<'a>)) -> SpanToken<'a>;
 struct Parser<'a> {
     src: &'a str,
-    iter: Peekable<Map<SpanFilterIter<'a, Token<'a>>, fn((&'a str, Token<'a>)) -> SpanToken<'a>>>,
+    iter: Peekable<Map<SpanFilterIter<'a, Token<'a>>, RawParserMapper<'a>>>,
 }
 impl<'a> Parser<'a> {
     fn new(src: &'a str) -> Self {
+        let fun: RawParserMapper<'a> = |(span, token)| SpanToken { span, token };
         Self {
             src,
-            iter: Token::lex_span(src)
-                .map(|(span, token)| SpanToken { span, token })
-                .peekable(),
+            iter: Token::lex_span(src).map(fun).peekable(),
         }
     }
 }
