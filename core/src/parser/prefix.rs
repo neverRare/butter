@@ -8,29 +8,29 @@ use crate::parser::Parser;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
+    parser: &mut Parser<'a>,
     span: &'a str,
     operator: Operator,
-    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     match operator {
         Operator::Plus | Operator::Minus | Operator::Bang | Operator::Amp => {
-            unary_operator(span, operator, tokens)
+            unary_operator(parser, span, operator)
         }
-        Operator::DoubleAmp => double_ref(span, tokens),
+        Operator::DoubleAmp => double_ref(parser, span),
         _ => todo!(),
     }
 }
 pub(super) fn keyword<'a>(
+    parser: &mut Parser<'a>,
     span: &'a str,
     keyword: Keyword,
-    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     match keyword {
         Keyword::True | Keyword::False | Keyword::Null => Ok(Tree::new(Node {
             span,
             node: keyword_literal(keyword),
         })),
-        Keyword::Clone => clone(span, tokens),
+        Keyword::Clone => clone(parser, span),
         _ => todo!(),
     }
 }
@@ -42,20 +42,20 @@ fn keyword_literal(keyword: Keyword) -> NodeType {
         keyword => unreachable!("expected keyword literal, found {:?}", keyword),
     }
 }
-fn clone<'a>(span: &'a str, tokens: &mut Parser<'a>) -> ParseResult<'a> {
-    let operand = tokens.parse_expr(90)?;
+fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let operand = parser.parse_expr(90)?;
     Ok(Tree {
         content: Node {
-            span: tokens.span_from_spans(span, operand.content.span),
+            span: parser.span_from_spans(span, operand.content.span),
             node: NodeType::Unary(Unary::Clone),
         },
         children: operand.into_tree_vec(),
     })
 }
 fn unary_operator<'a>(
+    parser: &mut Parser<'a>,
     span: &'a str,
     operator: Operator,
-    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     let operator = match operator {
         Operator::Plus => Unary::Plus,
@@ -64,17 +64,17 @@ fn unary_operator<'a>(
         Operator::Amp => Unary::Ref,
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
-    let operand = tokens.parse_expr(90)?;
+    let operand = parser.parse_expr(90)?;
     Ok(Tree {
         content: Node {
-            span: tokens.span_from_spans(span, operand.content.span),
+            span: parser.span_from_spans(span, operand.content.span),
             node: NodeType::Unary(operator),
         },
         children: operand.into_tree_vec(),
     })
 }
-fn double_ref<'a>(span: &'a str, tokens: &mut Parser<'a>) -> ParseResult<'a> {
-    let operand = tokens.parse_expr(90)?;
+fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let operand = parser.parse_expr(90)?;
     debug_assert!(span.len() == 2);
     Ok(Tree {
         content: Node {

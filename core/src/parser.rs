@@ -40,7 +40,7 @@ struct Parser<'a> {
 }
 impl<'a> Parser<'a> {
     fn new(src: &'a str) -> Self {
-        let fun: RawParserMapper<'a> = |(span, token)| SpanToken { span, token };
+        let fun: RawParserMapper = |(span, token)| SpanToken { span, token };
         Self {
             src,
             iter: Token::lex_span(src).map(fun).peekable(),
@@ -61,10 +61,11 @@ impl<'a> PeekableIter for Parser<'a> {
 impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {
+        // use peek instead to leave unexpected tokens
         match self.next() {
             Some(prefix) => match prefix.token {
-                Token::Keyword(keyword) => prefix::keyword(prefix.span, keyword, self),
-                Token::Operator(operator) => prefix::operator(prefix.span, operator, self),
+                Token::Keyword(keyword) => prefix::keyword(self, prefix.span, keyword),
+                Token::Operator(operator) => prefix::operator(self, prefix.span, operator),
                 Token::UnterminatedQuote => Err(vec![Error {
                     span: prefix.span,
                     error: ErrorType::UnterminatedQuote,
@@ -86,7 +87,7 @@ impl<'a> ParserIter for Parser<'a> {
     }
     fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node {
         match infix.token {
-            Token::Operator(operator) => infix::operator(left_node, infix.span, operator, self),
+            Token::Operator(operator) => infix::operator(self, left_node, infix.span, operator),
             Token::Bracket(Opening::Open, bracket) => todo!(),
             _ => unreachable!(),
         }
@@ -135,7 +136,8 @@ impl<'a> Parser<'a> {
         &src[left..right]
     }
     fn eof(&self) -> &'a str {
-        &self.src[self.src.len()..]
+        let src = self.src;
+        unsafe { src.get_unchecked(src.len()..) }
     }
 }
 fn assert_expr(node: Tree<Node>) -> ParseResult {

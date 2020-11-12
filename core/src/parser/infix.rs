@@ -14,22 +14,22 @@ use util::iter::PeekableIter;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
+    parser: &mut Parser<'a>,
     left: ParseResult<'a>,
     span: &'a str,
     operator: Operator,
-    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     match operator {
-        Operator::Dot => property_access(left, span, tokens),
-        Operator::LeftArrow => assign(left, tokens),
+        Operator::Dot => property_access(parser, left, span),
+        Operator::LeftArrow => assign(parser, left),
         Operator::Question => todo!(),
-        operator => expr_operator(left, operator, tokens),
+        operator => expr_operator(parser, left, operator),
     }
 }
 fn expr_operator<'a>(
+    parser: &mut Parser<'a>,
     left: ParseResult<'a>,
     operator: Operator,
-    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     let (operator, precedence) = match operator {
         Operator::Star => (Binary::Multiply, 80),
@@ -52,21 +52,21 @@ fn expr_operator<'a>(
         Operator::DoubleQuestion => (Binary::NullOr, 30),
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
-    let (left, right) = aggregate_error(left.and_then(assert_expr), tokens.parse_expr(precedence))?;
+    let (left, right) = aggregate_error(left.and_then(assert_expr), parser.parse_expr(precedence))?;
     let left_span = left.content.span;
     let mut children = left.into_tree_vec();
     let right_span = right.content.span;
     children.push(right);
     Ok(Tree {
         content: Node {
-            span: tokens.span_from_spans(left_span, right_span),
+            span: parser.span_from_spans(left_span, right_span),
             node: NodeType::Binary(operator),
         },
         children,
     })
 }
-fn assign<'a>(left: ParseResult<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a> {
-    let left_node = left.and_then(|node| {
+fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a> {
+    let left = left.and_then(|node| {
         if node.content.node.place() {
             Ok(node)
         } else {
@@ -76,30 +76,30 @@ fn assign<'a>(left: ParseResult<'a>, tokens: &mut Parser<'a>) -> ParseResult<'a>
             }])
         }
     });
-    let (left, right) = aggregate_error(left_node, tokens.parse_expr(19))?;
+    let (left, right) = aggregate_error(left, parser.parse_expr(19))?;
     let left_span = left.content.span;
     let mut children = left.into_tree_vec();
     let right_span = right.content.span;
     children.push(right);
     Ok(Tree {
         content: Node {
-            span: tokens.span_from_spans(left_span, right_span),
+            span: parser.span_from_spans(left_span, right_span),
             node: NodeType::Assign,
         },
         children,
     })
 }
 fn property_access<'a>(
+    parser: &mut Parser<'a>,
     left: ParseResult<'a>,
     span: &'a str,
-    tokens: &mut Parser<'a>,
 ) -> ParseResult<'a> {
     let right = if let Some(SpanToken {
         span: _,
         token: Token::Ident,
-    }) = tokens.peek()
+    }) = parser.peek()
     {
-        let span = tokens.next().unwrap().span;
+        let span = parser.next().unwrap().span;
         Ok(Tree::new(Node {
             span,
             node: NodeType::Ident,
@@ -117,7 +117,7 @@ fn property_access<'a>(
     children.push(right);
     Ok(Tree {
         content: Node {
-            span: tokens.span_from_spans(left_span, right_span),
+            span: parser.span_from_spans(left_span, right_span),
             node: NodeType::Property,
         },
         children,
