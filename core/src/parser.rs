@@ -40,6 +40,7 @@ struct Parser<'a> {
 }
 impl<'a> Parser<'a> {
     fn new(src: &'a str) -> Self {
+        // rustc 1.47.0 doesn't seem to infer this to fn pointer
         let fun: RawParserMapper = |(span, token)| SpanToken { span, token };
         Self {
             src,
