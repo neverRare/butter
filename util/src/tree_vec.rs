@@ -257,11 +257,24 @@ impl<T> Iterator for IntoIter<T> {
 }
 impl<T> FusedIterator for IntoIter<T> {}
 #[macro_export]
+macro_rules! join_trees {
+    () => {
+        $crate::tree_vec::TreeVec::new()
+    };
+    ($($branch:expr),+ $(,)?) => {{
+        let mut tree_vec = $crate::tree_vec::TreeVec::new();
+        $(
+            tree_vec.push($branch);
+        )+
+        tree_vec
+    }};
+}
+#[macro_export]
 macro_rules! tree_vec {
     () => {
         $crate::tree_vec::TreeVec::new()
     };
-    ($($content:expr $(=> { $($tree:tt)* })?),* $(,)?) => {{
+    ($($content:expr $(=> { $($tree:tt)* })?),+ $(,)?) => {{
         let mut tree_vec = $crate::tree_vec::TreeVec::new();
         $(
             let tree = $crate::tree_vec::Tree {
@@ -269,7 +282,7 @@ macro_rules! tree_vec {
                 children: $crate::tree_vec!($($($tree)*)?),
             };
             tree_vec.push(tree);
-        )*
+        )+
         tree_vec
     }};
 }
