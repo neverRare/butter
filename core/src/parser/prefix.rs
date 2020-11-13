@@ -5,6 +5,7 @@ use crate::parser::node_type::Unary;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
+use util::join_trees;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
@@ -49,7 +50,7 @@ fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
             span: parser.span_from_spans(span, operand.content.span),
             node: NodeType::Unary(Unary::Clone),
         },
-        children: operand.into_tree_vec(),
+        children: join_trees![operand],
     })
 }
 fn unary_operator<'a>(
@@ -70,7 +71,7 @@ fn unary_operator<'a>(
             span: parser.span_from_spans(span, operand.content.span),
             node: NodeType::Unary(operator),
         },
-        children: operand.into_tree_vec(),
+        children: join_trees![operand],
     })
 }
 fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
@@ -81,13 +82,12 @@ fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
             span: &span[..1],
             node: NodeType::Unary(Unary::Ref),
         },
-        children: Tree {
+        children: join_trees![Tree {
             content: Node {
                 span: &span[1..],
                 node: NodeType::Unary(Unary::Ref),
             },
-            children: operand.into_tree_vec(),
-        }
-        .into_tree_vec(),
+            children: join_trees![operand],
+        }],
     })
 }

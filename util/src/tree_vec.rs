@@ -20,16 +20,6 @@ impl<T> Tree<T> {
     pub fn with_children(content: T, children: TreeVec<T>) -> Self {
         Self { content, children }
     }
-    pub fn into_tree_vec(self) -> TreeVec<T> {
-        let Self {
-            content,
-            children: TreeVec(mut children),
-        } = self;
-        let mut vec = Vec::with_capacity(1 + children.len());
-        vec.push((content, children.len()));
-        vec.append(&mut children);
-        TreeVec(vec)
-    }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct TreeRef<'a, T> {

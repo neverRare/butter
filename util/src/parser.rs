@@ -70,7 +70,7 @@ mod test {
                 }
                 Token::Prefix => Some(Tree {
                     content: Node::Prefix,
-                    children: self.partial_parse(30)?.into_tree_vec(),
+                    children: crate::join_trees![self.partial_parse(30)?],
                 }),
                 _ => None,
             }
@@ -81,9 +81,10 @@ mod test {
                 Token::InfixRight => (Node::InfixRight, 19),
                 _ => unreachable!(),
             };
-            let mut children = left_node?.into_tree_vec();
-            children.push(self.partial_parse(precedence)?);
-            Some(Tree { content, children })
+            Some(Tree {
+                content,
+                children: crate::join_trees![left_node?, self.partial_parse(precedence)?],
+            })
         }
         fn infix_precedence(infix: &Self::Item) -> Option<u32> {
             Some(match infix {

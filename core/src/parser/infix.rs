@@ -11,6 +11,7 @@ use crate::parser::Parser;
 use crate::parser::SpanToken;
 use util::aggregate_error;
 use util::iter::PeekableIter;
+use util::join_trees;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
@@ -53,16 +54,12 @@ fn expr_operator<'a>(
         operator => unreachable!("expected expression operator, found {:?}", operator),
     };
     let (left, right) = aggregate_error(left.and_then(assert_expr), parser.parse_expr(precedence))?;
-    let left_span = left.content.span;
-    let mut children = left.into_tree_vec();
-    let right_span = right.content.span;
-    children.push(right);
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(left_span, right_span),
+            span: parser.span_from_spans(left.content.span, right.content.span),
             node: NodeType::Binary(operator),
         },
-        children,
+        children: join_trees![left, right],
     })
 }
 fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a> {
@@ -77,16 +74,12 @@ fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a>
         }
     });
     let (left, right) = aggregate_error(left, parser.parse_expr(19))?;
-    let left_span = left.content.span;
-    let mut children = left.into_tree_vec();
-    let right_span = right.content.span;
-    children.push(right);
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(left_span, right_span),
+            span: parser.span_from_spans(left.content.span, right.content.span),
             node: NodeType::Assign,
         },
-        children,
+        children: join_trees![left, right],
     })
 }
 fn property_access<'a>(
@@ -111,15 +104,11 @@ fn property_access<'a>(
         }])
     };
     let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;
-    let left_span = left.content.span;
-    let mut children = left.into_tree_vec();
-    let right_span = right.content.span;
-    children.push(right);
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(left_span, right_span),
+            span: parser.span_from_spans(left.content.span, right.content.span),
             node: NodeType::Property,
         },
-        children,
+        children: join_trees![left, right],
     })
 }
