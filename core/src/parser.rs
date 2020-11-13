@@ -62,7 +62,6 @@ impl<'a> PeekableIter for Parser<'a> {
 impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {
-        // use peek instead to leave unexpected tokens
         match self.next() {
             Some(prefix) => match prefix.token {
                 Token::Keyword(keyword) => prefix::keyword(self, prefix.span, keyword),
