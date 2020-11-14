@@ -91,6 +91,16 @@ impl<T> IntoIterator for TreeVec<T> {
         IntoIter(self)
     }
 }
+impl<T> Extend<Tree<T>> for TreeVec<T> {
+    fn extend<I>(&mut self, iter: I)
+    where
+        I: IntoIterator<Item = Tree<T>>,
+    {
+        for tree in iter {
+            self.push(tree);
+        }
+    }
+}
 impl<T: Debug> Debug for TreeVec<T> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         TreeSlice::fmt(self, formatter)
