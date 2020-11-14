@@ -75,7 +75,7 @@ impl<'a> ParserIter for Parser<'a> {
                     error: ErrorType::UnknownToken,
                 }]),
                 Token::Whitespace | Token::Comment => {
-                    unreachable!("unexpected insignificant token")
+                    panic!("expected significant token, found {:?}", prefix.token);
                 }
                 _ => todo!(),
             },
@@ -89,7 +89,7 @@ impl<'a> ParserIter for Parser<'a> {
         match infix.token {
             Token::Operator(operator) => infix::operator(self, left_node, infix.span, operator),
             Token::Bracket(Opening::Open, bracket) => todo!(),
-            _ => unreachable!(),
+            _ => panic!("expected infix token, found {:?}", infix.token),
         }
     }
     fn infix_precedence(infix: &Self::Item) -> Option<u32> {

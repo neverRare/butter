@@ -51,7 +51,7 @@ fn expr_operator<'a>(
         Operator::Pipe => (Binary::Or, 40),
         Operator::DoublePipe => (Binary::LazyOr, 40),
         Operator::DoubleQuestion => (Binary::NullOr, 30),
-        operator => unreachable!("expected expression operator, found {:?}", operator),
+        operator => panic!("expected expression operator, found {:?}", operator),
     };
     let (left, right) = aggregate_error(left.and_then(assert_expr), parser.parse_expr(precedence))?;
     Ok(Tree {

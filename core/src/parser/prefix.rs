@@ -40,7 +40,7 @@ fn keyword_literal(keyword: Keyword) -> NodeType {
         Keyword::True => NodeType::True,
         Keyword::False => NodeType::False,
         Keyword::Null => NodeType::Null,
-        keyword => unreachable!("expected keyword literal, found {:?}", keyword),
+        keyword => panic!("expected keyword literal, found {:?}", keyword),
     }
 }
 fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
@@ -63,7 +63,7 @@ fn unary_operator<'a>(
         Operator::Minus => Unary::Minus,
         Operator::Bang => Unary::Not,
         Operator::Amp => Unary::Ref,
-        operator => unreachable!("expected expression operator, found {:?}", operator),
+        operator => panic!("expected expression operator, found {:?}", operator),
     };
     let operand = parser.parse_expr(90)?;
     Ok(Tree {
