@@ -97,6 +97,7 @@ impl<T: Debug> Debug for TreeVec<T> {
     }
 }
 #[derive(PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct TreeSlice<T>([(T, usize)]);
 impl<T> TreeSlice<T> {
     fn from_slice(slice: &[(T, usize)]) -> &Self {
