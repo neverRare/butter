@@ -7,10 +7,10 @@ pub trait Lex<'a>: Sized {
         Self::lex_first(src).map(|(step, token)| (&src[..step], token))
     }
     fn lex(src: &'a str) -> Lexer<'a, Self> {
-        src.into()
+        Lexer::new(src)
     }
     fn lex_span(src: &'a str) -> SpanLexer<'a, Self> {
-        src.into()
+        SpanLexer::new(src)
     }
 }
 pub type FilterIter<'a, T> = Filter<Lexer<'a, T>, fn(&T) -> bool>;
@@ -35,11 +35,6 @@ impl<'a, T> Lexer<'a, T> {
             src,
             _phantom: PhantomData,
         }
-    }
-}
-impl<'a, T> From<&'a str> for Lexer<'a, T> {
-    fn from(src: &'a str) -> Self {
-        Self::new(src)
     }
 }
 impl<'a, T> Iterator for Lexer<'a, T>
@@ -71,11 +66,6 @@ impl<'a, T> SpanLexer<'a, T> {
             src,
             _phantom: PhantomData,
         }
-    }
-}
-impl<'a, T> From<&'a str> for SpanLexer<'a, T> {
-    fn from(src: &'a str) -> Self {
-        Self::new(src)
     }
 }
 impl<'a, T> Iterator for SpanLexer<'a, T>
