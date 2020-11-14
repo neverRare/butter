@@ -33,10 +33,10 @@ struct Error<'a> {
     error: ErrorType,
 }
 type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
-type RawParserMapper<'a> = fn((&'a str, Token<'a>)) -> SpanToken<'a>;
+type RawParserMapper = for<'a> fn((&'a str, Token<'a>)) -> SpanToken<'a>;
 struct Parser<'a> {
     src: &'a str,
-    iter: Peekable<Map<SpanFilterIter<'a, Token<'a>>, RawParserMapper<'a>>>,
+    iter: Peekable<Map<SpanFilterIter<'a, Token<'a>>, RawParserMapper>>,
 }
 impl<'a> Parser<'a> {
     fn new(src: &'a str) -> Self {
