@@ -1,4 +1,5 @@
 use crate::lexer::Bracket;
+use crate::lexer::Keyword;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
@@ -62,27 +63,34 @@ impl<'a> PeekableIter for Parser<'a> {
 impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {
-        match self.next() {
-            Some(prefix) => match prefix.token {
-                Token::Keyword(keyword) => prefix::keyword(self, prefix.span, keyword),
-                Token::Operator(operator) => prefix::operator(self, prefix.span, operator),
-                Token::UnterminatedQuote => Err(vec![Error {
-                    span: prefix.span,
-                    error: ErrorType::UnterminatedQuote,
-                }]),
-                Token::Unknown => Err(vec![Error {
-                    span: prefix.span,
-                    error: ErrorType::UnknownToken,
-                }]),
-                Token::Whitespace | Token::Comment => {
-                    panic!("expected significant token, found {:?}", prefix.token);
-                }
-                _ => todo!(),
-            },
-            None => Err(vec![Error {
-                span: self.eof(),
-                error: ErrorType::SuddenEof,
+        let peeked = match self.peek() {
+            Some(token) => token,
+            None => {
+                return Err(vec![Error {
+                    span: self.eof(),
+                    error: ErrorType::NoExpr,
+                }])
+            }
+        };
+        if Parser::valid_prefix(peeked.token) {
+            return Err(vec![Error {
+                span: unsafe { peeked.span.get_unchecked(..0) },
+                error: ErrorType::NoExpr,
+            }]);
+        }
+        let prefix = self.next().unwrap();
+        match prefix.token {
+            Token::Keyword(keyword) => prefix::keyword(self, prefix.span, keyword),
+            Token::Operator(operator) => prefix::operator(self, prefix.span, operator),
+            Token::UnterminatedQuote => Err(vec![Error {
+                span: prefix.span,
+                error: ErrorType::UnterminatedQuote,
             }]),
+            Token::Bracket(Opening::Open, bracket) => todo!(),
+            Token::Str(content) => todo!(),
+            Token::Char(content) => todo!(),
+            Token::Ident => todo!(),
+            _ => unreachable!(),
         }
     }
     fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node {
@@ -125,6 +133,44 @@ impl<'a> ParserIter for Parser<'a> {
     }
 }
 impl<'a> Parser<'a> {
+    fn valid_prefix(token: Token) -> bool {
+        match token {
+            Token::Whitespace | Token::Comment => false,
+            Token::Num => true,
+            Token::Str(_) => true,
+            Token::Char(_) => true,
+            Token::Keyword(keyword) => match keyword {
+                Keyword::True => true,
+                Keyword::False => true,
+                Keyword::Null => true,
+                Keyword::Clone => true,
+                Keyword::If => true,
+                Keyword::Else => false,
+                Keyword::For => true,
+                Keyword::In => false,
+                Keyword::Loop => false,
+                Keyword::While => true,
+                Keyword::Break => true,
+                Keyword::Continue => true,
+                Keyword::Return => true,
+            },
+            Token::Ident => true,
+            Token::Separator(_) => false,
+            Token::Bracket(Opening::Open, _) => true,
+            Token::Bracket(Opening::Close, _) => false,
+            Token::Operator(operator) => match operator {
+                Operator::Plus => true,
+                Operator::Minus => true,
+                Operator::Bang => true,
+                Operator::Amp => true,
+                Operator::DoubleAmp => true,
+                Operator::RightThickArrow => true,
+                _ => false,
+            },
+            Token::UnterminatedQuote => true,
+            Token::Unknown => false,
+        }
+    }
     fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
         self.partial_parse(precedence).and_then(assert_expr)
     }
@@ -146,7 +192,7 @@ fn assert_expr(node: Tree<Node>) -> ParseResult {
     } else {
         Err(vec![Error {
             span: node.content.span,
-            error: ErrorType::NonExprOperand,
+            error: ErrorType::NonExpr,
         }])
     }
 }

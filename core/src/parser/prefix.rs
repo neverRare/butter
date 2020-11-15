@@ -18,7 +18,8 @@ pub(super) fn operator<'a>(
             unary_operator(parser, span, operator)
         }
         Operator::DoubleAmp => double_ref(parser, span),
-        _ => todo!(),
+        Operator::RightThickArrow => todo!(),
+        operator => panic!("expected prefix operator, found: {:?}", operator),
     }
 }
 pub(super) fn keyword<'a>(
@@ -32,6 +33,7 @@ pub(super) fn keyword<'a>(
             node: keyword_literal(keyword),
         })),
         Keyword::Clone => clone(parser, span),
+        Keyword::Else | Keyword::In => panic!("expected prefix keyword, found {:?}", keyword),
         _ => todo!(),
     }
 }

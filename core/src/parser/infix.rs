@@ -69,7 +69,7 @@ fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a>
         } else {
             Err(vec![Error {
                 span: node.content.span,
-                error: ErrorType::NonPlaceAssign,
+                error: ErrorType::NonPlace,
             }])
         }
     });
@@ -99,8 +99,8 @@ fn property_access<'a>(
         }))
     } else {
         Err(vec![Error {
-            span,
-            error: ErrorType::NoIdentAfterDot,
+            span: unsafe { span.get_unchecked(span.len()..) },
+            error: ErrorType::NoIdent,
         }])
     };
     let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;

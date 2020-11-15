@@ -58,9 +58,13 @@ mod test {
     impl<T: PeekableIter<Item = Token>> ParserIter for Parser<T> {
         type Node = Option<Tree<Node>>;
         fn prefix_parse(&mut self) -> Self::Node {
-            match self.next()? {
-                Token::Num => Some(Tree::new(Node::Num)),
+            match self.peek()? {
+                Token::Num => {
+                    self.next();
+                    Some(Tree::new(Node::Num))
+                }
                 Token::OpenGroup => {
+                    self.next();
                     let inside = self.partial_parse(0);
                     if let Token::CloseGroup = self.peek()? {
                         inside
@@ -68,10 +72,13 @@ mod test {
                         None
                     }
                 }
-                Token::Prefix => Some(Tree {
-                    content: Node::Prefix,
-                    children: crate::join_trees![self.partial_parse(30)?],
-                }),
+                Token::Prefix => {
+                    self.next();
+                    Some(Tree {
+                        content: Node::Prefix,
+                        children: crate::join_trees![self.partial_parse(30)?],
+                    })
+                }
                 _ => None,
             }
         }
@@ -81,9 +88,10 @@ mod test {
                 Token::InfixRight => (Node::InfixRight, 19),
                 _ => unreachable!(),
             };
+            let right = self.partial_parse(precedence)?;
             Some(Tree {
                 content,
-                children: crate::join_trees![left_node?, self.partial_parse(precedence)?],
+                children: crate::join_trees![left_node?, right],
             })
         }
         fn infix_precedence(infix: &Self::Item) -> Option<u32> {
