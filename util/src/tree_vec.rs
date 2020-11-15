@@ -5,6 +5,29 @@ use std::mem::swap;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
+// Side note for unsafe codes written here.
+//
+// TreeVec<T> is internally represented by a Vec of `(T, usize)`. TreeSlice is
+// just a slice of TreeVec or an empty slice.
+//
+// The representation can be explained further through example:
+//
+// ```
+// [("A", 3), ("A.A", 1), ("A.A.A", 0), ("A.B", 0), ("B", 1), ("B.A", 0), ("C", 0)]
+// ```
+//
+// The first tree have content "A" and have descendants
+// `[("A.A", 1), ("A.A.A", 0), ("A.B", 0)]`, the length is determined by the
+// number next to "A", which is 3. The remaining slice
+// `[("B", 1), ("B.A", 0), ("C", 0)]` contains the remaining trees of the slice.
+// Both the descendants and the remaining slice can be traversed further with
+// the same way.
+//
+// The validity comes when slicing the descendants: it must never overflow.
+//
+// Private codes, especially unsafe codes, may assume the TreeVec and TreeSlice
+// are always valid. Hence, it must be always upheld.
+
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Tree<T> {
     pub content: T,
@@ -31,57 +54,83 @@ pub struct TreeMutRef<'a, T> {
     pub content: &'a mut T,
     pub children: &'a mut TreeSlice<T>,
 }
+// Methods `from_vec`, `into_vec`, `as_vec`, and `as_vec_mut` should be used
+// instead of directly accessing .0 to better reason out the validity of the
+// underlying vector (some methods are marked as unsafe)
 #[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(transparent)]
 pub struct TreeVec<T>(Vec<(T, usize)>);
 impl<T> Default for TreeVec<T> {
     fn default() -> Self {
-        Self(vec![])
+        Self::new()
     }
 }
 impl<T> TreeVec<T> {
+    /// # Safety
+    ///
+    /// The vector must represent a valid internal representation of TreeVec
+    unsafe fn from_vec(vec: Vec<(T, usize)>) -> Self {
+        Self(vec)
+    }
     pub fn new() -> Self {
-        Self::default()
+        unsafe { Self::from_vec(vec![]) }
     }
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(Vec::with_capacity(capacity))
+        unsafe { Self::from_vec(Vec::with_capacity(capacity)) }
     }
     pub fn push(&mut self, tree: Tree<T>) {
-        let Tree {
-            content,
-            children: Self(mut children),
-        } = tree;
-        let Self(vec) = self;
-        vec.reserve(1 + children.len());
-        vec.push((content, children.len()));
-        vec.append(&mut children);
+        unsafe {
+            let vec = self.as_vec_mut();
+            let mut children = tree.children.into_vec();
+            vec.reserve(1 + children.len());
+            vec.push((tree.content, children.len()));
+            vec.append(&mut children);
+        }
     }
     pub fn append(&mut self, other: &mut Self) {
-        self.0.append(&mut other.0);
+        unsafe {
+            self.as_vec_mut().append(other.as_vec_mut());
+        }
+    }
+    fn into_vec(self) -> Vec<(T, usize)> {
+        self.0
+    }
+    fn as_vec(&self) -> &Vec<(T, usize)> {
+        &self.0
+    }
+    /// # Safety
+    ///
+    /// The borrowed vector must maintain a valid internal representation of
+    /// TreeVec
+    unsafe fn as_vec_mut(&mut self) -> &mut Vec<(T, usize)> {
+        &mut self.0
     }
     fn into_first_and_rest(self) -> Option<(Tree<T>, Self)> {
-        let Self(mut vec) = self;
+        let mut vec = self.into_vec();
         if vec.is_empty() {
             None
         } else {
             let (content, len) = vec.remove(0);
             let rest = vec.split_off(len);
-            let tree = Tree {
-                content,
-                children: Self(vec),
-            };
-            Some((tree, Self(rest)))
+            unsafe {
+                let tree = Tree {
+                    content,
+                    children: Self::from_vec(vec),
+                };
+                Some((tree, Self::from_vec(rest)))
+            }
         }
     }
 }
 impl<T> Deref for TreeVec<T> {
     type Target = TreeSlice<T>;
     fn deref(&self) -> &Self::Target {
-        TreeSlice::from_slice(&self.0)
+        unsafe { TreeSlice::from_slice(&self.0) }
     }
 }
 impl<T> DerefMut for TreeVec<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        TreeSlice::from_mut_slice(&mut self.0)
+        unsafe { TreeSlice::from_mut_slice(&mut self.0) }
     }
 }
 impl<T> IntoIterator for TreeVec<T> {
@@ -106,26 +155,35 @@ impl<T: Debug> Debug for TreeVec<T> {
         TreeSlice::fmt(self, formatter)
     }
 }
+// Methods `from_slice`, `from_mut_slice`, `as_slice`, and `as_slice_mut` should
+// be used instead of directly accessing .0 to better reason out the validity of
+// the underlying slice (some methods are marked as unsafe)
 #[derive(PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct TreeSlice<T>([(T, usize)]);
 impl<T> TreeSlice<T> {
-    fn from_slice(slice: &[(T, usize)]) -> &Self {
+    /// # Safety
+    ///
+    /// The slice must represent a valid internal representation of TreeSlice
+    unsafe fn from_slice(slice: &[(T, usize)]) -> &Self {
         let ptr = slice as *const _ as *const Self;
-        unsafe { &*ptr }
+        &*ptr
     }
-    fn from_mut_slice(slice: &mut [(T, usize)]) -> &mut Self {
+    /// # Safety
+    ///
+    /// The slice must represent a valid internal representation of TreeSlice
+    unsafe fn from_mut_slice(slice: &mut [(T, usize)]) -> &mut Self {
         let ptr = slice as *mut _ as *mut Self;
-        unsafe { &mut *ptr }
+        &mut *ptr
     }
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.as_slice().is_empty()
     }
     pub fn len(&self) -> usize {
         self.iter().count()
     }
     pub fn total(&self) -> usize {
-        self.0.len()
+        self.as_slice().len()
     }
     pub fn iter(&self) -> Iter<T> {
         self.into_iter()
@@ -137,42 +195,41 @@ impl<T> TreeSlice<T> {
     where
         T: Clone,
     {
-        let Self(slice) = self;
-        TreeVec(slice.to_vec())
+        unsafe { TreeVec::from_vec(self.as_slice().to_vec()) }
+    }
+    fn as_slice(&self) -> &[(T, usize)] {
+        &self.0
+    }
+    /// # Safety
+    ///
+    /// The borrowed slice must stay a valid internal representation of
+    /// TreeSlice. The easiest way is to keep the descendant counts constant.
+    unsafe fn as_slice_mut(&mut self) -> &mut [(T, usize)] {
+        &mut self.0
     }
 }
 impl<'a, T> Default for &'a TreeSlice<T> {
     fn default() -> Self {
-        TreeSlice::from_slice(&[])
+        unsafe { TreeSlice::from_slice(&[]) }
     }
 }
 impl<'a, T> Default for &'a mut TreeSlice<T> {
     fn default() -> Self {
-        TreeSlice::from_mut_slice(&mut [])
+        unsafe { TreeSlice::from_mut_slice(&mut []) }
     }
 }
 impl<'a, T> IntoIterator for &'a TreeSlice<T> {
     type Item = TreeRef<'a, T>;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        let ptr = self.0.as_ptr();
-        Iter {
-            start: ptr,
-            end: unsafe { ptr.add(self.0.len()) },
-            phantom: PhantomData,
-        }
+        Iter::new(self)
     }
 }
 impl<'a, T> IntoIterator for &'a mut TreeSlice<T> {
     type Item = TreeMutRef<'a, T>;
     type IntoIter = IterMut<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        let ptr = self.0.as_mut_ptr();
-        IterMut {
-            start: ptr,
-            end: unsafe { ptr.add(self.0.len()) },
-            phantom: PhantomData,
-        }
+        IterMut::new(self)
     }
 }
 impl<T: Debug> Debug for TreeSlice<T> {
@@ -180,10 +237,31 @@ impl<T: Debug> Debug for TreeSlice<T> {
         formatter.debug_list().entries(self).finish()
     }
 }
+// Iter is considered valid if it satisfies all of the following
+//
+// - `start` and `end` is non-null and aligned
+// - if `start != end` then `start` points to a member of a slice
+// - `end` either points to a member of a slice or to the last member with an
+//    offset of 1. Because of this, it should never be dereferenced
+// - a region from `start` up to `end` (exclusive) represents a slice
+// - the slice represents valid internal representation of TreeSlice
+//
+// `Iter::new` provides valid abstraction
 pub struct Iter<'a, T> {
     start: *const (T, usize),
     end: *const (T, usize),
     phantom: PhantomData<&'a (T, usize)>,
+}
+impl<'a, T> Iter<'a, T> {
+    fn new(slice: &'a TreeSlice<T>) -> Self {
+        let slice = slice.as_slice();
+        let ptr = slice.as_ptr();
+        Self {
+            start: ptr,
+            end: unsafe { ptr.add(slice.len()) },
+            phantom: PhantomData,
+        }
+    }
 }
 impl<'a, T> Iterator for Iter<'a, T> {
     type Item = TreeRef<'a, T>;
@@ -208,10 +286,27 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 impl<'a, T> FusedIterator for Iter<'a, T> {}
+// the validity of IterMut is the same as the Iter, with addition that the slice
+// must not be aliased.
+//
+// `IterMut::new` provides valid abstraction
 pub struct IterMut<'a, T> {
     start: *mut (T, usize),
     end: *mut (T, usize),
     phantom: PhantomData<&'a mut (T, usize)>,
+}
+impl<'a, T> IterMut<'a, T> {
+    fn new(slice: &'a mut TreeSlice<T>) -> Self {
+        unsafe {
+            let slice = slice.as_slice_mut();
+            let ptr = slice.as_mut_ptr();
+            IterMut {
+                start: ptr,
+                end: ptr.add(slice.len()),
+                phantom: PhantomData,
+            }
+        }
+    }
 }
 impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = TreeMutRef<'a, T>;
@@ -239,19 +334,22 @@ pub struct IntoIter<T>(TreeVec<T>);
 impl<T> Iterator for IntoIter<T> {
     type Item = Tree<T>;
     fn next(&mut self) -> Option<Self::Item> {
-        let Self(TreeVec(self_vec)) = self;
-        if self_vec.is_empty() {
-            None
-        } else {
-            let mut vec = vec![];
-            swap(self_vec, &mut vec);
-            let (tree, TreeVec(rest)) = TreeVec(vec).into_first_and_rest().unwrap();
-            *self_vec = rest;
-            Some(tree)
+        unsafe {
+            let self_vec = self.0.as_vec_mut();
+            if self_vec.is_empty() {
+                None
+            } else {
+                let mut vec = vec![];
+                swap(self_vec, &mut vec);
+                let (tree, rest) = TreeVec::from_vec(vec).into_first_and_rest().unwrap();
+                let rest = rest.into_vec();
+                *self_vec = rest;
+                Some(tree)
+            }
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let Self(TreeVec(vec)) = self;
+        let vec = self.0.as_vec();
         let len = vec.len();
         (1.min(len), Some(len))
     }

@@ -26,7 +26,6 @@ pub trait LexFilter<'a>: Lex<'a> {
 }
 pub struct Lexer<'a, T> {
     src: &'a str,
-    // is this okay?
     _phantom: PhantomData<fn() -> T>,
 }
 impl<'a, T> Lexer<'a, T> {
