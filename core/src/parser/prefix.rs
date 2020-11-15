@@ -78,15 +78,15 @@ fn unary_operator<'a>(
 }
 fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     let operand = parser.parse_expr(90)?;
-    debug_assert!(span.len() == 2);
+    assert!(span == "&&");
     Ok(Tree {
         content: Node {
-            span: &span[..1],
+            span: unsafe { span.get_unchecked(..1) },
             node: NodeType::Unary(Unary::Ref),
         },
         children: join_trees![Tree {
             content: Node {
-                span: &span[1..],
+                span: unsafe { span.get_unchecked(1..) },
                 node: NodeType::Unary(Unary::Ref),
             },
             children: join_trees![operand],
