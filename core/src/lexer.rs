@@ -12,6 +12,7 @@ use util::match_lex;
 pub use crate::lexer::bracket::Bracket;
 pub use crate::lexer::bracket::Opening;
 pub use crate::lexer::float::Float;
+pub use crate::lexer::float::Sign;
 pub use crate::lexer::integer::Radix;
 pub use crate::lexer::keyword::Keyword;
 pub use crate::lexer::operator::Operator;
