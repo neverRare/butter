@@ -36,7 +36,12 @@ impl<'a> Lex<'a> for Int<'a> {
         let content = &src[pos..];
         for (ind, ch) in content.char_indices() {
             if ch != '_' || !ch.is_alphanumeric() {
-                return Some((ind + pos, Self(radix, &content[..ind])));
+                let step = ind + pos;
+                return if step != 0 {
+                    Some((step, Self(radix, &content[..ind])))
+                } else {
+                    None
+                };
             } else if !radix.valid_digit(ch) {
                 return None;
             }
