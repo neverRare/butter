@@ -6,6 +6,7 @@ use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
 use util::join_trees;
+use util::span::span_from_spans;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
@@ -49,7 +50,7 @@ fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     let operand = parser.parse_expr(90)?;
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(span, operand.content.span),
+            span: span_from_spans(parser.src, span, operand.content.span),
             node: NodeType::Unary(Unary::Clone),
         },
         children: join_trees![operand],
@@ -70,7 +71,7 @@ fn unary_operator<'a>(
     let operand = parser.parse_expr(90)?;
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(span, operand.content.span),
+            span: span_from_spans(parser.src, span, operand.content.span),
             node: NodeType::Unary(operator),
         },
         children: join_trees![operand],

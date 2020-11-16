@@ -63,13 +63,14 @@ impl<'a> PeekableIter for Parser<'a> {
 impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {
+        let src = self.src;
         let peeked = match self.peek() {
             Some(token) => token,
             None => {
                 return Err(vec![Error {
-                    span: self.eof(),
+                    span: unsafe { src.get_unchecked(src.len()..) },
                     error: ErrorType::NoExpr,
-                }])
+                }]);
             }
         };
         if Parser::valid_prefix(peeked.token) {
@@ -173,17 +174,6 @@ impl<'a> Parser<'a> {
     }
     fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
         self.partial_parse(precedence).and_then(assert_expr)
-    }
-    fn span_from_spans(&self, left: &'a str, right: &'a str) -> &'a str {
-        let src = self.src;
-        let src_pos = src.as_ptr() as usize;
-        let left = src_pos - left.as_ptr() as usize;
-        let right = src_pos - right.as_ptr() as usize + right.len();
-        &src[left..right]
-    }
-    fn eof(&self) -> &'a str {
-        let src = self.src;
-        unsafe { src.get_unchecked(src.len()..) }
     }
 }
 fn assert_expr(node: Tree<Node>) -> ParseResult {

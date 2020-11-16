@@ -12,6 +12,7 @@ use crate::parser::SpanToken;
 use util::aggregate_error;
 use util::iter::PeekableIter;
 use util::join_trees;
+use util::span::span_from_spans;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
@@ -56,7 +57,7 @@ fn expr_operator<'a>(
     let (left, right) = aggregate_error(left.and_then(assert_expr), parser.parse_expr(precedence))?;
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(left.content.span, right.content.span),
+            span: span_from_spans(parser.src, left.content.span, right.content.span),
             node: NodeType::Binary(operator),
         },
         children: join_trees![left, right],
@@ -76,7 +77,7 @@ fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a>
     let (left, right) = aggregate_error(left, parser.parse_expr(19))?;
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(left.content.span, right.content.span),
+            span: span_from_spans(parser.src, left.content.span, right.content.span),
             node: NodeType::Assign,
         },
         children: join_trees![left, right],
@@ -106,7 +107,7 @@ fn property_access<'a>(
     let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;
     Ok(Tree {
         content: Node {
-            span: parser.span_from_spans(left.content.span, right.content.span),
+            span: span_from_spans(parser.src, left.content.span, right.content.span),
             node: NodeType::Property,
         },
         children: join_trees![left, right],
