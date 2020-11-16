@@ -104,13 +104,16 @@ mod test {
     #[test]
     fn lex_number() {
         assert_iter! {
-            Token::lex_span("12 5. .5 1e+10 1e-10"),
+            Token::lex_span("12 5. .5 1e+10 1e-10 0xe+10"),
             ("12", Token::Num),
             ("5", Token::Num),
             (".", Token::Operator(Operator::Dot)),
             (".5", Token::Num),
             ("1e+10", Token::Num),
             ("1e-10", Token::Num),
+            ("0xe", Token::Num),
+            ("+", Token::Operator(Operator::Plus)),
+            ("10", Token::Num),
         }
     }
 }

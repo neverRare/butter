@@ -11,10 +11,11 @@ impl<'a> Lex<'a> for Num {
             (first, 1)
         };
         if let Some('0'..='9') = num {
+            let is_hex = matches!(src.get(0..2), Some("0x") | Some("0X"));
             let mut prev_e = false;
             let mut chars = src[start..].char_indices().peekable();
             while let Some((i, ch)) = chars.next() {
-                let e = matches!(ch, 'e' | 'E');
+                let e = !is_hex && matches!(ch, 'e' | 'E');
                 let resume = match ch {
                     '-' | '+' => prev_e,
                     '_' => true,
