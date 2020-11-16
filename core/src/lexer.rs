@@ -29,6 +29,8 @@ mod separator;
 mod string;
 mod whitespace;
 
+const INSIGNIFICANT_DIGIT_START: &[char] = &['_', '0'];
+
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Token<'a> {
     Whitespace,

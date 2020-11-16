@@ -1,3 +1,4 @@
+use crate::lexer::INSIGNIFICANT_DIGIT_START;
 use util::lexer::Lex;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -38,7 +39,13 @@ impl<'a> Lex<'a> for Int<'a> {
             if ch != '_' || !ch.is_alphanumeric() {
                 let step = ind + pos;
                 return if step != 0 {
-                    Some((step, Self(radix, &content[..ind])))
+                    Some((
+                        step,
+                        Self(
+                            radix,
+                            content[..ind].trim_start_matches(INSIGNIFICANT_DIGIT_START),
+                        ),
+                    ))
                 } else {
                     None
                 };
@@ -46,6 +53,9 @@ impl<'a> Lex<'a> for Int<'a> {
                 return None;
             }
         }
-        Some((src.len(), Self(radix, content)))
+        Some((
+            src.len(),
+            Self(radix, content.trim_start_matches(INSIGNIFICANT_DIGIT_START)),
+        ))
     }
 }
