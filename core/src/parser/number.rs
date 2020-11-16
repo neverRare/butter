@@ -71,7 +71,7 @@ impl RegularNumber {
         enum Mode {
             Whole,
             Decimal,
-            Mantissa(bool),
+            Mantissa,
         }
         let mut mode = Mode::Whole;
         let mut whole = String::new();
@@ -82,56 +82,43 @@ impl RegularNumber {
         let mut errors = vec![];
         for (i, ch) in src.char_indices() {
             let ch_len = ch.len_utf8();
-            let err = if let '_' = ch {
-                continue;
-            } else if let '.' = ch {
-                tries_float = true;
-                match mode {
-                    Mode::Decimal => ErrorType::DoubleDecimal,
-                    Mode::Mantissa(_) => ErrorType::DecimalOnMantissa,
-                    Mode::Whole => {
-                        mode = Mode::Decimal;
-                        continue;
-                    }
-                }
-            } else if let (Mode::Mantissa(true), Some(sign)) = (mode, Sign::from_char(ch)) {
-                mantissa_sign = sign;
-                mode = Mode::Mantissa(false);
-                continue;
-            } else {
-                match ch {
-                    '0'..='9' => {
-                        match mode {
-                            Mode::Whole => {
-                                if errors.is_empty() {
-                                    whole.push(ch)
-                                }
-                            }
-                            Mode::Decimal => {
-                                if errors.is_empty() {
-                                    decimal.push(ch)
-                                }
-                            }
-                            Mode::Mantissa(_) => {
-                                mode = Mode::Mantissa(false);
-                                if errors.is_empty() {
-                                    mantissa.push(ch)
-                                }
-                            }
-                        }
-                        continue;
-                    }
-                    'e' | 'E' => {
-                        tries_float = true;
-                        if let Mode::Mantissa(_) = mode {
-                            ErrorType::DoubleMantissa
-                        } else {
-                            mode = Mode::Mantissa(true);
+            let err = match ch {
+                '_' => continue,
+                '.' => {
+                    tries_float = true;
+                    match mode {
+                        Mode::Decimal => ErrorType::DoubleDecimal,
+                        Mode::Mantissa => ErrorType::DecimalOnMantissa,
+                        Mode::Whole => {
+                            mode = Mode::Decimal;
                             continue;
                         }
                     }
-                    _ => ErrorType::InvalidDigit(Radix::Dec),
                 }
+                '-' | '+' => {
+                    mantissa_sign = Sign::from_char(ch).unwrap();
+                    continue;
+                }
+                '0'..='9' => {
+                    if errors.is_empty() {
+                        match mode {
+                            Mode::Whole => whole.push(ch),
+                            Mode::Decimal => decimal.push(ch),
+                            Mode::Mantissa => mantissa.push(ch),
+                        }
+                    }
+                    continue;
+                }
+                'e' | 'E' => {
+                    tries_float = true;
+                    if let Mode::Mantissa = mode {
+                        ErrorType::DoubleMantissa
+                    } else {
+                        mode = Mode::Mantissa;
+                        continue;
+                    }
+                }
+                _ => ErrorType::InvalidDigit(Radix::Dec),
             };
             errors.push(Error {
                 span: &src[i..i + ch_len],
@@ -187,45 +174,43 @@ impl RegularNumber {
             }
         };
         let mantissa = abscissa.len() as i128 - 1 + whole_mantissa;
-        if mantissa < f64::MIN_10_EXP as i128 {
-            Some(Num::Float(f64::MIN_POSITIVE))
+        let float = if mantissa < f64::MIN_10_EXP as i128 {
+            f64::MIN_POSITIVE
         } else if mantissa > f64::MAX_10_EXP as i128 {
-            Some(Num::Float(f64::MAX))
+            f64::MAX
         } else if whole_mantissa >= 0 {
             let whole = abscissa + &"0".repeat(whole_mantissa as usize);
             match whole.parse() {
-                Ok(val) => Some(Num::UInt(val)),
-                Err(_) => None,
+                Ok(val) => val,
+                Err(_) => return None,
             }
         } else {
             let abscissa = abscissa[0..1].to_string() + "." + &abscissa[1..];
-            Some(Num::Float(
-                abscissa.parse::<f64>().unwrap() * 10_f64.powi(mantissa as i32),
-            ))
-        }
+            abscissa.parse::<f64>().unwrap() * 10_f64.powi(mantissa as i32)
+        };
+        Some(Num::Float(float))
     }
 }
 pub(super) fn parse_number(src: &str) -> Result<Num, Vec<Error>> {
     if let (Some("0"), Some(radix)) = (src.get(..1), src.get(1..2).and_then(Radix::from_str)) {
         let mut code = String::new();
         let mut invalid = vec![];
-        for (i, ch) in src[2..].char_indices() {
-            let err = if let '_' = ch {
-                continue;
-            } else if ch.is_alphanumeric() {
-                if radix.is_valid(ch) {
-                    code.push(ch);
-                    continue;
-                } else {
-                    ErrorType::InvalidDigit(radix)
+        let src = &src[2..];
+        for (i, ch) in src.char_indices() {
+            let err = match ch {
+                '_' => continue,
+                '.' => ErrorType::DecimalOnInteger,
+                ch => {
+                    if radix.is_valid(ch) {
+                        code.push(ch);
+                        continue;
+                    } else {
+                        ErrorType::InvalidDigit(radix)
+                    }
                 }
-            } else if let '.' = ch {
-                ErrorType::DecimalOnInteger
-            } else {
-                unreachable!();
             };
             invalid.push(Error {
-                span: &src[i + 2..i + ch.len_utf8() + 2],
+                span: &src[i..i + ch.len_utf8()],
                 error: err,
             });
         }
@@ -241,8 +226,7 @@ pub(super) fn parse_number(src: &str) -> Result<Num, Vec<Error>> {
             Err(invalid)
         }
     } else {
-        let num = RegularNumber::parse(src);
-        num.and_then(|num| match num.to_num() {
+        RegularNumber::parse(src).and_then(|num| match num.to_num() {
             Some(val) => Ok(val),
             None => Err(vec![Error {
                 span: src,
