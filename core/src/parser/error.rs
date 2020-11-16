@@ -1,5 +1,3 @@
-use crate::parser::number::Radix;
-
 #[derive(Clone, Copy)]
 pub enum ErrorType {
     NonPlace,
@@ -8,10 +6,4 @@ pub enum ErrorType {
     NoExpr,
     UnknownToken,
     UnterminatedQuote,
-    InvalidDigit(Radix),
-    DoubleDecimal,
-    DoubleMantissa,
-    DecimalOnMantissa,
-    DecimalOnInteger,
-    IntegerOverflow,
 }
