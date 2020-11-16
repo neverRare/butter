@@ -5,6 +5,7 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
+use crate::parser::number::parse_number;
 use std::iter::Map;
 use std::iter::Peekable;
 use util::iter::PeekableIter;
@@ -16,6 +17,7 @@ use util::tree_vec::Tree;
 mod error;
 mod infix;
 mod node_type;
+mod number;
 mod prefix;
 
 #[derive(Clone, Copy)]
@@ -87,6 +89,12 @@ impl<'a> ParserIter for Parser<'a> {
                 span: prefix.span,
                 error: ErrorType::UnterminatedQuote,
             }]),
+            Token::Num => parse_number(prefix.span).map(|num| {
+                Tree::new(Node {
+                    span: prefix.span,
+                    node: NodeType::Num(num),
+                })
+            }),
             Token::Bracket(Opening::Open, bracket) => todo!(),
             Token::Str(content) => todo!(),
             Token::Char(content) => todo!(),
