@@ -1,4 +1,5 @@
 #![warn(clippy::all)]
+#![deny(clippy::correctness)]
 
 pub mod iter;
 pub mod lexer;
