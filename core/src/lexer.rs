@@ -54,10 +54,10 @@ impl<'a> Lex<'a> for Token<'a> {
         match_lex! { src;
             Whitespace => Self::Whitespace,
             keyword => Self::Keyword(keyword),
+            Ident => Self::Ident,
             float => Self::Float(float),
             Int(radix, int) => Self::Int(radix, int),
             Num => Self::InvalidNumber,
-            Ident => Self::Ident,
             Comment => Self::Comment,
             operator => Self::Operator(operator),
             OpeningBracket(opening, bracket) => Self::Bracket(opening, bracket),
