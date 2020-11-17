@@ -81,8 +81,8 @@ where
                 None => None,
                 Some((step, token)) => {
                     assert!(step != 0);
-                    let span = &self.src[..step];
-                    self.src = &self.src[step..];
+                    let (span, rest) = self.src.split_at(step);
+                    self.src = rest;
                     Some((span, token))
                 }
             }
