@@ -48,6 +48,7 @@ where
             match T::lex_first(self.src) {
                 None => None,
                 Some((step, token)) => {
+                    assert!(step != 0);
                     self.src = &self.src[step..];
                     Some(token)
                 }
@@ -79,6 +80,7 @@ where
             match T::lex_first(self.src) {
                 None => None,
                 Some((step, token)) => {
+                    assert!(step != 0);
                     let span = &self.src[..step];
                     self.src = &self.src[step..];
                     Some((span, token))
