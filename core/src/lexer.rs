@@ -92,6 +92,7 @@ mod test {
     use util::assert_iter;
     use util::lexer::LexFilter;
     #[test]
+    #[ignore]
     fn simple_lex() {
         assert_iter! {
             Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ;"),
@@ -106,6 +107,7 @@ mod test {
         }
     }
     #[test]
+    #[ignore]
     fn lex_string() {
         assert_iter! {
             Token::lex_span(r#""hello world" "hello \"world\"" "hello world \\""#),
