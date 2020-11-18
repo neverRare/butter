@@ -16,6 +16,7 @@ use util::tree_vec::Tree;
 mod error;
 mod infix;
 mod node_type;
+mod number;
 mod prefix;
 
 #[derive(Clone, Copy)]
@@ -83,14 +84,29 @@ impl<'a> ParserIter for Parser<'a> {
         match prefix.token {
             Token::Keyword(keyword) => prefix::keyword(self, prefix.span, keyword),
             Token::Operator(operator) => prefix::operator(self, prefix.span, operator),
-            Token::UnterminatedQuote => Err(vec![Error {
-                span: prefix.span,
-                error: ErrorType::UnterminatedQuote,
-            }]),
+            Token::Int(radix, num) => match number::parse_number(radix.as_int() as u64, num) {
+                Some(num) => Ok(Tree::new(Node {
+                    span: prefix.span,
+                    node: NodeType::UInt(num),
+                })),
+                None => Err(vec![Error {
+                    span: prefix.span,
+                    error: ErrorType::IntegerOverflow,
+                }]),
+            },
+            Token::Float(float) => todo!(),
             Token::Bracket(Opening::Open, bracket) => todo!(),
             Token::Str(content) => todo!(),
             Token::Char(content) => todo!(),
             Token::Ident => todo!(),
+            Token::UnterminatedQuote => Err(vec![Error {
+                span: prefix.span,
+                error: ErrorType::UnterminatedQuote,
+            }]),
+            Token::InvalidNumber => Err(vec![Error {
+                span: prefix.span,
+                error: ErrorType::InvalidNumber,
+            }]),
             _ => unreachable!(),
         }
     }

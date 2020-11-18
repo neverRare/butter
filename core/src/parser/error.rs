@@ -6,4 +6,6 @@ pub enum ErrorType {
     NoExpr,
     UnknownToken,
     UnterminatedQuote,
+    IntegerOverflow,
+    InvalidNumber,
 }

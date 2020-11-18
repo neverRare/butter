@@ -17,6 +17,14 @@ impl Radix {
             _ => None,
         }
     }
+    pub fn as_int(self) -> u32 {
+        match self {
+            Self::Hex => 16,
+            Self::Dec => 10,
+            Self::Oct => 8,
+            Self::Bin => 2,
+        }
+    }
     pub fn valid_digit(self, ch: char) -> bool {
         match self {
             Self::Hex => matches!(ch, '_' | '0'..='9' | 'a'..='f' | 'A'..='F'),

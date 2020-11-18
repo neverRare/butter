@@ -1,9 +1,4 @@
 #[derive(Clone, Copy)]
-pub enum Num {
-    UInt(u64),
-    Float(f64),
-}
-#[derive(Clone, Copy)]
 pub enum Unary {
     Plus,
     Minus,
@@ -45,7 +40,8 @@ pub enum NodeType {
     Ident,
     Char,
     Str,
-    Num(Num),
+    UInt(u64),
+    Float(f64),
 
     Break,
     Continue,
