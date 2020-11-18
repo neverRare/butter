@@ -29,14 +29,14 @@ impl Radix {
 pub struct Int<'a>(pub Radix, pub &'a str);
 impl<'a> Lex<'a> for Int<'a> {
     fn lex_first(src: &'a str) -> Option<(usize, Self)> {
-        let (radix, pos) = if let Some(radix) = src.get(..2).and_then(Radix::from_indicator) {
-            (radix, 2)
-        } else {
-            (Radix::Dec, 0)
-        };
+        let (radix, pos) = src
+            .get(..2)
+            .and_then(Radix::from_indicator)
+            .map(|radix| (radix, 2))
+            .unwrap_or((Radix::Dec, 0));
         let content = &src[pos..];
         for (ind, ch) in content.char_indices() {
-            if ch != '_' || !ch.is_alphanumeric() {
+            if ch != '_' && !ch.is_alphanumeric() {
                 let step = ind + pos;
                 return if step != 0 {
                     Some((
