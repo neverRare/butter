@@ -83,6 +83,7 @@ impl<'a> LexFilter<'a> for Token<'a> {
 }
 #[cfg(test)]
 mod test {
+    use super::integer::Radix;
     use super::Bracket;
     use super::Keyword;
     use super::Opening;
@@ -92,7 +93,6 @@ mod test {
     use util::assert_iter;
     use util::lexer::LexFilter;
     #[test]
-    #[ignore]
     fn simple_lex() {
         assert_iter! {
             Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ;"),
@@ -107,7 +107,6 @@ mod test {
         }
     }
     #[test]
-    #[ignore]
     fn lex_string() {
         assert_iter! {
             Token::lex_span(r#""hello world" "hello \"world\"" "hello world \\""#),
@@ -116,19 +115,15 @@ mod test {
             (r#""hello world \\""#, Token::Str(r"hello world \\")),
         }
     }
-    // #[test]
-    // fn lex_number() {
-    //     assert_iter! {
-    //         Token::lex_span("12 5. .5 1e+10 1e-10 0xe+10"),
-    //         ("12", Token::Num),
-    //         ("5", Token::Num),
-    //         (".", Token::Operator(Operator::Dot)),
-    //         (".5", Token::Num),
-    //         ("1e+10", Token::Num),
-    //         ("1e-10", Token::Num),
-    //         ("0xe", Token::Num),
-    //         ("+", Token::Operator(Operator::Plus)),
-    //         ("10", Token::Num),
-    //     }
-    // }
+    #[test]
+    fn lex_integer() {
+        assert_iter! {
+            Token::lex_span("12 1_000_000 0x_18e 0o_127 0b_11110000"),
+            ("12", Token::Int(Radix::Dec, "12")),
+            ("1_000_000", Token::Int(Radix::Dec, "1_000_000")),
+            ("0x_18e", Token::Int(Radix::Hex, "18e")),
+            ("0o_127", Token::Int(Radix::Oct, "127")),
+            ("0b_11110000", Token::Int(Radix::Bin, "11110000")),
+        }
+    }
 }
