@@ -17,7 +17,7 @@ impl Radix {
             _ => None,
         }
     }
-    fn valid_digit(self, ch: char) -> bool {
+    pub fn valid_digit(self, ch: char) -> bool {
         match self {
             Self::Hex => matches!(ch, '_' | '0'..='9' | 'a'..='f' | 'A'..='F'),
             Self::Dec => matches!(ch, '_' | '0'..='9'),
