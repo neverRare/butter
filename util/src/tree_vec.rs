@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 use std::fmt::Debug;
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
@@ -133,6 +135,16 @@ impl<T> DerefMut for TreeVec<T> {
         unsafe { TreeSlice::from_mut_slice(&mut self.0) }
     }
 }
+impl<T> Borrow<TreeSlice<T>> for TreeVec<T> {
+    fn borrow(&self) -> &TreeSlice<T> {
+        self
+    }
+}
+impl<T> BorrowMut<TreeSlice<T>> for TreeVec<T> {
+    fn borrow_mut(&mut self) -> &mut TreeSlice<T> {
+        self
+    }
+}
 impl<T> IntoIterator for TreeVec<T> {
     type Item = Tree<T>;
     type IntoIter = IntoIter<T>;
@@ -216,6 +228,12 @@ impl<'a, T> Default for &'a TreeSlice<T> {
 impl<'a, T> Default for &'a mut TreeSlice<T> {
     fn default() -> Self {
         unsafe { TreeSlice::from_mut_slice(&mut []) }
+    }
+}
+impl<T: Clone> ToOwned for TreeSlice<T> {
+    type Owned = TreeVec<T>;
+    fn to_owned(&self) -> Self::Owned {
+        self.to_tree_vec()
     }
 }
 impl<'a, T> IntoIterator for &'a TreeSlice<T> {
