@@ -31,3 +31,7 @@ This section is still empty
 ## Standard library
 
 TODO
+
+## [Ideas](idea.md)
+
+I'm too excited. While keeping the language simple, here is some ideas that seems useful and could be added to the language, but it probably needs a polish first.
