@@ -254,11 +254,10 @@ pub struct Iter<'a, T> {
 }
 impl<'a, T> Iter<'a, T> {
     fn new(slice: &'a TreeSlice<T>) -> Self {
-        let slice = slice.as_slice();
-        let ptr = slice.as_ptr();
+        let range = slice.as_slice().as_ptr_range();
         Self {
-            start: ptr,
-            end: unsafe { ptr.add(slice.len()) },
+            start: range.start,
+            end: range.end,
             phantom: PhantomData,
         }
     }
@@ -298,11 +297,10 @@ pub struct IterMut<'a, T> {
 impl<'a, T> IterMut<'a, T> {
     fn new(slice: &'a mut TreeSlice<T>) -> Self {
         unsafe {
-            let slice = slice.as_slice_mut();
-            let ptr = slice.as_mut_ptr();
+            let range = slice.as_slice_mut().as_mut_ptr_range();
             IterMut {
-                start: ptr,
-                end: ptr.add(slice.len()),
+                start: range.start,
+                end: range.end,
                 phantom: PhantomData,
             }
         }
