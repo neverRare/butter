@@ -28,14 +28,14 @@ You can unpack from its start or its end then unpack the rest as an another arra
 
 ## Struct
 
-You can unpack a struct via `()`. These assigns field value to a variable with the same name. If you wish to use another variable name, write down the original name then the new name and separate them with whitespace.
+You can unpack a struct via `()`. These assigns field value to a variable with the same name. If you wish to use another variable name, you can use `=`.
 
 ```butter
 user = (
     name = "someone",
     email = "someone@example.com",
 );
-(name username, email) = user;
+(name = username, email) = user;
 ```
 
 If you wish to ignore some fields, either don't write it or rename it to `_`.
@@ -43,7 +43,7 @@ If you wish to ignore some fields, either don't write it or rename it to `_`.
 ```butter
 (email) = user;
 -- or
-(name _, email) = user;
+(name = _, email) = user;
 ```
 
 You can partially unpack fields and unpack the rest to another struct. There can be only at most one rest syntax in struct unpacking.
