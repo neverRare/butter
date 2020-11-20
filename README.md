@@ -1,7 +1,4 @@
-# Butter [![Rust][CI status]][CI Link]
-
-[CI Status]: https://github.com/neverRare/butter/workflows/Rust/badge.svg
-[CI Link]: https://github.com/neverRare/butter/actions?query=workflow%3ARust
+# Butter
 
 [Documents](doc/README.md)
 
