@@ -116,3 +116,18 @@ Maybe a struct something like rust's module.
 ```butter
 math = mod math;
 ```
+
+## Function as operator
+
+```butter
+and(a, b) => match (a, b) {
+    (a = @true, b = @true) => @true,
+    _ => @false,
+};
+not(a) => match a {
+    @true => @false,
+    @false => @true,
+};
+@true `and` @false;  -- @false
+`not` @true;  -- also @false
+```
