@@ -1,4 +1,4 @@
-# Butter
+# ![Butter](butter_text_only.svg)
 
 [Documents](doc/README.md)
 
