@@ -95,7 +95,9 @@ impl<'a> ParserIter for Parser<'a> {
                 }]),
             },
             Token::Float(float) => todo!(),
-            Token::Bracket(Opening::Open, bracket) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Brace) => self.parse_block_rest(),
             Token::Str(content) => todo!(),
             Token::Char(content) => todo!(),
             Token::Ident => todo!(),
@@ -192,6 +194,9 @@ impl<'a> Parser<'a> {
     }
     fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
         self.partial_parse(precedence).and_then(assert_expr)
+    }
+    fn parse_block_rest(&mut self) -> ParseResult<'a> {
+        todo!()
     }
 }
 fn assert_expr(node: Tree<Node>) -> ParseResult {
