@@ -21,7 +21,7 @@ impl<'a> Lex<'a> for Str<'a> {
                         let token = match first {
                             '\'' => Self::Char(content),
                             '"' => Self::Str(content),
-                            _ => unsafe { std::hint::unreachable_unchecked() },
+                            _ => unreachable!(),
                         };
                         return Some((i + 1, token));
                     }

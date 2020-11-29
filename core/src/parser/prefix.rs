@@ -82,12 +82,12 @@ fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     assert!(span == "&&");
     Ok(Tree {
         content: Node {
-            span: unsafe { span.get_unchecked(..1) },
+            span: &span[..1],
             node: NodeType::Unary(Unary::Ref),
         },
         children: join_trees![Tree {
             content: Node {
-                span: unsafe { span.get_unchecked(1..) },
+                span: &span[1..],
                 node: NodeType::Unary(Unary::Ref),
             },
             children: join_trees![operand],

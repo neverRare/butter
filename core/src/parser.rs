@@ -69,14 +69,14 @@ impl<'a> ParserIter for Parser<'a> {
             Some(token) => token,
             None => {
                 return Err(vec![Error {
-                    span: unsafe { src.get_unchecked(src.len()..) },
+                    span: &src[src.len()..],
                     error: ErrorType::NoExpr,
                 }]);
             }
         };
         if Parser::valid_prefix(peeked.token) {
             return Err(vec![Error {
-                span: unsafe { peeked.span.get_unchecked(..0) },
+                span: &peeked.span[..0],
                 error: ErrorType::NoExpr,
             }]);
         }

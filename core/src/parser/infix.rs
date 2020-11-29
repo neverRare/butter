@@ -100,7 +100,7 @@ fn property_access<'a>(
         }))
     } else {
         Err(vec![Error {
-            span: unsafe { span.get_unchecked(span.len()..) },
+            span: &span[span.len()..],
             error: ErrorType::NoIdent,
         }])
     };

@@ -16,5 +16,5 @@ fn span_pos<'a>(src: &'a str, span: &'a str) -> usize {
 pub fn span_from_spans<'a>(src: &'a str, left: &'a str, right: &'a str) -> &'a str {
     let left = span_pos(src, left);
     let right = span_pos(src, right) + right.len();
-    unsafe { src.get_unchecked(left..right) }
+    &src[left..right]
 }
