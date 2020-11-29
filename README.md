@@ -18,8 +18,20 @@ reverse(arr) => {
 }
 ```
 
-## Goals
+## Design Principle
 
-- Should be simple, don't complicate.
-- Should make sense for user, no low-level shenanigans exposed.
-- Should produce efficient software.
+Butter is designed to be
+
+- Friendly, for experienced and especially for beginners
+- Compiled to fast and memory-efficiency binary
+
+Butter should have the following
+
+- Simplicity and consistency
+- Lack of visible low-level concepts
+- Speed and memory-efficiency of resulting software
+
+The following are not a priority yet considered for Butter
+
+- Compilation speed and memory-efficiency
+- Ease of implementation
