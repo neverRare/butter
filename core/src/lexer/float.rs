@@ -2,7 +2,7 @@ use crate::lexer::Radix;
 use crate::lexer::INSIGNIFICANT_DIGIT_START;
 use util::lexer::Lex;
 
-// TODO: handle E notation
+// TODO #6: handle E notation
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Sign {
