@@ -11,6 +11,8 @@ Sometimes called *hash*map and *hash*set ;). I still have no idea on manipulatio
 
 ## Tagged values
 
+Maybe 1 (less syntactical noise):
+
 ```butter
 -- no associated value
 @tag_name
@@ -24,6 +26,23 @@ Sometimes called *hash*map and *hash*set ;). I still have no idea on manipulatio
 
 -- array as associated value
 @tag_name[expr1, expr2]
+```
+
+Maybe 2 (more consistency):
+
+```butter
+-- no associated value
+@tag_name
+@tag_name()
+
+-- single associated value
+@tag_name(expr)
+
+-- struct as associated value
+@tag_name((name1 = expr1, name2 = expr2))
+
+-- array as associated value
+@tag_name([expr1, expr2])
 ```
 
 This could be structurally typed like in TypeScript's fake discriminated union but with better syntax like in Rust. This could also replace the current null system.
@@ -115,6 +134,12 @@ Maybe a struct something like rust's module.
 
 ```butter
 math = mod math;
+```
+
+Importing from modules could be the same as declaration.
+
+```butter
+pi = math.pi;
 ```
 
 ## Function as operator
