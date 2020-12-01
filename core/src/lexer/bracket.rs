@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use util::lexer::Lex;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -13,7 +14,7 @@ pub enum Opening {
 }
 pub struct OpeningBracket(pub Opening, pub Bracket);
 impl<'a> Lex<'a> for OpeningBracket {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
         let (opening, bracket) = match src.get(..1)? {
             "(" => (Opening::Open, Bracket::Parenthesis),
             ")" => (Opening::Close, Bracket::Parenthesis),
@@ -23,6 +24,6 @@ impl<'a> Lex<'a> for OpeningBracket {
             "}" => (Opening::Close, Bracket::Brace),
             _ => return None,
         };
-        Some((1, Self(opening, bracket)))
+        Some((NonZeroUsize::new(1).unwrap(), Self(opening, bracket)))
     }
 }

@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use util::lexer::Lex;
 
 pub enum Str<'a> {
@@ -6,14 +7,14 @@ pub enum Str<'a> {
     Unterminated,
 }
 impl<'a> Lex<'a> for Str<'a> {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
         let mut chars = src.char_indices();
         let (_, first) = chars.next().unwrap();
         if let '\'' | '"' = first {
             let mut escaping = false;
             for (i, ch) in chars {
                 match ch {
-                    '\n' => return Some((i + 1, Self::Unterminated)),
+                    '\n' => return Some((NonZeroUsize::new(i + 1).unwrap(), Self::Unterminated)),
                     _ if escaping => escaping = false,
                     '\\' => escaping = true,
                     ch if ch == first => {
@@ -23,12 +24,12 @@ impl<'a> Lex<'a> for Str<'a> {
                             '"' => Self::Str(content),
                             _ => unreachable!(),
                         };
-                        return Some((i + 1, token));
+                        return Some((NonZeroUsize::new(i + 1).unwrap(), token));
                     }
                     _ => {}
                 }
             }
-            Some((src.len(), Self::Unterminated))
+            Some((NonZeroUsize::new(src.len()).unwrap(), Self::Unterminated))
         } else {
             None
         }

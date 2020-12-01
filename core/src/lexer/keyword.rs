@@ -1,4 +1,5 @@
 use crate::lexer::Ident;
+use std::num::NonZeroUsize;
 use util::lexer::Lex;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -18,7 +19,7 @@ pub enum Keyword {
     Return,
 }
 impl<'a> Lex<'a> for Keyword {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
         let (ident, Ident) = Lex::lex_first_span(src)?;
         let keyword = match ident {
             "true" => Self::True,
@@ -36,6 +37,6 @@ impl<'a> Lex<'a> for Keyword {
             "return" => Self::Return,
             _ => return None,
         };
-        Some((ident.len(), keyword))
+        Some((NonZeroUsize::new(ident.len()).unwrap(), keyword))
     }
 }

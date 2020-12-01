@@ -1,10 +1,11 @@
 use std::iter::Filter;
 use std::marker::PhantomData;
+use std::num::NonZeroUsize;
 
 pub trait Lex<'a>: Sized {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)>;
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)>;
     fn lex_first_span(src: &'a str) -> Option<(&'a str, Self)> {
-        Self::lex_first(src).map(|(step, token)| (&src[..step], token))
+        Self::lex_first(src).map(|(step, token)| (&src[..step.get()], token))
     }
     fn lex(src: &'a str) -> Lexer<'a, Self> {
         Lexer::new(src)
@@ -14,7 +15,7 @@ pub trait Lex<'a>: Sized {
     }
 }
 pub type FilterIter<'a, T> = Filter<Lexer<'a, T>, fn(&T) -> bool>;
-pub type SpanFilterIter<'a, T> = Filter<SpanLexer<'a, T>, fn(&(&'a str, T)) -> bool>;
+pub type SpanFilterIter<'a, T> = Filter<SpanLexer<'a, T>, fn(&(&str, T)) -> bool>;
 pub trait LexFilter<'a>: Lex<'a> {
     fn significant(&self) -> bool;
     fn lex(src: &'a str) -> FilterIter<'a, Self> {
@@ -48,12 +49,15 @@ where
             match T::lex_first(self.src) {
                 None => None,
                 Some((step, token)) => {
-                    assert!(step != 0);
-                    self.src = &self.src[step..];
+                    self.src = &self.src[step.get()..];
                     Some(token)
                 }
             }
         }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.src.len();
+        (len.min(1), Some(len))
     }
 }
 pub struct SpanLexer<'a, T> {
@@ -80,13 +84,16 @@ where
             match T::lex_first(self.src) {
                 None => None,
                 Some((step, token)) => {
-                    assert!(step != 0);
-                    let (span, rest) = self.src.split_at(step);
+                    let (span, rest) = self.src.split_at(step.get());
                     self.src = rest;
                     Some((span, token))
                 }
             }
         }
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.src.len();
+        (len.min(1), Some(len))
     }
 }
 #[macro_export]

@@ -1,4 +1,5 @@
 use crate::lexer::INSIGNIFICANT_DIGIT_START;
+use std::num::NonZeroUsize;
 use util::lexer::Lex;
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
@@ -36,7 +37,7 @@ impl Radix {
 }
 pub struct Int<'a>(pub Radix, pub &'a str);
 impl<'a> Lex<'a> for Int<'a> {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
         let (radix, pos) = src
             .get(..2)
             .and_then(Radix::from_indicator)
@@ -46,23 +47,19 @@ impl<'a> Lex<'a> for Int<'a> {
         for (ind, ch) in content.char_indices() {
             if ch != '_' && !ch.is_alphanumeric() {
                 let step = ind + pos;
-                return if step != 0 {
-                    Some((
-                        step,
-                        Self(
-                            radix,
-                            content[..ind].trim_start_matches(INSIGNIFICANT_DIGIT_START),
-                        ),
-                    ))
-                } else {
-                    None
-                };
+                return NonZeroUsize::new(step).map(|step| {
+                    let token = Self(
+                        radix,
+                        content[..ind].trim_start_matches(INSIGNIFICANT_DIGIT_START),
+                    );
+                    (step, token)
+                });
             } else if !radix.valid_digit(ch) {
                 return None;
             }
         }
         Some((
-            src.len(),
+            NonZeroUsize::new(src.len()).unwrap(),
             Self(radix, content.trim_start_matches(INSIGNIFICANT_DIGIT_START)),
         ))
     }

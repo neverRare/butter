@@ -1,5 +1,6 @@
 use crate::lexer::Radix;
 use crate::lexer::INSIGNIFICANT_DIGIT_START;
+use std::num::NonZeroUsize;
 use util::lexer::Lex;
 
 // TODO #6: handle E notation
@@ -17,7 +18,7 @@ pub struct Float<'a> {
     pub mantissa: &'a str,
 }
 impl<'a> Lex<'a> for Float<'a> {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
         let mut char_indices = src.char_indices();
         let whole = get_digits(src, &mut char_indices);
         if let Some((ind, '.')) = char_indices.next() {
@@ -32,7 +33,7 @@ impl<'a> Lex<'a> for Float<'a> {
                     mantissa_sign: Sign::Plus,
                     mantissa: &src[len..len],
                 };
-                Some((len, float))
+                Some((NonZeroUsize::new(len).unwrap(), float))
             }
         } else {
             None

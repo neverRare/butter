@@ -5,6 +5,7 @@ use crate::lexer::integer::Int;
 use crate::lexer::number::Num;
 use crate::lexer::string::Str;
 use crate::lexer::whitespace::Whitespace;
+use std::num::NonZeroUsize;
 use util::lexer::Lex;
 use util::lexer::LexFilter;
 use util::match_lex;
@@ -50,7 +51,7 @@ pub enum Token<'a> {
     Unknown,
 }
 impl<'a> Lex<'a> for Token<'a> {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
         match_lex! { src;
             Whitespace => Self::Whitespace,
             keyword => Self::Keyword(keyword),
@@ -67,7 +68,7 @@ impl<'a> Lex<'a> for Token<'a> {
             Str::Unterminated => Self::UnterminatedQuote,
             => else src => {
                 let len = src.chars().next().unwrap().len_utf8();
-                Some((len, Self::Unknown))
+                Some((NonZeroUsize::new(len).unwrap(), Self::Unknown))
             }
         }
     }

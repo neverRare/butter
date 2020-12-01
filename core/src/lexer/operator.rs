@@ -1,3 +1,4 @@
+use std::num::NonZeroUsize;
 use util::lexer::Lex;
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -67,11 +68,11 @@ impl Operator {
     }
 }
 impl<'a> Lex<'a> for Operator {
-    fn lex_first(src: &'a str) -> Option<(usize, Self)> {
+    fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
         if let Some(operator) = src.get(..2).and_then(Operator::new) {
-            return Some((2, operator));
+            return Some((NonZeroUsize::new(2).unwrap(), operator));
         }
         let operator = src.get(..1).and_then(Operator::new)?;
-        Some((1, operator))
+        Some((NonZeroUsize::new(1).unwrap(), operator))
     }
 }
