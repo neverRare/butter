@@ -46,13 +46,10 @@ where
         if self.src.is_empty() {
             None
         } else {
-            match T::lex_first(self.src) {
-                None => None,
-                Some((step, token)) => {
-                    self.src = &self.src[step.get()..];
-                    Some(token)
-                }
-            }
+            T::lex_first(self.src).map(|(step, token)| {
+                self.src = &self.src[step.get()..];
+                token
+            })
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -81,14 +78,11 @@ where
         if self.src.is_empty() {
             None
         } else {
-            match T::lex_first(self.src) {
-                None => None,
-                Some((step, token)) => {
-                    let (span, rest) = self.src.split_at(step.get());
-                    self.src = rest;
-                    Some((span, token))
-                }
-            }
+            T::lex_first(self.src).map(|(step, token)| {
+                let (span, rest) = self.src.split_at(step.get());
+                self.src = rest;
+                (span, token)
+            })
         }
     }
     fn size_hint(&self) -> (usize, Option<usize>) {
