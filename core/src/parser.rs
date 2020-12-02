@@ -174,6 +174,7 @@ impl<'a> Parser<'a> {
                 Keyword::Continue => true,
                 Keyword::Return => true,
             },
+            Token::Underscore => false,
             Token::Ident => true,
             Token::Separator(_) => false,
             Token::Bracket(Opening::Open, _) => true,

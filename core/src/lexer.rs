@@ -4,6 +4,7 @@ use crate::lexer::ident::Ident;
 use crate::lexer::integer::Int;
 use crate::lexer::number::Num;
 use crate::lexer::string::Str;
+use crate::lexer::underscore::Underscore;
 use crate::lexer::whitespace::Whitespace;
 use std::num::NonZeroUsize;
 use util::lexer::Lex;
@@ -29,6 +30,7 @@ mod number;
 mod operator;
 mod separator;
 mod string;
+mod underscore;
 mod whitespace;
 
 const INSIGNIFICANT_DIGIT_START: &[char] = &['_', '0'];
@@ -42,6 +44,7 @@ pub enum Token<'a> {
     Str(&'a str),
     Char(&'a str),
     Keyword(Keyword),
+    Underscore,
     Ident,
     Separator(Separator),
     Bracket(Opening, Bracket),
@@ -55,6 +58,7 @@ impl<'a> Lex<'a> for Token<'a> {
         match_lex! { src;
             Whitespace => Self::Whitespace,
             keyword => Self::Keyword(keyword),
+            Underscore => Self::Underscore,
             Ident => Self::Ident,
             float => Self::Float(float),
             Int(radix, int) => Self::Int(radix, int),
@@ -96,9 +100,10 @@ mod test {
     #[test]
     fn simple_lex() {
         assert_iter! {
-            Token::lex_span("-- comment\n identifier_123 true_false null => + ( ) ;"),
+            Token::lex_span("-- comment\n identifier_123 true_false _ null => + ( ) ;"),
             ("identifier_123", Token::Ident),
             ("true_false", Token::Ident),
+            ("_", Token::Underscore),
             ("null", Token::Keyword(Keyword::Null)),
             ("=>", Token::Operator(Operator::RightThickArrow)),
             ("+", Token::Operator(Operator::Plus)),
