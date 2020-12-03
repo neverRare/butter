@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 use std::fmt::Debug;
+use std::iter::FromIterator;
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::mem::swap;
@@ -94,6 +95,9 @@ impl<T> TreeVec<T> {
             self.as_vec_mut().append(other.as_vec_mut());
         }
     }
+    pub fn reserve(&mut self, additional: usize) {
+        unsafe { self.as_vec_mut().reserve(additional) }
+    }
     fn into_vec(self) -> Vec<(T, usize)> {
         self.0
     }
@@ -157,9 +161,24 @@ impl<T> Extend<Tree<T>> for TreeVec<T> {
     where
         I: IntoIterator<Item = Tree<T>>,
     {
+        let iter = iter.into_iter();
+        self.reserve(iter.size_hint().0);
         for tree in iter {
             self.push(tree);
         }
+    }
+}
+impl<N> FromIterator<Tree<N>> for TreeVec<N> {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = Tree<N>>,
+    {
+        let iter = iter.into_iter();
+        let mut tree_vec = Self::with_capacity(iter.size_hint().0);
+        for tree in iter {
+            tree_vec.push(tree);
+        }
+        tree_vec
     }
 }
 impl<T: Debug> Debug for TreeVec<T> {
