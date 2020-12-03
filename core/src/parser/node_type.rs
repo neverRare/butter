@@ -28,6 +28,18 @@ pub enum Binary {
     NullOr,
 }
 #[derive(Clone, Copy)]
+pub enum RangeType {
+    Full,
+    Inclusive,
+    Exclusive,
+    InclusiveExclusive,
+    ExclusiveInclusive,
+    FromInclusive,
+    FromExclusive,
+    ToInclusive,
+    ToExclusive,
+}
+#[derive(Clone, Copy)]
 pub enum NodeType {
     SplatOrRest,
     Label,
@@ -55,12 +67,15 @@ pub enum NodeType {
     Assign,
 
     Array,
+    ArrayRange(RangeType),
     Struct,
 
     Property,
     OptionalProperty,
     Index,
     OptionalIndex,
+    Slice(RangeType),
+    OptionalSlice(RangeType),
 
     Block(bool),
     Fun,
