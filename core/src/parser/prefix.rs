@@ -1,10 +1,12 @@
 use crate::lexer::Keyword;
 use crate::lexer::Operator;
+use crate::lexer::Token;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
+use util::iter::PeekableIter;
 use util::join_trees;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
@@ -34,8 +36,14 @@ pub(super) fn keyword<'a>(
             node: keyword_literal(keyword),
         })),
         Keyword::Clone => clone(parser, span),
-        Keyword::Else | Keyword::In => panic!("expected prefix keyword, found {:?}", keyword),
-        _ => todo!(),
+        Keyword::If => todo!(),
+        Keyword::For => todo!(),
+        Keyword::Loop => todo!(),
+        Keyword::While => todo!(),
+        Keyword::Break => parse_break(parser, span),
+        Keyword::Continue => parse_continue(parser, span),
+        Keyword::Return => parse_return(parser, span),
+        _ => panic!("expected prefix keyword, found {:?}", keyword),
     }
 }
 fn keyword_literal(keyword: Keyword) -> NodeType {
@@ -54,6 +62,57 @@ fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
             node: NodeType::Unary(Unary::Clone),
         },
         children: join_trees![operand],
+    })
+}
+fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let label = optional_label(parser);
+    Ok(Tree {
+        content: Node {
+            span: match &label {
+                Some(label) => span_from_spans(parser.src, span, label.content.span),
+                None => span,
+            },
+            node: NodeType::Continue,
+        },
+        children: label.into_iter().collect(),
+    })
+}
+fn parse_break<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let label = optional_label(parser);
+    let expr =
+        if let Some(Token::Operator(Operator::Equal)) = parser.peek().map(|token| token.token) {
+            parser.next();
+            Some(parser.parse_expr(10)?)
+        } else {
+            None
+        };
+    let node = match &expr {
+        Some(_) => NodeType::BreakWithExpr,
+        None => NodeType::Break,
+    };
+    let span = if let Some(expr) = &expr {
+        span_from_spans(parser.src, span, expr.content.span)
+    } else if let Some(label) = &label {
+        span_from_spans(parser.src, span, label.content.span)
+    } else {
+        span
+    };
+    Ok(Tree {
+        content: Node { span, node },
+        children: label.into_iter().chain(expr.into_iter()).collect(),
+    })
+}
+fn parse_return<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let expr = parser.parse_optional_expr(10)?;
+    Ok(Tree {
+        content: Node {
+            span: match &expr {
+                Some(label) => span_from_spans(parser.src, span, label.content.span),
+                None => span,
+            },
+            node: NodeType::Return,
+        },
+        children: expr.into_iter().collect(),
     })
 }
 fn unary_operator<'a>(
@@ -93,4 +152,16 @@ fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
             children: join_trees![operand],
         }],
     })
+}
+fn optional_label<'a>(parser: &mut Parser<'a>) -> Option<Tree<Node<'a>>> {
+    match parser.peek()?.token {
+        Token::Keyword(_) | Token::Ident => {
+            let token = parser.next().unwrap();
+            Some(Tree::new(Node {
+                span: token.span,
+                node: NodeType::Label,
+            }))
+        }
+        _ => None,
+    }
 }

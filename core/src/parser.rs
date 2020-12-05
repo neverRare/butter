@@ -19,22 +19,23 @@ mod node_type;
 mod number;
 mod prefix;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 struct Node<'a> {
     span: &'a str,
     node: NodeType,
 }
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct SpanToken<'a> {
     span: &'a str,
     token: Token<'a>,
 }
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct Error<'a> {
     span: &'a str,
     error: ErrorType,
 }
 type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
+type OptionalParseResult<'a> = Result<Option<Tree<Node<'a>>>, Vec<Error<'a>>>;
 type RawParserMapper = for<'a> fn((&'a str, Token<'a>)) -> SpanToken<'a>;
 struct Parser<'a> {
     src: &'a str,
@@ -168,7 +169,7 @@ impl<'a> Parser<'a> {
                 Keyword::Else => false,
                 Keyword::For => true,
                 Keyword::In => false,
-                Keyword::Loop => false,
+                Keyword::Loop => true,
                 Keyword::While => true,
                 Keyword::Break => true,
                 Keyword::Continue => true,
@@ -195,6 +196,17 @@ impl<'a> Parser<'a> {
     }
     fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
         self.partial_parse(precedence).and_then(assert_expr)
+    }
+    fn parse_optional_expr(&mut self, precedence: u32) -> OptionalParseResult<'a> {
+        let peeked = match self.peek() {
+            Some(token) => token.token,
+            None => return Ok(None),
+        };
+        if Self::valid_prefix(peeked) {
+            self.parse_expr(precedence).map(Some)
+        } else {
+            Ok(None)
+        }
     }
     fn parse_block_rest(&mut self) -> ParseResult<'a> {
         todo!()

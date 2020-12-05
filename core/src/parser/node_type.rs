@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Unary {
     Plus,
     Minus,
@@ -6,7 +6,7 @@ pub enum Unary {
     Not,
     Clone,
 }
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Binary {
     Add,
     Sub,
@@ -27,7 +27,7 @@ pub enum Binary {
     Concatenate,
     NullOr,
 }
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RangeType {
     Full,
     Inclusive,
@@ -39,7 +39,7 @@ pub enum RangeType {
     ToInclusive,
     ToExclusive,
 }
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum NodeType {
     SplatOrRest,
     Label,
@@ -56,6 +56,7 @@ pub enum NodeType {
     Float(f64),
 
     Break,
+    BreakWithExpr,
     Continue,
     Return,
 
@@ -77,7 +78,8 @@ pub enum NodeType {
     Slice(RangeType),
     OptionalSlice(RangeType),
 
-    Block(bool),
+    Block,
+    BlockWithExpr,
     Fun,
     If,
     Else,
