@@ -7,9 +7,9 @@ pub mod parser;
 pub mod span;
 pub mod tree_vec;
 
-pub fn aggregate_error<T, U, E, A>(left: Result<T, E>, right: Result<U, E>) -> Result<(T, U), E>
+pub fn aggregate_error<T, U, E>(left: Result<T, E>, right: Result<U, E>) -> Result<(T, U), E>
 where
-    E: Extend<A> + IntoIterator<Item = A>,
+    E: Extend<<E as IntoIterator>::Item> + IntoIterator,
 {
     match (left, right) {
         (Ok(left), Ok(right)) => Ok((left, right)),
