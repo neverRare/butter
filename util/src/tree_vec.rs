@@ -1,6 +1,10 @@
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 use std::fmt::Debug;
+use std::fmt::Formatter;
+use std::fmt::Result as FmtResult;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::iter::FromIterator;
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
@@ -12,6 +16,9 @@ use std::ops::DerefMut;
 //
 // TreeVec<T> is internally represented by a Vec of `(T, usize)`. TreeSlice is
 // just a slice of TreeVec or an empty slice.
+//
+// Note: `(T, usize)` is actually Node<T>, it's just written that way for
+// simplicity.
 //
 // The representation can be explained further through example:
 //
@@ -31,7 +38,15 @@ use std::ops::DerefMut;
 // Private codes, especially unsafe codes, may assume the TreeVec and TreeSlice
 // are always valid. Hence, it must be always upheld.
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+// repr(C) is needed here because of the memory representation of TreeView,
+// check the comment on TreeView.
+#[derive(Clone, PartialEq, Eq, Hash)]
+#[repr(C)]
+struct Node<T> {
+    descendant_count: usize,
+    content: T,
+}
+#[derive(Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct Tree<T> {
     pub content: T,
     pub children: TreeVec<T>,
@@ -47,22 +62,63 @@ impl<T> Tree<T> {
         Self { content, children }
     }
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct TreeRef<'a, T> {
-    pub content: &'a T,
-    pub children: &'a TreeSlice<T>,
+// TreeView have similar representation as Node but with contiguous TreeSlice in
+// the end, repr(C) on Node and TreeView is necessary because of this.
+#[derive(Eq)]
+#[repr(C)]
+pub struct TreeView<T> {
+    _descendant_count: usize,
+    pub content: T,
+    pub children: TreeSlice<T>,
 }
-#[derive(PartialEq, Eq, Hash, Debug)]
-pub struct TreeMutRef<'a, T> {
-    pub content: &'a mut T,
-    pub children: &'a mut TreeSlice<T>,
+impl<T> TreeView<T> {
+    /// # Safety
+    ///
+    /// The slice must be a valid internal representation of TreeSlice
+    /// containing exactly one Tree
+    unsafe fn from_slice(slice: &[Node<T>]) -> &Self {
+        let slice = slice.get_unchecked(..slice.len() - 1);
+        let view_ptr = slice as *const _ as *const Self;
+        &*view_ptr
+    }
+    /// # Safety
+    ///
+    /// The slice must be a valid internal representation of TreeSlice
+    /// containing exactly one Tree
+    unsafe fn from_slice_mut(slice: &mut [Node<T>]) -> &mut Self {
+        let slice = slice.get_unchecked_mut(..slice.len() - 1);
+        let view_ptr = slice as *mut _ as *mut Self;
+        &mut *view_ptr
+    }
+}
+impl<T: PartialEq> PartialEq for TreeView<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.content == other.content && self.children == other.children
+    }
+}
+impl<T: Hash> Hash for TreeView<T> {
+    fn hash<H>(&self, hasher: &mut H)
+    where
+        H: Hasher,
+    {
+        self.content.hash(hasher);
+        self.children.hash(hasher);
+    }
+}
+impl<T: Debug> Debug for TreeView<T> {
+    fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
+        formatter
+            .debug_struct("TreeView")
+            .field("content", &self.content)
+            .field("children", &&self.children)
+            .finish()
+    }
 }
 // Methods `from_vec`, `into_vec`, `as_vec`, and `as_vec_mut` should be used
 // instead of directly accessing .0 to better reason out the validity of the
 // underlying vector (some methods are marked as unsafe)
 #[derive(Clone, PartialEq, Eq, Hash)]
-#[repr(transparent)]
-pub struct TreeVec<T>(Vec<(T, usize)>);
+pub struct TreeVec<T>(Vec<Node<T>>);
 impl<T> Default for TreeVec<T> {
     fn default() -> Self {
         Self::new()
@@ -72,7 +128,7 @@ impl<T> TreeVec<T> {
     /// # Safety
     ///
     /// The vector must represent a valid internal representation of TreeVec
-    unsafe fn from_vec(vec: Vec<(T, usize)>) -> Self {
+    unsafe fn from_vec(vec: Vec<Node<T>>) -> Self {
         Self(vec)
     }
     pub fn new() -> Self {
@@ -86,7 +142,10 @@ impl<T> TreeVec<T> {
             let vec = self.as_vec_mut();
             let mut children = tree.children.into_vec();
             vec.reserve(1 + children.len());
-            vec.push((tree.content, children.len()));
+            vec.push(Node {
+                descendant_count: children.len(),
+                content: tree.content,
+            });
             vec.append(&mut children);
         }
     }
@@ -98,17 +157,17 @@ impl<T> TreeVec<T> {
     pub fn reserve(&mut self, additional: usize) {
         unsafe { self.as_vec_mut().reserve(additional) }
     }
-    fn into_vec(self) -> Vec<(T, usize)> {
+    fn into_vec(self) -> Vec<Node<T>> {
         self.0
     }
-    fn as_vec(&self) -> &Vec<(T, usize)> {
+    fn as_vec(&self) -> &Vec<Node<T>> {
         &self.0
     }
     /// # Safety
     ///
     /// The borrowed vector must maintain a valid internal representation of
     /// TreeVec
-    unsafe fn as_vec_mut(&mut self) -> &mut Vec<(T, usize)> {
+    unsafe fn as_vec_mut(&mut self) -> &mut Vec<Node<T>> {
         &mut self.0
     }
     fn into_first_and_rest(self) -> Option<(Tree<T>, Self)> {
@@ -116,11 +175,11 @@ impl<T> TreeVec<T> {
         if vec.is_empty() {
             None
         } else {
-            let (content, len) = vec.remove(0);
-            let rest = vec.split_off(len);
+            let first = vec.remove(0);
+            let rest = vec.split_off(first.descendant_count);
             unsafe {
                 let tree = Tree {
-                    content,
+                    content: first.content,
                     children: Self::from_vec(vec),
                 };
                 Some((tree, Self::from_vec(rest)))
@@ -146,6 +205,16 @@ impl<T> Borrow<TreeSlice<T>> for TreeVec<T> {
 }
 impl<T> BorrowMut<TreeSlice<T>> for TreeVec<T> {
     fn borrow_mut(&mut self) -> &mut TreeSlice<T> {
+        self
+    }
+}
+impl<T> AsRef<TreeSlice<T>> for TreeVec<T> {
+    fn as_ref(&self) -> &TreeSlice<T> {
+        self
+    }
+}
+impl<T> AsMut<TreeSlice<T>> for TreeVec<T> {
+    fn as_mut(&mut self) -> &mut TreeSlice<T> {
         self
     }
 }
@@ -182,28 +251,31 @@ impl<N> FromIterator<Tree<N>> for TreeVec<N> {
     }
 }
 impl<T: Debug> Debug for TreeVec<T> {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
         TreeSlice::fmt(self, formatter)
     }
 }
 // Methods `from_slice`, `from_mut_slice`, `as_slice`, and `as_slice_mut` should
 // be used instead of directly accessing .0 to better reason out the validity of
 // the underlying slice (some methods are marked as unsafe)
+//
+// repr(transparent) is necessary so we can safely transmute [Node<T>] into
+// TreeSlice<T>
 #[derive(PartialEq, Eq, Hash)]
 #[repr(transparent)]
-pub struct TreeSlice<T>([(T, usize)]);
+pub struct TreeSlice<T>([Node<T>]);
 impl<T> TreeSlice<T> {
     /// # Safety
     ///
     /// The slice must represent a valid internal representation of TreeSlice
-    unsafe fn from_slice(slice: &[(T, usize)]) -> &Self {
+    unsafe fn from_slice(slice: &[Node<T>]) -> &Self {
         let ptr = slice as *const _ as *const Self;
         &*ptr
     }
     /// # Safety
     ///
     /// The slice must represent a valid internal representation of TreeSlice
-    unsafe fn from_mut_slice(slice: &mut [(T, usize)]) -> &mut Self {
+    unsafe fn from_mut_slice(slice: &mut [Node<T>]) -> &mut Self {
         let ptr = slice as *mut _ as *mut Self;
         &mut *ptr
     }
@@ -228,14 +300,14 @@ impl<T> TreeSlice<T> {
     {
         unsafe { TreeVec::from_vec(self.as_slice().to_vec()) }
     }
-    fn as_slice(&self) -> &[(T, usize)] {
+    fn as_slice(&self) -> &[Node<T>] {
         &self.0
     }
     /// # Safety
     ///
     /// The borrowed slice must stay a valid internal representation of
     /// TreeSlice. The easiest way is to keep the descendant counts constant.
-    unsafe fn as_slice_mut(&mut self) -> &mut [(T, usize)] {
+    unsafe fn as_slice_mut(&mut self) -> &mut [Node<T>] {
         &mut self.0
     }
 }
@@ -256,21 +328,21 @@ impl<T: Clone> ToOwned for TreeSlice<T> {
     }
 }
 impl<'a, T> IntoIterator for &'a TreeSlice<T> {
-    type Item = TreeRef<'a, T>;
+    type Item = &'a TreeView<T>;
     type IntoIter = Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
         Iter::new(self)
     }
 }
 impl<'a, T> IntoIterator for &'a mut TreeSlice<T> {
-    type Item = TreeMutRef<'a, T>;
+    type Item = &'a mut TreeView<T>;
     type IntoIter = IterMut<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
         IterMut::new(self)
     }
 }
 impl<T: Debug> Debug for TreeSlice<T> {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, formatter: &mut Formatter) -> FmtResult {
         formatter.debug_list().entries(self).finish()
     }
 }
@@ -285,9 +357,9 @@ impl<T: Debug> Debug for TreeSlice<T> {
 //
 // `Iter::new` provides valid abstraction
 pub struct Iter<'a, T> {
-    start: *const (T, usize),
-    end: *const (T, usize),
-    phantom: PhantomData<&'a (T, usize)>,
+    start: *const Node<T>,
+    end: *const Node<T>,
+    phantom: PhantomData<&'a Node<T>>,
 }
 impl<'a, T> Iter<'a, T> {
     fn new(slice: &'a TreeSlice<T>) -> Self {
@@ -300,19 +372,16 @@ impl<'a, T> Iter<'a, T> {
     }
 }
 impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = TreeRef<'a, T>;
+    type Item = &'a TreeView<T>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.start == self.end {
             None
         } else {
             unsafe {
-                let (content, len) = &*self.start;
-                let children = std::slice::from_raw_parts(self.start.add(1), *len);
-                self.start = self.start.add(*len + 1);
-                Some(TreeRef {
-                    content,
-                    children: TreeSlice::from_slice(children),
-                })
+                let descendant_count = (*self.start).descendant_count;
+                let first_slice = std::slice::from_raw_parts(self.start, descendant_count + 1);
+                self.start = self.start.add(descendant_count + 1);
+                Some(TreeView::from_slice(first_slice))
             }
         }
     }
@@ -327,9 +396,9 @@ impl<'a, T> FusedIterator for Iter<'a, T> {}
 //
 // `IterMut::new` provides valid abstraction
 pub struct IterMut<'a, T> {
-    start: *mut (T, usize),
-    end: *mut (T, usize),
-    phantom: PhantomData<&'a mut (T, usize)>,
+    start: *mut Node<T>,
+    end: *mut Node<T>,
+    phantom: PhantomData<&'a mut Node<T>>,
 }
 impl<'a, T> IterMut<'a, T> {
     fn new(slice: &'a mut TreeSlice<T>) -> Self {
@@ -344,19 +413,16 @@ impl<'a, T> IterMut<'a, T> {
     }
 }
 impl<'a, T> Iterator for IterMut<'a, T> {
-    type Item = TreeMutRef<'a, T>;
+    type Item = &'a mut TreeView<T>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.start == self.end {
             None
         } else {
             unsafe {
-                let (content, len) = &mut *self.start;
-                let children = std::slice::from_raw_parts_mut(self.start.add(1), *len);
-                self.start = self.start.add(*len + 1);
-                Some(TreeMutRef {
-                    content,
-                    children: TreeSlice::from_mut_slice(children),
-                })
+                let descendant_count = (*self.start).descendant_count;
+                let first_slice = std::slice::from_raw_parts_mut(self.start, descendant_count + 1);
+                self.start = self.start.add(descendant_count + 1);
+                Some(TreeView::from_slice_mut(first_slice))
             }
         }
     }
@@ -437,31 +503,31 @@ mod test {
         };
         let mut iter = tree_vec.iter();
         let tree = iter.next().unwrap();
-        assert_eq!(*tree.content, 7);
+        assert_eq!(tree.content, 7);
         {
             let mut iter = tree.children.iter();
             let tree = iter.next().unwrap();
-            assert_eq!(*tree.content, 2);
+            assert_eq!(tree.content, 2);
             assert!(tree.children.is_empty());
             let tree = iter.next().unwrap();
-            assert_eq!(*tree.content, 10);
+            assert_eq!(tree.content, 10);
             assert!(tree.children.is_empty());
             let tree = iter.next().unwrap();
-            assert_eq!(*tree.content, 6);
+            assert_eq!(tree.content, 6);
             {
                 let mut iter = tree.children.iter();
                 let tree = iter.next().unwrap();
-                assert_eq!(*tree.content, 5);
+                assert_eq!(tree.content, 5);
                 assert!(tree.children.is_empty());
                 let tree = iter.next().unwrap();
-                assert_eq!(*tree.content, 11);
+                assert_eq!(tree.content, 11);
                 assert!(tree.children.is_empty());
                 assert!(iter.next().is_none());
             }
             assert!(iter.next().is_none());
         }
         let tree = iter.next().unwrap();
-        assert_eq!(*tree.content, 5);
+        assert_eq!(tree.content, 5);
         assert!(tree.children.is_empty());
         assert!(iter.next().is_none());
     }
