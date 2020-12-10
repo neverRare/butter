@@ -11,6 +11,8 @@ use std::marker::PhantomData;
 use std::mem::swap;
 use std::ops::Deref;
 use std::ops::DerefMut;
+use std::ptr::slice_from_raw_parts;
+use std::ptr::slice_from_raw_parts_mut;
 
 // Side note for unsafe codes written here.
 //
@@ -74,20 +76,18 @@ pub struct TreeView<T> {
 impl<T> TreeView<T> {
     /// # Safety
     ///
-    /// The slice must be a valid internal representation of TreeSlice
-    /// containing exactly one Tree
-    unsafe fn from_slice(slice: &[Node<T>]) -> &Self {
-        let slice = slice.get_unchecked(..slice.len() - 1);
-        let view_ptr = slice as *const _ as *const Self;
+    /// `node` must be within TreeSlice or a slice representing a valid internal
+    /// representation of TreeSlice
+    unsafe fn from_node(node: &Node<T>) -> &Self {
+        let view_ptr = slice_from_raw_parts(node as *const _, node.descendant_count) as *const Self;
         &*view_ptr
     }
     /// # Safety
     ///
-    /// The slice must be a valid internal representation of TreeSlice
-    /// containing exactly one Tree
-    unsafe fn from_slice_mut(slice: &mut [Node<T>]) -> &mut Self {
-        let slice = slice.get_unchecked_mut(..slice.len() - 1);
-        let view_ptr = slice as *mut _ as *mut Self;
+    /// `node` must be within TreeSlice or a slice representing a valid internal
+    /// representation of TreeSlice
+    unsafe fn from_node_mut(node: &mut Node<T>) -> &mut Self {
+        let view_ptr = slice_from_raw_parts_mut(node as *mut _, node.descendant_count) as *mut Self;
         &mut *view_ptr
     }
 }
@@ -378,10 +378,10 @@ impl<'a, T> Iterator for Iter<'a, T> {
             None
         } else {
             unsafe {
-                let descendant_count = (*self.start).descendant_count;
-                let first_slice = std::slice::from_raw_parts(self.start, descendant_count + 1);
+                let node = &*self.start;
+                let descendant_count = node.descendant_count;
                 self.start = self.start.add(descendant_count + 1);
-                Some(TreeView::from_slice(first_slice))
+                Some(TreeView::from_node(node))
             }
         }
     }
@@ -419,10 +419,10 @@ impl<'a, T> Iterator for IterMut<'a, T> {
             None
         } else {
             unsafe {
-                let descendant_count = (*self.start).descendant_count;
-                let first_slice = std::slice::from_raw_parts_mut(self.start, descendant_count + 1);
+                let node = &mut *self.start;
+                let descendant_count = node.descendant_count;
                 self.start = self.start.add(descendant_count + 1);
-                Some(TreeView::from_slice_mut(first_slice))
+                Some(TreeView::from_node_mut(node))
             }
         }
     }
