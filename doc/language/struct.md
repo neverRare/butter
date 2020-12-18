@@ -26,13 +26,15 @@ brand = "a nice brand";
 car = (color, brand);
 ```
 
-Grouping and struct shares the same delimiter `()`. There is a rare case where ambiguity can arise: When defining a struct with single field using the shortcut syntax. Butter considers this as grouping. If struct is expected, you can easily add a trailing comma.
+[Grouping] and struct shares the same delimiter `()`. There is a rare case where ambiguity can arise: When defining a struct with single field using the shortcut syntax. Butter considers this as grouping. If struct is expected, you can easily add a trailing comma.
+
+[Grouping]: ./group.md
 
 ```butter
 color = "red";
 
 car = (red);  -- grouping, similar to `red`
-car = (red,);  -- struct, similar to `(red: red)`
+car = (red,);  -- struct, similar to `(red = red)`
 ```
 
 ## Field access

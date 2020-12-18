@@ -12,7 +12,7 @@ A high level documentation of various operation in Butter. It describes its synt
 - [Comment](language/comment.md)
 - [Control flow](language/control_flow.md)
 - [Function](language/function.md)
-- [Module](language/module.md)
+- [Group](language/group.md)
 - [Null and optional](language/null_and_optional.md)
 - [Number](language/number.md)
 - [Miscellaneous](language/miscellaneous.md)
