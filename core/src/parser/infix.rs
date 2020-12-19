@@ -8,7 +8,6 @@ use crate::parser::Error;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
-use crate::parser::SpanToken;
 use util::aggregate_error;
 use util::iter::PeekableIter;
 use util::join_trees;
@@ -88,21 +87,18 @@ fn property_access<'a>(
     left: ParseResult<'a>,
     span: &'a str,
 ) -> ParseResult<'a> {
-    let right = if let Some(SpanToken {
-        span: _,
-        token: Token::Ident,
-    }) = parser.peek()
-    {
-        let span = parser.next().unwrap().span;
-        Ok(Tree::new(Node {
-            span,
-            node: NodeType::Ident,
-        }))
-    } else {
-        Err(vec![Error {
+    let right = match parser.peek().map(|token| token.token) {
+        Some(Token::Ident) => {
+            let span = parser.next().unwrap().span;
+            Ok(Tree::new(Node {
+                span,
+                node: NodeType::Ident,
+            }))
+        }
+        Some(_) | None => Err(vec![Error {
             span: &span[span.len()..],
             error: ErrorType::NoIdent,
-        }])
+        }]),
     };
     let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;
     Ok(Tree {

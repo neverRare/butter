@@ -66,15 +66,12 @@ impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {
         let src = self.src;
-        let peeked = match self.peek() {
-            Some(token) => token,
-            None => {
-                return Err(vec![Error {
-                    span: &src[src.len()..],
-                    error: ErrorType::NoExpr,
-                }]);
-            }
-        };
+        let peeked = self.peek().ok_or_else(|| {
+            vec![Error {
+                span: &src[src.len()..],
+                error: ErrorType::NoExpr,
+            }]
+        })?;
         if Parser::valid_prefix(peeked.token) {
             return Err(vec![Error {
                 span: &peeked.span[..0],
