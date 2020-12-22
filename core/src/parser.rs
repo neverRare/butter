@@ -5,9 +5,10 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
+use std::iter::FusedIterator;
 use std::iter::Map;
 use std::iter::Peekable;
-use util::iter::PeekableIter;
+use util::iter::PeekableIterator;
 use util::lexer::LexFilter;
 use util::lexer::SpanFilterIter;
 use util::parser::ParserIter;
@@ -57,11 +58,12 @@ impl<'a> Iterator for Parser<'a> {
         self.iter.next()
     }
 }
-impl<'a> PeekableIter for Parser<'a> {
+impl<'a> PeekableIterator for Parser<'a> {
     fn peek(&mut self) -> Option<&Self::Item> {
         self.iter.peek()
     }
 }
+impl<'a> FusedIterator for Parser<'a> {}
 impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {

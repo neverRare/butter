@@ -9,7 +9,7 @@ use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
 use util::aggregate_error;
-use util::iter::PeekableIter;
+use util::iter::PeekableIterator;
 use util::join_trees;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;

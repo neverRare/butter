@@ -1,4 +1,5 @@
 use std::iter::Filter;
+use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::num::NonZeroUsize;
 
@@ -57,6 +58,7 @@ where
         (len.min(1), Some(len))
     }
 }
+impl<'a, T> FusedIterator for Lexer<'a, T> where T: Lex<'a> {}
 pub struct SpanLexer<'a, T> {
     src: &'a str,
     _phantom: PhantomData<fn() -> T>,
@@ -90,6 +92,7 @@ where
         (len.min(1), Some(len))
     }
 }
+impl<'a, T> FusedIterator for SpanLexer<'a, T> where T: Lex<'a> {}
 #[macro_export]
 macro_rules! match_lex {
     ($src:expr; $($pat:pat => $expr:expr,)* => else $last_pat:pat => $last_expr:expr $(,)?) => {{

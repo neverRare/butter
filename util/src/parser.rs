@@ -1,6 +1,6 @@
-use crate::iter::PeekableIter;
+use crate::iter::PeekableIterator;
 
-pub trait ParserIter: PeekableIter {
+pub trait ParserIter: PeekableIterator {
     type Node;
     fn prefix_parse(&mut self) -> Self::Node;
     fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node;
@@ -22,7 +22,7 @@ pub trait ParserIter: PeekableIter {
 }
 #[cfg(test)]
 mod test {
-    use crate::iter::PeekableIter;
+    use crate::iter::PeekableIterator;
     use crate::parser::ParserIter;
     use crate::tree_vec;
     use crate::tree_vec::Tree;
@@ -50,12 +50,12 @@ mod test {
             T::next(&mut self.0)
         }
     }
-    impl<T: PeekableIter> PeekableIter for Parser<T> {
+    impl<T: PeekableIterator> PeekableIterator for Parser<T> {
         fn peek(&mut self) -> Option<&Self::Item> {
             T::peek(&mut self.0)
         }
     }
-    impl<T: PeekableIter<Item = Token>> ParserIter for Parser<T> {
+    impl<T: PeekableIterator<Item = Token>> ParserIter for Parser<T> {
         type Node = Option<Tree<Node>>;
         fn prefix_parse(&mut self) -> Self::Node {
             match self.peek()? {
