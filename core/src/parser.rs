@@ -115,7 +115,8 @@ impl<'a> ParserIter for Parser<'a> {
     fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node {
         match infix.token {
             Token::Operator(operator) => infix::operator(self, left_node, infix.span, operator),
-            Token::Bracket(Opening::Open, bracket) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
             _ => panic!("expected infix token, found {:?}", infix.token),
         }
     }

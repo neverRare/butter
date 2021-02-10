@@ -106,7 +106,6 @@ impl NodeType {
                 | Self::Declare
                 | Self::FunDeclare
                 | Self::Else
-                | Self::For
                 | Self::While
         )
     }
