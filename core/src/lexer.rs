@@ -79,11 +79,7 @@ impl<'a> Lex<'a> for Token<'a> {
 }
 impl<'a> LexFilter<'a> for Token<'a> {
     fn significant(&self) -> bool {
-        match self {
-            Self::Whitespace => false,
-            Self::Comment => false,
-            _ => true,
-        }
+        !matches!(self, Self::Whitespace | Self::Comment)
     }
 }
 #[cfg(test)]
