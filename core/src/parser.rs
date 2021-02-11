@@ -5,6 +5,7 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
 use crate::parser::node_type::NodeType;
+use crate::parser::string::parse_content;
 use std::iter::FusedIterator;
 use std::iter::Map;
 use std::iter::Peekable;
@@ -19,6 +20,7 @@ mod infix;
 mod node_type;
 mod number;
 mod prefix;
+mod string;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 struct Node<'a> {
@@ -98,8 +100,30 @@ impl<'a> ParserIter for Parser<'a> {
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Brace) => self.parse_block_rest(),
-            Token::Str(content) => todo!(),
-            Token::Char(content) => todo!(),
+            Token::Str(content) => Ok(Tree::with_children(
+                Node {
+                    span: prefix.span,
+                    node: NodeType::Str,
+                },
+                parse_content(content)?,
+            )),
+            Token::Char(content) => {
+                let children = parse_content(content)?;
+                if children.len() == 1 {
+                    Ok(Tree::with_children(
+                        Node {
+                            span: prefix.span,
+                            node: NodeType::Str,
+                        },
+                        children,
+                    ))
+                } else {
+                    Err(vec![Error {
+                        span: prefix.span,
+                        error: ErrorType::NonSingleChar,
+                    }])
+                }
+            }
             Token::Ident => todo!(),
             Token::UnterminatedQuote => Err(vec![Error {
                 span: prefix.span,

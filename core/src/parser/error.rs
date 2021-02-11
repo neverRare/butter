@@ -8,4 +8,6 @@ pub enum ErrorType {
     UnterminatedQuote,
     IntegerOverflow,
     InvalidNumber,
+    InvalidEscape,
+    NonSingleChar,
 }

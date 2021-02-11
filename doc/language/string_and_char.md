@@ -22,5 +22,3 @@ letter = 'a';
 | `\v`                     | Vertical tab     |
 | `\0`                     | Null             |
 | `\xXX`                   | UTF-8 code unit  |
-| `\uXXXX`                 | UTF-16 code unit |
-| `\u{X}` ... `\u{XXXXXX}` | UTF-32 code unit |
