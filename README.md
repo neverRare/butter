@@ -23,15 +23,10 @@ reverse(arr) => {
 Butter is designed to be
 
 - Friendly, for experienced and especially for beginners
-- Compiled to fast and memory-efficiency binary
+- Compiled to fast and memory-efficient binary
 
 Butter should have the following
 
 - Simplicity and consistency
 - Lack of visible low-level concepts
 - Speed and memory-efficiency of resulting software
-
-The following are not a priority yet considered for Butter
-
-- Compilation speed and memory-efficiency
-- Ease of implementation
