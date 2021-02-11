@@ -109,7 +109,7 @@ impl<'a> ParserIter for Parser<'a> {
             )),
             Token::Char(content) => {
                 let children = parse_content(content)?;
-                if children.len() == 1 {
+                if children.total() == 1 {
                     Ok(Tree::with_children(
                         Node {
                             span: prefix.span,
@@ -204,15 +204,15 @@ impl<'a> Parser<'a> {
             Token::Separator(_) => false,
             Token::Bracket(Opening::Open, _) => true,
             Token::Bracket(Opening::Close, _) => false,
-            Token::Operator(operator) => match operator {
-                Operator::Plus => true,
-                Operator::Minus => true,
-                Operator::Bang => true,
-                Operator::Amp => true,
-                Operator::DoubleAmp => true,
-                Operator::RightThickArrow => true,
-                _ => false,
-            },
+            Token::Operator(operator) => matches!(
+                operator,
+                Operator::Plus
+                    | Operator::Minus
+                    | Operator::Bang
+                    | Operator::Amp
+                    | Operator::DoubleAmp
+                    | Operator::RightThickArrow
+            ),
             Token::InvalidNumber => true,
             Token::UnterminatedQuote => true,
             Token::Unknown => false,
