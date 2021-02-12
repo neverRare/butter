@@ -14,8 +14,8 @@ pub enum Sign {
 pub struct Float<'a> {
     pub whole: &'a str,
     pub decimal: &'a str,
-    pub mantissa_sign: Sign,
-    pub mantissa: &'a str,
+    pub exp_sign: Sign,
+    pub exp: &'a str,
 }
 impl<'a> Lex<'a> for Float<'a> {
     fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
@@ -30,8 +30,8 @@ impl<'a> Lex<'a> for Float<'a> {
                 let float = Self {
                     whole: whole.trim_start_matches(INSIGNIFICANT_DIGIT_START),
                     decimal: decimal.trim_end_matches(INSIGNIFICANT_DIGIT_START),
-                    mantissa_sign: Sign::Plus,
-                    mantissa: &src[len..len],
+                    exp_sign: Sign::Plus,
+                    exp: &src[len..len],
                 };
                 Some((NonZeroUsize::new(len).unwrap(), float))
             }

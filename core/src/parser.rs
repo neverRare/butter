@@ -16,9 +16,10 @@ use util::parser::ParserIter;
 use util::tree_vec::Tree;
 
 mod error;
+mod float;
 mod infix;
+mod integer;
 mod node_type;
-mod number;
 mod prefix;
 mod string;
 
@@ -83,14 +84,22 @@ impl<'a> ParserIter for Parser<'a> {
         match prefix.token {
             Token::Keyword(keyword) => prefix::keyword(self, prefix.span, keyword),
             Token::Operator(operator) => prefix::operator(self, prefix.span, operator),
-            Token::Int(radix, num) => match number::parse_number(radix.as_int() as u64, num) {
+            Token::Int(radix, num) => {
+                match integer::parse_u64(radix.as_int() as u64, num.as_bytes()) {
+                    Some(num) => Ok(Tree::new(Node {
+                        span: prefix.span,
+                        node: NodeType::UInt(num),
+                    })),
+                    None => Err(error_start(prefix.span, ErrorType::IntegerOverflow)),
+                }
+            }
+            Token::Float(num) => match float::parse_float(num) {
                 Some(num) => Ok(Tree::new(Node {
                     span: prefix.span,
-                    node: NodeType::UInt(num),
+                    node: NodeType::Float(num),
                 })),
-                None => Err(error_start(prefix.span, ErrorType::IntegerOverflow)),
+                None => Err(error_start(prefix.span, ErrorType::ExpOverflow)),
             },
-            Token::Float(float) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Brace) => self.parse_block_rest(),

@@ -7,6 +7,9 @@ pub mod parser;
 pub mod span;
 pub mod tree_vec;
 
+pub fn compare_float(a: f64, b: f64) -> bool {
+    (a - b).abs() <= f64::EPSILON
+}
 pub fn aggregate_error<T, U, E>(left: Result<T, E>, right: Result<U, E>) -> Result<(T, U), E>
 where
     E: Extend<<E as IntoIterator>::Item> + IntoIterator,
