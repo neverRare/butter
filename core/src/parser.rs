@@ -94,23 +94,23 @@ impl<'a> ParserIter for Parser<'a> {
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Brace) => self.parse_block_rest(),
-            Token::Str(content) => Ok(Tree::with_children(
-                Node {
+            Token::Str(content) => Ok(Tree {
+                content: Node {
                     span: prefix.span,
                     node: NodeType::Str,
                 },
-                parse_content(content)?,
-            )),
+                children: parse_content(content)?,
+            }),
             Token::Char(content) => {
                 let children = parse_content(content)?;
                 if children.total() == 1 {
-                    Ok(Tree::with_children(
-                        Node {
+                    Ok(Tree {
+                        content: Node {
                             span: prefix.span,
                             node: NodeType::Char,
                         },
                         children,
-                    ))
+                    })
                 } else {
                     Err(error_start(prefix.span, ErrorType::NonSingleChar))
                 }
