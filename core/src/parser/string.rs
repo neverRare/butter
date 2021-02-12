@@ -8,8 +8,6 @@ use util::match_lex;
 use util::tree_vec::Tree;
 use util::tree_vec::TreeVec;
 
-// TODO unit tests
-
 struct SimpleEscape(u8);
 impl<'a> Lex<'a> for SimpleEscape {
     fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
