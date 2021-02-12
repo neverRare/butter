@@ -2,9 +2,9 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::assert_expr;
 use crate::parser::error::ErrorType;
+use crate::parser::error_start;
 use crate::parser::node_type::Binary;
 use crate::parser::node_type::NodeType;
-use crate::parser::Error;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
@@ -67,10 +67,7 @@ fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a>
         if node.content.node.place() {
             Ok(node)
         } else {
-            Err(vec![Error {
-                span: node.content.span,
-                error: ErrorType::NonPlace,
-            }])
+            Err(error_start(node.content.span, ErrorType::NonPlace))
         }
     });
     let (left, right) = aggregate_error(left, parser.parse_expr(19))?;
@@ -95,10 +92,7 @@ fn property_access<'a>(
                 node: NodeType::Ident,
             }))
         }
-        Some(_) | None => Err(vec![Error {
-            span: &span[span.len()..],
-            error: ErrorType::NoIdent,
-        }]),
+        Some(_) | None => Err(error_start(&span[span.len()..], ErrorType::NoIdent)),
     };
     let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;
     Ok(Tree {

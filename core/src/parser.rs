@@ -37,8 +37,11 @@ struct Error<'a> {
     span: &'a str,
     error: ErrorType,
 }
-type ParseResult<'a> = Result<Tree<Node<'a>>, Vec<Error<'a>>>;
-type OptionalParseResult<'a> = Result<Option<Tree<Node<'a>>>, Vec<Error<'a>>>;
+type ParserResult<'a, T> = Result<T, Vec<Error<'a>>>;
+fn error_start(span: &str, error: ErrorType) -> Vec<Error> {
+    vec![Error { span, error }]
+}
+type ParseResult<'a> = ParserResult<'a, Tree<Node<'a>>>;
 type RawParserMapper = for<'a> fn((&'a str, Token<'a>)) -> SpanToken<'a>;
 struct Parser<'a> {
     src: &'a str,
@@ -70,17 +73,11 @@ impl<'a> ParserIter for Parser<'a> {
     type Node = ParseResult<'a>;
     fn prefix_parse(&mut self) -> Self::Node {
         let src = self.src;
-        let peeked = self.peek().ok_or_else(|| {
-            vec![Error {
-                span: &src[src.len()..],
-                error: ErrorType::NoExpr,
-            }]
-        })?;
+        let peeked = self
+            .peek()
+            .ok_or_else(|| error_start(&src[src.len()..], ErrorType::NoExpr))?;
         if Parser::valid_prefix(peeked.token) {
-            return Err(vec![Error {
-                span: &peeked.span[..0],
-                error: ErrorType::NoExpr,
-            }]);
+            return Err(error_start(&peeked.span[..0], ErrorType::NoExpr));
         }
         let prefix = self.next().unwrap();
         match prefix.token {
@@ -91,10 +88,7 @@ impl<'a> ParserIter for Parser<'a> {
                     span: prefix.span,
                     node: NodeType::UInt(num),
                 })),
-                None => Err(vec![Error {
-                    span: prefix.span,
-                    error: ErrorType::IntegerOverflow,
-                }]),
+                None => Err(error_start(prefix.span, ErrorType::IntegerOverflow)),
             },
             Token::Float(float) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
@@ -118,21 +112,12 @@ impl<'a> ParserIter for Parser<'a> {
                         children,
                     ))
                 } else {
-                    Err(vec![Error {
-                        span: prefix.span,
-                        error: ErrorType::NonSingleChar,
-                    }])
+                    Err(error_start(prefix.span, ErrorType::NonSingleChar))
                 }
             }
             Token::Ident => todo!(),
-            Token::UnterminatedQuote => Err(vec![Error {
-                span: prefix.span,
-                error: ErrorType::UnterminatedQuote,
-            }]),
-            Token::InvalidNumber => Err(vec![Error {
-                span: prefix.span,
-                error: ErrorType::InvalidNumber,
-            }]),
+            Token::UnterminatedQuote => Err(error_start(prefix.span, ErrorType::UnterminatedQuote)),
+            Token::InvalidNumber => Err(error_start(prefix.span, ErrorType::InvalidNumber)),
             _ => unreachable!(),
         }
     }
@@ -221,7 +206,7 @@ impl<'a> Parser<'a> {
     fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
         self.partial_parse(precedence).and_then(assert_expr)
     }
-    fn parse_optional_expr(&mut self, precedence: u32) -> OptionalParseResult<'a> {
+    fn parse_optional_expr(&mut self, precedence: u32) -> ParserResult<'a, Option<Tree<Node<'a>>>> {
         let peeked = match self.peek() {
             Some(token) => token.token,
             None => return Ok(None),
@@ -240,9 +225,6 @@ fn assert_expr(node: Tree<Node>) -> ParseResult {
     if node.content.node.expr() {
         Ok(node)
     } else {
-        Err(vec![Error {
-            span: node.content.span,
-            error: ErrorType::NonExpr,
-        }])
+        Err(error_start(node.content.span, ErrorType::NonExpr))
     }
 }
