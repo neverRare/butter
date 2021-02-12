@@ -13,7 +13,7 @@ use util::tree_vec::TreeVec;
 struct SimpleEscape(u8);
 impl<'a> Lex<'a> for SimpleEscape {
     fn lex_first(src: &'a str) -> Option<(NonZeroUsize, Self)> {
-        if &src[0..1] == "\\" && src.len() > 1 {
+        if src.get(0..1) == Some("\\") && src.len() > 1 {
             let byte = match src.get(1..2)? {
                 "\\" => b'\\',
                 "\"" => b'"',
@@ -122,5 +122,60 @@ pub(super) fn parse_content(content: &str) -> Result<TreeVec<Node>, Vec<Error>> 
         Ok(chars)
     } else {
         Err(errors)
+    }
+}
+#[cfg(test)]
+mod test {
+    use crate::parser::parse_content;
+    use crate::parser::Node;
+    use crate::parser::NodeType;
+
+    #[test]
+    fn parse_string() {
+        assert_eq!(
+            parse_content(r"bomb\n\x0a💣"),
+            Ok(util::tree_vec! {
+                Node {
+                    span: "b",
+                    node: NodeType::CharInside(b'b'),
+                },
+                Node {
+                    span: "o",
+                    node: NodeType::CharInside(b'o'),
+                },
+                Node {
+                    span: "m",
+                    node: NodeType::CharInside(b'm'),
+                },
+                Node {
+                    span: "b",
+                    node: NodeType::CharInside(b'b'),
+                },
+                Node {
+                    span: r"\n",
+                    node: NodeType::CharInside(b'\n'),
+                },
+                Node {
+                    span: r"\x0a",
+                    node: NodeType::CharInside(b'\x0a'),
+                },
+                Node {
+                    span: "💣",
+                    node: NodeType::CharInside(0xf0),
+                },
+                Node {
+                    span: "💣",
+                    node: NodeType::CharInside(0x9f),
+                },
+                Node {
+                    span: "💣",
+                    node: NodeType::CharInside(0x92),
+                },
+                Node {
+                    span: "💣",
+                    node: NodeType::CharInside(0xa3),
+                },
+            }),
+        );
     }
 }
