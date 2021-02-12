@@ -1,3 +1,5 @@
+use crate::lexer::Bracket;
+use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::assert_expr;
@@ -21,9 +23,9 @@ pub(super) fn operator<'a>(
     operator: Operator,
 ) -> ParseResult<'a> {
     match operator {
-        Operator::Dot => property_access(parser, left, span),
+        Operator::Dot => property_access(parser, left, span, NodeType::Property),
         Operator::LeftArrow => assign(parser, left),
-        Operator::Question => todo!(),
+        Operator::Question => question(parser, left, span),
         operator => expr_operator(parser, left, operator),
     }
 }
@@ -83,6 +85,7 @@ fn property_access<'a>(
     parser: &mut Parser<'a>,
     left: ParseResult<'a>,
     span: &'a str,
+    node: NodeType,
 ) -> ParseResult<'a> {
     let right = match parser.peek().map(|token| token.token) {
         Some(Token::Ident) => {
@@ -98,8 +101,17 @@ fn property_access<'a>(
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, left.content.span, right.content.span),
-            node: NodeType::Property,
+            node,
         },
         children: join_trees![left, right],
     })
+}
+fn question<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>, span: &'a str) -> ParseResult<'a> {
+    match parser.peek().map(|token| token.token) {
+        Some(Token::Operator(Operator::Dot)) => {
+            property_access(parser, left, span, NodeType::OptionalProperty)
+        }
+        Some(Token::Bracket(Opening::Open, Bracket::Bracket)) => todo!(),
+        Some(_) | None => Err(error_start(&span[span.len()..], ErrorType::NoOptionalChain)),
+    }
 }

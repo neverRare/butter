@@ -3,6 +3,7 @@ pub enum ErrorType {
     NonPlace,
     NonExpr,
     NoIdent,
+    NoOptionalChain,
     NoExpr,
     UnknownToken,
     UnterminatedQuote,
