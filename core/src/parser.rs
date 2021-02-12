@@ -113,7 +113,7 @@ impl<'a> ParserIter for Parser<'a> {
                     Ok(Tree::with_children(
                         Node {
                             span: prefix.span,
-                            node: NodeType::Str,
+                            node: NodeType::Char,
                         },
                         children,
                     ))
