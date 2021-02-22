@@ -41,7 +41,7 @@ pub(super) fn keyword<'a>(
         Keyword::If => todo!(),
         Keyword::For => todo!(),
         Keyword::Loop => parse_loop(parser, span),
-        Keyword::While => todo!(),
+        Keyword::While => parse_while(parser, span),
         Keyword::Break => parse_break(parser, span),
         Keyword::Continue => Ok(parse_continue(parser, span)),
         Keyword::Return => parse_return(parser, span),
@@ -175,5 +175,16 @@ fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
             node: NodeType::Loop,
         },
         children: block.children,
+    })
+}
+fn parse_while<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let condition = parser.partial_parse(0)?;
+    let block = parse_block(parser)?;
+    Ok(Tree {
+        content: Node {
+            span: span_from_spans(parser.src, span, block.content.span),
+            node: NodeType::While,
+        },
+        children: join_trees![condition, block],
     })
 }
