@@ -41,7 +41,7 @@ pub(super) fn keyword<'a>(
         Keyword::Loop => todo!(),
         Keyword::While => todo!(),
         Keyword::Break => parse_break(parser, span),
-        Keyword::Continue => parse_continue(parser, span),
+        Keyword::Continue => Ok(parse_continue(parser, span)),
         Keyword::Return => parse_return(parser, span),
         _ => panic!("expected prefix keyword, found {:?}", keyword),
     }
@@ -64,9 +64,9 @@ fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         children: join_trees![operand],
     })
 }
-fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> Tree<Node<'a>> {
     let label = optional_label(parser);
-    Ok(Tree {
+    Tree {
         content: Node {
             span: match &label {
                 Some(label) => span_from_spans(parser.src, span, label.content.span),
@@ -75,7 +75,7 @@ fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a>
             node: NodeType::Continue,
         },
         children: label.into_iter().collect(),
-    })
+    }
 }
 fn parse_break<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     let label = optional_label(parser);
@@ -138,7 +138,7 @@ fn unary_operator<'a>(
 }
 fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     let operand = parser.parse_expr(90)?;
-    assert!(span == "&&");
+    debug_assert!(span == "&&");
     Ok(Tree {
         content: Node {
             span: &span[..1],
