@@ -212,26 +212,16 @@ impl<'a> Parser<'a> {
             Token::Unknown => false,
         }
     }
-    fn parse_expr(&mut self, precedence: u32) -> ParseResult<'a> {
-        self.partial_parse(precedence).and_then(assert_expr)
-    }
     fn parse_optional_expr(&mut self, precedence: u32) -> ParserResult<'a, Option<Tree<Node<'a>>>> {
         let peeked = match self.peek() {
             Some(token) => token.token,
             None => return Ok(None),
         };
         if Self::valid_prefix(peeked) {
-            self.parse_expr(precedence).map(Some)
+            self.partial_parse(precedence).map(Some)
         } else {
             Ok(None)
         }
-    }
-}
-fn assert_expr(node: Tree<Node>) -> ParseResult {
-    if node.content.node.expr() {
-        Ok(node)
-    } else {
-        Err(error_start(node.content.span, ErrorType::NonExpr))
     }
 }
 fn parse_block_rest<'a>(parser: &mut Parser<'a>, left_bracket_span: &'a str) -> ParseResult<'a> {

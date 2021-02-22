@@ -9,6 +9,7 @@ use crate::parser::ParseResult;
 use crate::parser::Parser;
 use util::iter::PeekableIterator;
 use util::join_trees;
+use util::parser::ParserIter;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
 
@@ -56,7 +57,7 @@ fn keyword_literal(keyword: Keyword) -> NodeType {
     }
 }
 fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
-    let operand = parser.parse_expr(90)?;
+    let operand = parser.partial_parse(90)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, operand.content.span),
@@ -83,7 +84,7 @@ fn parse_break<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     let expr =
         if let Some(Token::Operator(Operator::Equal)) = parser.peek().map(|token| token.token) {
             parser.next();
-            Some(parser.parse_expr(10)?)
+            Some(parser.partial_parse(10)?)
         } else {
             None
         };
@@ -128,7 +129,7 @@ fn unary_operator<'a>(
         Operator::Amp => Unary::Ref,
         operator => panic!("expected expression operator, found {:?}", operator),
     };
-    let operand = parser.parse_expr(90)?;
+    let operand = parser.partial_parse(90)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, operand.content.span),
@@ -138,7 +139,7 @@ fn unary_operator<'a>(
     })
 }
 fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
-    let operand = parser.parse_expr(90)?;
+    let operand = parser.partial_parse(90)?;
     debug_assert!(span == "&&");
     Ok(Tree {
         content: Node {
@@ -173,6 +174,6 @@ fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
             span: span_from_spans(parser.src, span, block.content.span),
             node: NodeType::Loop,
         },
-        children: join_trees![block],
+        children: block.children,
     })
 }

@@ -2,7 +2,6 @@ use crate::lexer::Bracket;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
-use crate::parser::assert_expr;
 use crate::parser::error::ErrorType;
 use crate::parser::error_start;
 use crate::parser::node_type::Binary;
@@ -13,6 +12,7 @@ use crate::parser::Parser;
 use util::aggregate_error;
 use util::iter::PeekableIterator;
 use util::join_trees;
+use util::parser::ParserIter;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
 
@@ -55,7 +55,7 @@ fn expr_operator<'a>(
         Operator::DoubleQuestion => (Binary::NullOr, 30),
         operator => panic!("expected expression operator, found {:?}", operator),
     };
-    let (left, right) = aggregate_error(left.and_then(assert_expr), parser.parse_expr(precedence))?;
+    let (left, right) = aggregate_error(left, parser.partial_parse(precedence))?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, left.content.span, right.content.span),
@@ -72,7 +72,7 @@ fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a>
             Err(error_start(node.content.span, ErrorType::NonPlace))
         }
     });
-    let (left, right) = aggregate_error(left, parser.parse_expr(19))?;
+    let (left, right) = aggregate_error(left, parser.partial_parse(19))?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, left.content.span, right.content.span),
@@ -97,7 +97,7 @@ fn property_access<'a>(
         }
         Some(_) | None => Err(error_start(&span[span.len()..], ErrorType::NoIdent)),
     };
-    let (left, right) = aggregate_error(left.and_then(assert_expr), right)?;
+    let (left, right) = aggregate_error(left, right)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, left.content.span, right.content.span),

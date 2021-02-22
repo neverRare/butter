@@ -89,18 +89,9 @@ pub enum NodeType {
 }
 impl NodeType {
     pub fn place(self) -> bool {
-        matches!(self, Self::Ident | Self::Property | Self::Index | Self::Unary(Unary::Ref))
-    }
-    pub fn expr(self) -> bool {
-        !matches!(
+        matches!(
             self,
-            Self::SplatOrRest
-                | Self::Label
-                | Self::CharInside(_)
-                | Self::Declare
-                | Self::FunDeclare
-                | Self::Else
-                | Self::While
+            Self::Ident | Self::Property | Self::Index | Self::Unary(Unary::Ref)
         )
     }
 }
