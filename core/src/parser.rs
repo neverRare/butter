@@ -102,7 +102,7 @@ impl<'a> ParserIter for Parser<'a> {
             },
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
-            Token::Bracket(Opening::Open, Bracket::Brace) => self.parse_block_rest(),
+            Token::Bracket(Opening::Open, Bracket::Brace) => parse_block_rest(self, prefix.span),
             Token::Str(content) => Ok(Tree {
                 content: Node {
                     span: prefix.span,
@@ -226,9 +226,6 @@ impl<'a> Parser<'a> {
             Ok(None)
         }
     }
-    fn parse_block_rest(&mut self) -> ParseResult<'a> {
-        todo!()
-    }
 }
 fn assert_expr(node: Tree<Node>) -> ParseResult {
     if node.content.node.expr() {
@@ -236,4 +233,25 @@ fn assert_expr(node: Tree<Node>) -> ParseResult {
     } else {
         Err(error_start(node.content.span, ErrorType::NonExpr))
     }
+}
+fn parse_block_rest<'a>(parser: &mut Parser<'a>, left_bracket_span: &'a str) -> ParseResult<'a> {
+    todo!()
+}
+fn parse_block<'a>(parser: &mut Parser<'a>) -> ParseResult<'a> {
+    let err_span = if let Some(token) = parser.peek() {
+        if token.token != Token::Bracket(Opening::Open, Bracket::Brace) {
+            let span = token.span;
+            Some(&span[..0])
+        } else {
+            None
+        }
+    } else {
+        let src = parser.src;
+        Some(&src[src.len()..])
+    };
+    if let Some(span) = err_span {
+        return Err(error_start(span, ErrorType::NoBlock));
+    }
+    let bracket = parser.next().unwrap();
+    parse_block_rest(parser, bracket.span)
 }

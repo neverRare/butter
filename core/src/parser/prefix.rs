@@ -3,6 +3,7 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
+use crate::parser::parse_block;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
@@ -38,7 +39,7 @@ pub(super) fn keyword<'a>(
         Keyword::Clone => clone(parser, span),
         Keyword::If => todo!(),
         Keyword::For => todo!(),
-        Keyword::Loop => todo!(),
+        Keyword::Loop => parse_loop(parser, span),
         Keyword::While => todo!(),
         Keyword::Break => parse_break(parser, span),
         Keyword::Continue => Ok(parse_continue(parser, span)),
@@ -164,4 +165,14 @@ fn optional_label<'a>(parser: &mut Parser<'a>) -> Option<Tree<Node<'a>>> {
         }
         _ => None,
     }
+}
+fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let block = parse_block(parser)?;
+    Ok(Tree {
+        content: Node {
+            span: span_from_spans(parser.src, span, block.content.span),
+            node: NodeType::Loop,
+        },
+        children: join_trees![block],
+    })
 }

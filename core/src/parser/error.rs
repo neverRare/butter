@@ -5,6 +5,7 @@ pub enum ErrorType {
     NoIdent,
     NoOptionalChain,
     NoExpr,
+    NoBlock,
     UnknownToken,
     UnterminatedQuote,
     IntegerOverflow,
