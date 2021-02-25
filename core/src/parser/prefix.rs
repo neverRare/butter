@@ -1,9 +1,14 @@
+use crate::lexer::Bracket;
 use crate::lexer::Keyword;
+use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
+use crate::parser::error_start;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
 use crate::parser::parse_block;
+use crate::parser::parse_block_rest;
+use crate::parser::ErrorType;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
@@ -37,7 +42,7 @@ pub(super) fn keyword<'a>(
             node: keyword_literal(keyword),
         })),
         Keyword::Clone => clone(parser, span),
-        Keyword::If => todo!(),
+        Keyword::If => parse_if(parser, span),
         Keyword::For => todo!(),
         Keyword::Loop => parse_loop(parser, span),
         Keyword::While => parse_while(parser, span),
@@ -185,4 +190,39 @@ fn parse_while<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         },
         children: join_trees![condition, block],
     })
+}
+fn parse_if<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    let condition = parser.partial_parse(0)?;
+    let block = parse_block(parser)?;
+    let block_span = block.content.span;
+    let mut children = join_trees![condition, block];
+    let end_span;
+    if let Some(Token::Keyword(Keyword::Else)) = parser.peek_token() {
+        let else_span = parser.next().unwrap().span;
+        let else_tree = parse_else(parser, else_span)?;
+        end_span = else_tree.content.span;
+        children.push(else_tree);
+    } else {
+        end_span = block_span;
+    }
+    Ok(Tree {
+        content: Node {
+            span: span_from_spans(parser.src, span, end_span),
+            node: NodeType::If,
+        },
+        children,
+    })
+}
+fn parse_else<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+    match parser.peek_token() {
+        Some(Token::Bracket(Opening::Open, Bracket::Brace)) => {
+            let token_span = parser.next().unwrap().span;
+            parse_block_rest(parser, token_span)
+        }
+        Some(Token::Keyword(Keyword::If)) => {
+            let token_span = parser.next().unwrap().span;
+            parse_if(parser, token_span)
+        }
+        Some(_) | None => Err(error_start(&span[span.len()..], ErrorType::NoIfNorBlock)),
+    }
 }

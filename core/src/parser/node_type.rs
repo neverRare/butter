@@ -82,7 +82,6 @@ pub enum NodeType {
     BlockWithExpr,
     Fun,
     If,
-    Else,
     For,
     While,
     Loop,

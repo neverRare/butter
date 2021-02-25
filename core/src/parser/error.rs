@@ -5,6 +5,7 @@ pub enum ErrorType {
     NoOptionalChain,
     NoExpr,
     NoBlock,
+    NoIfNorBlock,
     UnterminatedQuote,
     IntegerOverflow,
     ExpOverflow,
