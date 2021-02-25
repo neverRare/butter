@@ -7,7 +7,6 @@ use crate::parser::parse_block;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
-use util::iter::PeekableIterator;
 use util::join_trees;
 use util::parser::ParserIter;
 use util::span::span_from_spans;
@@ -81,13 +80,12 @@ fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> Tree<Node<'a>> 
 }
 fn parse_break<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     let label = optional_label(parser);
-    let expr =
-        if let Some(Token::Operator(Operator::Equal)) = parser.peek().map(|token| token.token) {
-            parser.next();
-            Some(parser.partial_parse(10)?)
-        } else {
-            None
-        };
+    let expr = if let Some(Token::Operator(Operator::Equal)) = parser.peek_token() {
+        parser.next();
+        Some(parser.partial_parse(10)?)
+    } else {
+        None
+    };
     let node = match &expr {
         Some(_) => NodeType::BreakWithExpr,
         None => NodeType::Break,
@@ -156,7 +154,7 @@ fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
     })
 }
 fn optional_label<'a>(parser: &mut Parser<'a>) -> Option<Tree<Node<'a>>> {
-    match parser.peek()?.token {
+    match parser.peek_token()? {
         Token::Keyword(_) | Token::Ident => {
             let token = parser.next().unwrap();
             Some(Tree::new(Node {

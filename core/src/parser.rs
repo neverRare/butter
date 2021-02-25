@@ -171,6 +171,9 @@ impl<'a> ParserIter for Parser<'a> {
     }
 }
 impl<'a> Parser<'a> {
+    fn peek_token(&mut self) -> Option<Token> {
+        self.peek().map(|token| token.token)
+    }
     fn valid_prefix(token: Token) -> bool {
         match token {
             Token::Whitespace | Token::Comment => false,
@@ -213,8 +216,8 @@ impl<'a> Parser<'a> {
         }
     }
     fn parse_optional_expr(&mut self, precedence: u32) -> ParserResult<'a, Option<Tree<Node<'a>>>> {
-        let peeked = match self.peek() {
-            Some(token) => token.token,
+        let peeked = match self.peek_token() {
+            Some(token) => token,
             None => return Ok(None),
         };
         if Self::valid_prefix(peeked) {

@@ -10,7 +10,6 @@ use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
 use util::aggregate_error;
-use util::iter::PeekableIterator;
 use util::join_trees;
 use util::parser::ParserIter;
 use util::span::span_from_spans;
@@ -87,7 +86,7 @@ fn property_access<'a>(
     span: &'a str,
     node: NodeType,
 ) -> ParseResult<'a> {
-    let right = match parser.peek().map(|token| token.token) {
+    let right = match parser.peek_token() {
         Some(Token::Ident) => {
             let span = parser.next().unwrap().span;
             Ok(Tree::new(Node {
@@ -107,7 +106,7 @@ fn property_access<'a>(
     })
 }
 fn question<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>, span: &'a str) -> ParseResult<'a> {
-    match parser.peek().map(|token| token.token) {
+    match parser.peek_token() {
         Some(Token::Operator(Operator::Dot)) => {
             property_access(parser, left, span, NodeType::OptionalProperty)
         }
