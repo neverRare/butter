@@ -11,14 +11,13 @@ Sometimes called *hash*map and *hash*set ;). I still have no idea on manipulatio
 
 ## Tagged values
 
-Maybe 1 (less syntactical noise):
-
 ```butter
 -- no associated value
 @tag_name
 @tag_name()
 
 -- single associated value
+@tag_name expr
 @tag_name(expr)
 
 -- struct as associated value
@@ -28,23 +27,6 @@ Maybe 1 (less syntactical noise):
 @tag_name[expr1, expr2]
 ```
 
-Maybe 2 (more consistency):
-
-```butter
--- no associated value
-@tag_name
-@tag_name()
-
--- single associated value
-@tag_name(expr)
-
--- struct as associated value
-@tag_name((name1 = expr1, name2 = expr2))
-
--- array as associated value
-@tag_name([expr1, expr2])
-```
-
 This could be structurally typed like in TypeScript's fake discriminated union but with better syntax like in Rust. This could also replace the current null system.
 
 ## Pattern and match
@@ -52,7 +34,7 @@ This could be structurally typed like in TypeScript's fake discriminated union b
 ```butter
 -- matching tagged value
 map_option(val, mapper) => match val {
-    @some(val) => @some(mapper(val)),
+    @some val => @some mapper(val),
     @none => @none,
 };
 
@@ -64,6 +46,8 @@ map_array(arr, mapper) => match arr {
 ```
 
 ## Type alias
+
+`<A>` here are type variables. Syntax' ugly at the moment, it'll change.
 
 ```butter
 Option :: <A> => @some(<A>) | @none;
@@ -113,6 +97,12 @@ account =: (
 
 ```butter
 numbers = [1..100];
+
+-- python-like syntax
+doubles = [n * 2 for n in numbers];
+no_doubles = [n for n in numbers if n % 2 == 0];
+
+-- alternative syntax
 doubles = [n * 2 : n in numbers];
 no_doubles = [n : n in numbers : n % 2 == 0];
 ```
