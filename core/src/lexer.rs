@@ -84,12 +84,14 @@ impl<'a> LexFilter<'a> for Token<'a> {
 }
 #[cfg(test)]
 mod test {
-    use super::integer::Radix;
     use super::Bracket;
+    use super::Float;
     use super::Keyword;
     use super::Opening;
     use super::Operator;
+    use super::Radix;
     use super::Separator;
+    use super::Sign;
     use super::Token;
     use util::assert_iter;
     use util::lexer::LexFilter;
@@ -126,6 +128,44 @@ mod test {
             ("0x_18e", Token::Int(Radix::Hex, "18e")),
             ("0o_127", Token::Int(Radix::Oct, "127")),
             ("0b_11110000", Token::Int(Radix::Bin, "11110000")),
+        }
+    }
+    #[test]
+    fn lex_float() {
+        assert_iter! {
+            Token::lex_span("1.2 3. .4 5.6_e7 8_e+9 10_e-11"),
+            ("1.2", Token::Float(Float {
+                whole: "1",
+                decimal: "2",
+                exp_sign: Sign::Plus,
+                exp: "",
+            })),
+            ("3", Token::Int(Radix::Dec,"3")),
+            (".", Token::Operator(Operator::Dot)),
+            (".4", Token::Float(Float {
+                whole: "",
+                decimal: "4",
+                exp_sign: Sign::Plus,
+                exp: "",
+            })),
+            ("5.6_e7", Token::Float(Float {
+                whole: "5",
+                decimal: "6",
+                exp_sign: Sign::Plus,
+                exp: "7",
+            })),
+            ("8_e+9", Token::Float(Float {
+                whole: "8_",
+                decimal: "",
+                exp_sign: Sign::Plus,
+                exp: "9",
+            })),
+            ("10_e-11", Token::Float(Float {
+                whole: "10_",
+                decimal: "",
+                exp_sign: Sign::Minus,
+                exp: "11",
+            })),
         }
     }
 }
