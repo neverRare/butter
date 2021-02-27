@@ -41,8 +41,11 @@ pub enum RangeType {
 }
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum NodeType {
-    SplatOrRest,
     Label,
+
+    Field,
+    Name,
+    Splat,
 
     CharInside(u8),
 
