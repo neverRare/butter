@@ -1,10 +1,16 @@
 # Unpacking
 
-Unpacking syntax can be used in variable declaration as well as on function parameter. These are syntactic sugar to accessing field value or element and assigning it to a declared variable. Unpacking can be referred to as destructuring.
+Unpacking syntax can be used in [variable declaration], [function parameter], and iteration variable in [`for`] loop. These are syntactic sugar to accessing field value or element and assigning it to a declared variable. Unpacking can be referred to as destructuring.
+
+[variable declaration]: variable_and_assignment.md#declaration
+[function parameter]: function.md#parameters
+[`for`]: control_flow.md#for
 
 ## Array
 
-Array unpacking have similar syntax to array declaration, but they are used on left hand side of declaration, and it does the exact opposite of array declaration.
+[Array] unpacking have similar syntax to array declaration, but they are used on left hand side of declaration, and it does the exact opposite of array declaration.
+
+[Array]: array.md
 
 ```butter
 arr = ["hello", "world"];
@@ -28,7 +34,9 @@ You can unpack from its start or its end then unpack the rest as an another arra
 
 ## Struct
 
-You can unpack a struct via `()`. These assigns field value to a variable with the same name. If you wish to use another variable name, you can use `=`.
+You can unpack a [struct] via `()`. These assigns field value to a variable with the same name. If you wish to use another variable name, you can use `=`.
+
+[struct]: struct.md
 
 ```butter
 user = (
