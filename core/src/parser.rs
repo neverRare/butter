@@ -15,6 +15,7 @@ use util::lexer::SpanFilterIter;
 use util::parser::ParserIter;
 use util::tree_vec::Tree;
 
+mod bracket;
 mod error;
 mod float;
 mod infix;
