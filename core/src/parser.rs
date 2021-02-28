@@ -4,6 +4,7 @@ use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
+use crate::parser::error::TokenKind;
 use crate::parser::node_type::NodeType;
 use crate::parser::string::parse_content;
 use std::iter::FusedIterator;
@@ -244,7 +245,10 @@ fn parse_block<'a>(parser: &mut Parser<'a>) -> ParseResult<'a> {
         Some(&src[src.len()..])
     };
     if let Some(span) = err_span {
-        return Err(error_start(span, ErrorType::NoBlock));
+        return Err(error_start(
+            span,
+            ErrorType::NoExpectation(&[TokenKind::Bracket(Opening::Open, Bracket::Brace)]),
+        ));
     }
     let bracket = parser.next().unwrap();
     parse_block_rest(parser, bracket.span)

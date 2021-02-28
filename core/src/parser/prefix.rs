@@ -12,6 +12,7 @@ use crate::parser::ErrorType;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
+use crate::parser::TokenKind;
 use util::join_trees;
 use util::parser::ParserIter;
 use util::span::span_from_spans;
@@ -223,6 +224,12 @@ fn parse_else<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
             let token_span = parser.next().unwrap().span;
             parse_if(parser, token_span)
         }
-        Some(_) | None => Err(error_start(&span[span.len()..], ErrorType::NoIfNorBlock)),
+        Some(_) | None => Err(error_start(
+            &span[span.len()..],
+            ErrorType::NoExpectation(&[
+                TokenKind::Bracket(Opening::Open, Bracket::Brace),
+                TokenKind::Keyword(Keyword::If),
+            ]),
+        )),
     }
 }

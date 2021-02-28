@@ -3,6 +3,7 @@ use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::error::ErrorType;
+use crate::parser::error::TokenKind;
 use crate::parser::error_start;
 use crate::parser::node_type::Binary;
 use crate::parser::node_type::NodeType;
@@ -94,7 +95,10 @@ fn property_access<'a>(
                 node: NodeType::Ident,
             }))
         }
-        Some(_) | None => Err(error_start(&span[span.len()..], ErrorType::NoIdent)),
+        Some(_) | None => Err(error_start(
+            &span[span.len()..],
+            ErrorType::NoExpectation(&[TokenKind::Ident]),
+        )),
     };
     let (left, right) = aggregate_error(left, right)?;
     Ok(Tree {
@@ -111,6 +115,12 @@ fn question<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>, span: &'a str) -
             property_access(parser, left, span, NodeType::OptionalProperty)
         }
         Some(Token::Bracket(Opening::Open, Bracket::Bracket)) => todo!(),
-        Some(_) | None => Err(error_start(&span[span.len()..], ErrorType::NoOptionalChain)),
+        Some(_) | None => Err(error_start(
+            &span[span.len()..],
+            ErrorType::NoExpectation(&[
+                TokenKind::Operator(Operator::Dot),
+                TokenKind::Bracket(Opening::Open, Bracket::Bracket),
+            ]),
+        )),
     }
 }
