@@ -19,6 +19,7 @@ use util::lexer::SpanFilterIter;
 use util::parser::ParserIter;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
+use util::tree_vec::TreeVec;
 
 mod bracket;
 mod error;
@@ -110,7 +111,7 @@ impl<'a> ParserIter for Parser<'a> {
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
                 let fragment = BracketFragment::parse_rest(self)?;
                 let (node, children) = match fragment.syntax {
-                    BracketSyntax::Empty => todo!(),
+                    BracketSyntax::Empty => (NodeType::Array, TreeVec::new()),
                     BracketSyntax::Single(expr) => (NodeType::Array, join_trees![expr]),
                     BracketSyntax::Multiple(elements) => (NodeType::Array, elements),
                     BracketSyntax::Range(range_type, bounds) => {
