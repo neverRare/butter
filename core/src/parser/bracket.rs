@@ -27,18 +27,18 @@ static EXPECTED_TOKEN: &[TokenKind] = &[
     TokenKind::Operator(Operator::GreaterDot),
     TokenKind::Operator(Operator::GreaterLess),
 ];
-enum BracketSyntax<'a> {
+pub(super) enum BracketSyntax<'a> {
     Empty,
     Single(Tree<Node<'a>>),
     Multiple(TreeVec<Node<'a>>),
     Range(RangeType, TreeVec<Node<'a>>),
 }
-struct BracketFragment<'a> {
-    syntax: BracketSyntax<'a>,
-    right_bracket_span: &'a str,
+pub(super) struct BracketFragment<'a> {
+    pub(super) syntax: BracketSyntax<'a>,
+    pub right_bracket_span: &'a str,
 }
 impl<'a> BracketFragment<'a> {
-    fn parse_rest(parser: &mut Parser<'a>) -> ParserResult<'a, Self> {
+    pub(super) fn parse_rest(parser: &mut Parser<'a>) -> ParserResult<'a, Self> {
         let first = parser.parse_optional_expr(0)?;
         let token = parser.peek();
         match token.map(|token| token.token) {

@@ -7,13 +7,17 @@ use crate::parser::error::ErrorType;
 use crate::parser::error::TokenKind;
 use crate::parser::node_type::NodeType;
 use crate::parser::string::parse_content;
+use bracket::BracketFragment;
+use bracket::BracketSyntax;
 use std::iter::FusedIterator;
 use std::iter::Map;
 use std::iter::Peekable;
 use util::iter::PeekableIterator;
+use util::join_trees;
 use util::lexer::LexFilter;
 use util::lexer::SpanFilterIter;
 use util::parser::ParserIter;
+use util::span::span_from_spans;
 use util::tree_vec::Tree;
 
 mod bracket;
@@ -103,7 +107,24 @@ impl<'a> ParserIter for Parser<'a> {
                 None => Err(error_start(prefix.span, ErrorType::ExpOverflow)),
             },
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
-            Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Bracket) => {
+                let fragment = BracketFragment::parse_rest(self)?;
+                let (node, children) = match fragment.syntax {
+                    BracketSyntax::Empty => todo!(),
+                    BracketSyntax::Single(expr) => (NodeType::Array, join_trees![expr]),
+                    BracketSyntax::Multiple(elements) => (NodeType::Array, elements),
+                    BracketSyntax::Range(range_type, bounds) => {
+                        (NodeType::ArrayRange(range_type), bounds)
+                    }
+                };
+                Ok(Tree {
+                    content: Node {
+                        span: span_from_spans(self.src, prefix.span, fragment.right_bracket_span),
+                        node,
+                    },
+                    children,
+                })
+            }
             Token::Bracket(Opening::Open, Bracket::Brace) => parse_block_rest(self, prefix.span),
             Token::Str(content) => Ok(Tree {
                 content: Node {
