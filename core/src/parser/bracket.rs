@@ -39,6 +39,7 @@ pub(super) struct BracketFragment<'a> {
 }
 impl<'a> BracketFragment<'a> {
     pub(super) fn parse_rest(parser: &mut Parser<'a>) -> ParserResult<'a, Self> {
+        // TODO: aggregate error as possible
         let first = parser.parse_optional_expr(0)?;
         let token = parser.peek();
         match token.map(|token| token.token) {
