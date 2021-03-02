@@ -31,7 +31,7 @@ pub(super) enum BracketSyntax<'a> {
     Empty,
     Single(Tree<Node<'a>>),
     Multiple(TreeVec<Node<'a>>),
-    Range(RangeType, TreeVec<Node<'a>>),
+    Range(Option<Tree<Node<'a>>>, RangeType, Option<Tree<Node<'a>>>),
 }
 pub(super) struct BracketFragment<'a> {
     pub(super) syntax: BracketSyntax<'a>,
@@ -126,9 +126,8 @@ impl<'a> BracketFragment<'a> {
                     },
                     (None, _, None) => RangeType::Full,
                 };
-                let tree_vec = first.into_iter().chain(second.into_iter()).collect();
                 Ok(Self {
-                    syntax: BracketSyntax::Range(range_type, tree_vec),
+                    syntax: BracketSyntax::Range(first, range_type, second),
                     right_bracket_span,
                 })
             }

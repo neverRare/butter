@@ -9,6 +9,7 @@ pub enum ErrorType {
     NonPlace,
     NoExpectation(&'static [TokenKind]),
     NoExpr,
+    NonIndexNorSlice,
     UnterminatedQuote,
     IntegerOverflow,
     ExpOverflow,

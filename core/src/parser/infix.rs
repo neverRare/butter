@@ -2,6 +2,8 @@ use crate::lexer::Bracket;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
+use crate::parser::bracket::BracketFragment;
+use crate::parser::bracket::BracketSyntax;
 use crate::parser::error::ErrorType;
 use crate::parser::error::TokenKind;
 use crate::parser::error_start;
@@ -10,6 +12,7 @@ use crate::parser::node_type::NodeType;
 use crate::parser::Node;
 use crate::parser::ParseResult;
 use crate::parser::Parser;
+use std::iter::once;
 use util::aggregate_error;
 use util::join_trees;
 use util::parser::ParserIter;
@@ -114,7 +117,9 @@ fn question<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>, span: &'a str) -
         Some(Token::Operator(Operator::Dot)) => {
             property_access(parser, left, span, NodeType::OptionalProperty)
         }
-        Some(Token::Bracket(Opening::Open, Bracket::Bracket)) => todo!(),
+        Some(Token::Bracket(Opening::Open, Bracket::Bracket)) => {
+            index_or_slice(parser, left, span, true)
+        }
         Some(_) | None => Err(error_start(
             &span[span.len()..],
             ErrorType::NoExpectation(&[
@@ -123,4 +128,48 @@ fn question<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>, span: &'a str) -
             ]),
         )),
     }
+}
+pub(super) fn index_or_slice<'a>(
+    parser: &mut Parser<'a>,
+    left: ParseResult<'a>,
+    left_bracket_span: &'a str,
+    optional: bool,
+) -> ParseResult<'a> {
+    let right = BracketFragment::parse_rest(parser).and_then(|bracket_fragment| {
+        let (node, right_first, right_second) = match (bracket_fragment.syntax, optional) {
+            (BracketSyntax::Single(expr), false) => (NodeType::Index, Some(expr), None),
+            (BracketSyntax::Single(expr), true) => (NodeType::OptionalIndex, Some(expr), None),
+            (BracketSyntax::Range(first, range_type, second), false) => {
+                (NodeType::Slice(range_type), first, second)
+            }
+            (BracketSyntax::Range(first, range_type, second), true) => {
+                (NodeType::OptionalSlice(range_type), first, second)
+            }
+            _ => {
+                let bracket_span = span_from_spans(
+                    parser.src,
+                    left_bracket_span,
+                    bracket_fragment.right_bracket_span,
+                );
+                return Err(error_start(bracket_span, ErrorType::NonIndexNorSlice));
+            }
+        };
+        Ok((
+            bracket_fragment.right_bracket_span,
+            node,
+            right_first,
+            right_second,
+        ))
+    });
+    let (left, (right_bracket_span, node, right_first, right_second)) =
+        aggregate_error(left, right)?;
+    let span = span_from_spans(parser.src, left.content.span, right_bracket_span);
+    let children = once(left)
+        .chain(right_first.into_iter())
+        .chain(right_second.into_iter())
+        .collect();
+    Ok(Tree {
+        content: Node { node, span },
+        children,
+    })
 }

@@ -114,8 +114,9 @@ impl<'a> ParserIter for Parser<'a> {
                     BracketSyntax::Empty => (NodeType::Array, TreeVec::new()),
                     BracketSyntax::Single(expr) => (NodeType::Array, join_trees![expr]),
                     BracketSyntax::Multiple(elements) => (NodeType::Array, elements),
-                    BracketSyntax::Range(range_type, bounds) => {
-                        (NodeType::ArrayRange(range_type), bounds)
+                    BracketSyntax::Range(left, range_type, right) => {
+                        let children = left.into_iter().chain(right.into_iter()).collect();
+                        (NodeType::ArrayRange(range_type), children)
                     }
                 };
                 Ok(Tree {
@@ -158,7 +159,9 @@ impl<'a> ParserIter for Parser<'a> {
         match infix.token {
             Token::Operator(operator) => infix::operator(self, left_node, infix.span, operator),
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
-            Token::Bracket(Opening::Open, Bracket::Bracket) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Bracket) => {
+                infix::index_or_slice(self, left_node, infix.span, false)
+            }
             _ => panic!("expected infix token, found {:?}", infix.token),
         }
     }
