@@ -28,7 +28,7 @@ pub(super) fn operator<'a>(
             unary_operator(parser, span, operator)
         }
         Operator::DoubleAmp => double_ref(parser, span),
-        Operator::RightThickArrow => todo!(),
+        Operator::RightThickArrow => nil_function(parser, span),
         operator => panic!("expected prefix operator, found: {:?}", operator),
     }
 }
@@ -248,5 +248,19 @@ fn parse_for<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
             node: NodeType::While,
         },
         children: join_trees![iter_unpack, iter_val, block],
+    })
+}
+fn nil_function<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
+    let parameter = Tree::new(Node {
+        span: &span[..0],
+        node: NodeType::Struct,
+    });
+    let body = parser.parse_expr(0)?;
+    Ok(Tree {
+        content: Node {
+            span: span_from_spans(parser.src, span, body.content.span),
+            node: NodeType::Fun,
+        },
+        children: join_trees![parameter, body],
     })
 }
