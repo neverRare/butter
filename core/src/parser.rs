@@ -300,8 +300,8 @@ impl<'a> Parser<'a> {
                             | Operator::RightThickArrow
                     )
             }
-            Token::InvalidNumber => kind.is_unpack(),
-            Token::UnterminatedQuote => kind.is_unpack(),
+            Token::InvalidNumber => kind.is_expr(),
+            Token::UnterminatedQuote => kind.is_expr(),
             Token::Unknown => false,
         }
     }
