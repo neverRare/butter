@@ -188,7 +188,16 @@ impl<'a> ParserIter for Parser<'a> {
                     Err(error_start(prefix.span, ErrorType::NonSingleChar))
                 }
             }
-            Token::Underscore => todo!(),
+            Token::Underscore => Ok(TypedAst {
+                kind: AstType::Unpack,
+                tree: Tree {
+                    content: Node {
+                        span: prefix.span,
+                        node: NodeType::Ignore,
+                    },
+                    children: TreeVec::new(),
+                },
+            }),
             Token::Ident => todo!(),
             Token::UnterminatedQuote => Err(error_start(prefix.span, ErrorType::UnterminatedQuote)),
             Token::InvalidNumber => Err(error_start(prefix.span, ErrorType::InvalidNumber)),

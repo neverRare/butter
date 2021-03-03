@@ -47,6 +47,8 @@ pub enum NodeType {
     Name,
     SplatOrRest,
 
+    Ignore,
+
     CharInside(u8),
 
     True,
