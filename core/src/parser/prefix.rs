@@ -248,7 +248,7 @@ fn parse_for<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, block.content.span),
-            node: NodeType::While,
+            node: NodeType::For,
         },
         children: join_trees![iter_unpack, iter_val, block],
     })
