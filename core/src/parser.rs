@@ -50,7 +50,7 @@ fn error_start(span: &str, error: ErrorType) -> Vec<Error> {
     vec![Error { span, error }]
 }
 type AstResult<'a> = ParserResult<'a, Ast<'a>>;
-type TypedAstResult<'a> = ParserResult<'a, KindedAst<'a>>;
+type KindedAstResult<'a> = ParserResult<'a, KindedAst<'a>>;
 type RawParserMapper = for<'a> fn((&'a str, Token<'a>)) -> SpanToken<'a>;
 struct Parser<'a> {
     src: &'a str,
@@ -79,7 +79,7 @@ impl<'a> PeekableIterator for Parser<'a> {
 }
 impl<'a> FusedIterator for Parser<'a> {}
 impl<'a> ParserIter for Parser<'a> {
-    type Ast = TypedAstResult<'a>;
+    type Ast = KindedAstResult<'a>;
     type Kind = AstType;
     fn prefix_parse(&mut self, kind: &Self::Kind) -> Self::Ast {
         let src = self.src;
@@ -195,7 +195,7 @@ impl<'a> ParserIter for Parser<'a> {
                     node: NodeType::Ignore,
                 }),
             }),
-            Token::Ident => todo!(),
+            Token::Ident => prefix::ident(self, prefix.span, *kind),
             Token::UnterminatedQuote => Err(error_start(prefix.span, ErrorType::UnterminatedQuote)),
             Token::InvalidNumber => Err(error_start(prefix.span, ErrorType::InvalidNumber)),
             _ => unreachable!(),

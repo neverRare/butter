@@ -4,6 +4,7 @@ use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::ast::Ast;
+use crate::parser::ast::AstType;
 use crate::parser::error_start;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
@@ -11,6 +12,8 @@ use crate::parser::parse_block;
 use crate::parser::parse_block_rest;
 use crate::parser::AstResult;
 use crate::parser::ErrorType;
+use crate::parser::KindedAst;
+use crate::parser::KindedAstResult;
 use crate::parser::Node;
 use crate::parser::Parser;
 use crate::parser::TokenKind;
@@ -263,4 +266,54 @@ fn nil_function<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
         },
         children: join_trees![parameter, body],
     })
+}
+pub(super) fn ident<'a>(
+    parser: &mut Parser<'a>,
+    span: &'a str,
+    kind: AstType,
+) -> KindedAstResult<'a> {
+    if Some(Token::Operator(Operator::RightThickArrow)) == parser.peek_token() && kind.is_expr() {
+        parser.next();
+        let name = Tree::new(Node {
+            span,
+            node: NodeType::Name,
+        });
+        let ident = Tree::new(Node {
+            span,
+            node: NodeType::Ident,
+        });
+        let field = Tree {
+            content: Node {
+                span,
+                node: NodeType::Field,
+            },
+            children: join_trees![name, ident],
+        };
+        let parameter = Tree {
+            content: Node {
+                span,
+                node: NodeType::Struct,
+            },
+            children: join_trees![field],
+        };
+        let body = parser.parse_expr(0)?;
+        Ok(KindedAst {
+            kind: AstType::Expr,
+            ast: Tree {
+                content: Node {
+                    span: span_from_spans(parser.src, span, body.content.span),
+                    node: NodeType::Fun,
+                },
+                children: join_trees![parameter, body],
+            },
+        })
+    } else {
+        Ok(KindedAst {
+            kind: AstType::ExprOrUnpack,
+            ast: Tree::new(Node {
+                span,
+                node: NodeType::Ident,
+            }),
+        })
+    }
 }
