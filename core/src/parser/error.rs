@@ -30,6 +30,11 @@ impl ErrorType {
         }
     }
 }
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Error<'a> {
+    pub span: &'a str,
+    pub error: ErrorType,
+}
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum TokenKind {
     Int,

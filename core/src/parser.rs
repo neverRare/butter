@@ -8,6 +8,7 @@ use crate::parser::ast::AstType;
 use crate::parser::ast::KindedAst;
 use crate::parser::ast::Node;
 use crate::parser::error::ErrorType;
+use crate::parser::error::Error;
 use crate::parser::error::TokenKind;
 use crate::parser::node_type::NodeType;
 use crate::parser::string::parse_content;
@@ -39,11 +40,6 @@ mod string;
 struct SpanToken<'a> {
     span: &'a str,
     token: Token<'a>,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct Error<'a> {
-    span: &'a str,
-    error: ErrorType,
 }
 type ParserResult<'a, T> = Result<T, Vec<Error<'a>>>;
 fn error_start(span: &str, error: ErrorType) -> Vec<Error> {
