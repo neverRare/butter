@@ -190,13 +190,10 @@ impl<'a> ParserIter for Parser<'a> {
             }
             Token::Underscore => Ok(KindedAst {
                 kind: AstType::Unpack,
-                ast: Tree {
-                    content: Node {
-                        span: prefix.span,
-                        node: NodeType::Ignore,
-                    },
-                    children: TreeVec::new(),
-                },
+                ast: Tree::new(Node {
+                    span: prefix.span,
+                    node: NodeType::Ignore,
+                }),
             }),
             Token::Ident => todo!(),
             Token::UnterminatedQuote => Err(error_start(prefix.span, ErrorType::UnterminatedQuote)),
