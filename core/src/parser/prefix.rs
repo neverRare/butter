@@ -3,18 +3,18 @@ use crate::lexer::Keyword;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
+use crate::parser::ast::Ast;
 use crate::parser::error_start;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
 use crate::parser::parse_block;
 use crate::parser::parse_block_rest;
+use crate::parser::AstResult;
 use crate::parser::ErrorType;
 use crate::parser::Node;
-use crate::parser::ParseResult;
 use crate::parser::Parser;
 use crate::parser::TokenKind;
 use util::join_trees;
-use util::parser::ParserIter;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
 
@@ -22,7 +22,7 @@ pub(super) fn operator<'a>(
     parser: &mut Parser<'a>,
     span: &'a str,
     operator: Operator,
-) -> ParseResult<'a> {
+) -> AstResult<'a> {
     match operator {
         Operator::Plus | Operator::Minus | Operator::Bang | Operator::Amp => {
             unary_operator(parser, span, operator)
@@ -36,7 +36,7 @@ pub(super) fn keyword<'a>(
     parser: &mut Parser<'a>,
     span: &'a str,
     keyword: Keyword,
-) -> ParseResult<'a> {
+) -> AstResult<'a> {
     match keyword {
         Keyword::True | Keyword::False | Keyword::Null => Ok(Tree::new(Node {
             span,
@@ -61,8 +61,8 @@ fn keyword_literal(keyword: Keyword) -> NodeType {
         keyword => panic!("expected keyword literal, found {:?}", keyword),
     }
 }
-fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
-    let operand = parser.partial_parse(90)?;
+fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
+    let operand = parser.parse_expr(90)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, operand.content.span),
@@ -71,7 +71,7 @@ fn clone<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         children: join_trees![operand],
     })
 }
-fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> Tree<Node<'a>> {
+fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> Ast<'a> {
     let label = optional_label(parser);
     Tree {
         content: Node {
@@ -84,11 +84,11 @@ fn parse_continue<'a>(parser: &mut Parser<'a>, span: &'a str) -> Tree<Node<'a>> 
         children: label.into_iter().collect(),
     }
 }
-fn parse_break<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+fn parse_break<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     let label = optional_label(parser);
     let expr = if let Some(Token::Operator(Operator::Equal)) = parser.peek_token() {
         parser.next();
-        Some(parser.partial_parse(10)?)
+        Some(parser.parse_expr(10)?)
     } else {
         None
     };
@@ -108,7 +108,7 @@ fn parse_break<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         children: label.into_iter().chain(expr.into_iter()).collect(),
     })
 }
-fn parse_return<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+fn parse_return<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     let expr = parser.parse_optional_expr(10)?;
     Ok(Tree {
         content: Node {
@@ -121,11 +121,7 @@ fn parse_return<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         children: expr.into_iter().collect(),
     })
 }
-fn unary_operator<'a>(
-    parser: &mut Parser<'a>,
-    span: &'a str,
-    operator: Operator,
-) -> ParseResult<'a> {
+fn unary_operator<'a>(parser: &mut Parser<'a>, span: &'a str, operator: Operator) -> AstResult<'a> {
     let operator = match operator {
         Operator::Plus => Unary::Plus,
         Operator::Minus => Unary::Minus,
@@ -133,7 +129,7 @@ fn unary_operator<'a>(
         Operator::Amp => Unary::Ref,
         operator => panic!("expected expression operator, found {:?}", operator),
     };
-    let operand = parser.partial_parse(90)?;
+    let operand = parser.parse_expr(90)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, operand.content.span),
@@ -142,8 +138,8 @@ fn unary_operator<'a>(
         children: join_trees![operand],
     })
 }
-fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
-    let operand = parser.partial_parse(90)?;
+fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
+    let operand = parser.parse_expr(90)?;
     debug_assert!(span == "&&");
     Ok(Tree {
         content: Node {
@@ -159,7 +155,7 @@ fn double_ref<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         }],
     })
 }
-fn optional_label<'a>(parser: &mut Parser<'a>) -> Option<Tree<Node<'a>>> {
+fn optional_label<'a>(parser: &mut Parser<'a>) -> Option<Ast<'a>> {
     match parser.peek_token()? {
         Token::Keyword(_) | Token::Ident => {
             let token = parser.next().unwrap();
@@ -171,7 +167,7 @@ fn optional_label<'a>(parser: &mut Parser<'a>) -> Option<Tree<Node<'a>>> {
         _ => None,
     }
 }
-fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     let block = parse_block(parser)?;
     Ok(Tree {
         content: Node {
@@ -181,8 +177,8 @@ fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         children: block.children,
     })
 }
-fn parse_while<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
-    let condition = parser.partial_parse(0)?;
+fn parse_while<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
+    let condition = parser.parse_expr(0)?;
     let block = parse_block(parser)?;
     Ok(Tree {
         content: Node {
@@ -192,8 +188,8 @@ fn parse_while<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         children: join_trees![condition, block],
     })
 }
-fn parse_if<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
-    let condition = parser.partial_parse(0)?;
+fn parse_if<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
+    let condition = parser.parse_expr(0)?;
     let block = parse_block(parser)?;
     let block_span = block.content.span;
     let mut children = join_trees![condition, block];
@@ -214,7 +210,7 @@ fn parse_if<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
         children,
     })
 }
-fn parse_else<'a>(parser: &mut Parser<'a>, span: &'a str) -> ParseResult<'a> {
+fn parse_else<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     match parser.peek_token() {
         Some(Token::Bracket(Opening::Open, Bracket::Brace)) => {
             let token_span = parser.next().unwrap().span;

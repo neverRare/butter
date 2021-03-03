@@ -45,7 +45,7 @@ pub enum NodeType {
 
     Field,
     Name,
-    Splat,
+    SplatOrRest,
 
     CharInside(u8),
 

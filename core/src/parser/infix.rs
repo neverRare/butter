@@ -2,6 +2,7 @@ use crate::lexer::Bracket;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
+use crate::parser::ast::AstType;
 use crate::parser::bracket::BracketFragment;
 use crate::parser::bracket::BracketSyntax;
 use crate::parser::error::ErrorType;
@@ -9,22 +10,21 @@ use crate::parser::error::TokenKind;
 use crate::parser::error_start;
 use crate::parser::node_type::Binary;
 use crate::parser::node_type::NodeType;
+use crate::parser::AstResult;
 use crate::parser::Node;
-use crate::parser::ParseResult;
 use crate::parser::Parser;
 use std::iter::once;
 use util::aggregate_error;
 use util::join_trees;
-use util::parser::ParserIter;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
 
 pub(super) fn operator<'a>(
     parser: &mut Parser<'a>,
-    left: ParseResult<'a>,
+    left: AstResult<'a>,
     span: &'a str,
     operator: Operator,
-) -> ParseResult<'a> {
+) -> AstResult<'a> {
     match operator {
         Operator::Dot => property_access(parser, left, span, NodeType::Property),
         Operator::LeftArrow => assign(parser, left),
@@ -34,9 +34,9 @@ pub(super) fn operator<'a>(
 }
 fn expr_operator<'a>(
     parser: &mut Parser<'a>,
-    left: ParseResult<'a>,
+    left: AstResult<'a>,
     operator: Operator,
-) -> ParseResult<'a> {
+) -> AstResult<'a> {
     let (operator, precedence) = match operator {
         Operator::Star => (Binary::Multiply, 80),
         Operator::Slash => (Binary::Div, 80),
@@ -58,7 +58,7 @@ fn expr_operator<'a>(
         Operator::DoubleQuestion => (Binary::NullOr, 30),
         operator => panic!("expected expression operator, found {:?}", operator),
     };
-    let (left, right) = aggregate_error(left, parser.partial_parse(precedence))?;
+    let (left, right) = aggregate_error(left, parser.parse_expr(precedence))?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, left.content.span, right.content.span),
@@ -67,7 +67,7 @@ fn expr_operator<'a>(
         children: join_trees![left, right],
     })
 }
-fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a> {
+fn assign<'a>(parser: &mut Parser<'a>, left: AstResult<'a>) -> AstResult<'a> {
     let left = left.and_then(|node| {
         if node.content.node.place() {
             Ok(node)
@@ -75,7 +75,7 @@ fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a>
             Err(error_start(node.content.span, ErrorType::NonPlace))
         }
     });
-    let (left, right) = aggregate_error(left, parser.partial_parse(19))?;
+    let (left, right) = aggregate_error(left, parser.parse_expr(19))?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, left.content.span, right.content.span),
@@ -86,10 +86,10 @@ fn assign<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>) -> ParseResult<'a>
 }
 fn property_access<'a>(
     parser: &mut Parser<'a>,
-    left: ParseResult<'a>,
+    left: AstResult<'a>,
     span: &'a str,
     node: NodeType,
-) -> ParseResult<'a> {
+) -> AstResult<'a> {
     let right = match parser.peek_token() {
         Some(Token::Ident) => {
             let span = parser.next().unwrap().span;
@@ -112,7 +112,7 @@ fn property_access<'a>(
         children: join_trees![left, right],
     })
 }
-fn question<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>, span: &'a str) -> ParseResult<'a> {
+fn question<'a>(parser: &mut Parser<'a>, left: AstResult<'a>, span: &'a str) -> AstResult<'a> {
     match parser.peek_token() {
         Some(Token::Operator(Operator::Dot)) => {
             property_access(parser, left, span, NodeType::OptionalProperty)
@@ -131,11 +131,11 @@ fn question<'a>(parser: &mut Parser<'a>, left: ParseResult<'a>, span: &'a str) -
 }
 pub(super) fn index_or_slice<'a>(
     parser: &mut Parser<'a>,
-    left: ParseResult<'a>,
+    left: AstResult<'a>,
     left_bracket_span: &'a str,
     optional: bool,
-) -> ParseResult<'a> {
-    let right = BracketFragment::parse_rest(parser).and_then(|bracket_fragment| {
+) -> AstResult<'a> {
+    let right = BracketFragment::parse_rest(parser, AstType::Expr).and_then(|bracket_fragment| {
         let (node, right_first, right_second) = match (bracket_fragment.syntax, optional) {
             (BracketSyntax::Single(expr), false) => (NodeType::Index, Some(expr), None),
             (BracketSyntax::Single(expr), true) => (NodeType::OptionalIndex, Some(expr), None),

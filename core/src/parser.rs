@@ -3,6 +3,10 @@ use crate::lexer::Keyword;
 use crate::lexer::Opening;
 use crate::lexer::Operator;
 use crate::lexer::Token;
+use crate::parser::ast::Ast;
+use crate::parser::ast::AstType;
+use crate::parser::ast::Node;
+use crate::parser::ast::TypedAst;
 use crate::parser::error::ErrorType;
 use crate::parser::error::TokenKind;
 use crate::parser::node_type::NodeType;
@@ -21,6 +25,7 @@ use util::span::span_from_spans;
 use util::tree_vec::Tree;
 use util::tree_vec::TreeVec;
 
+mod ast;
 mod bracket;
 mod error;
 mod float;
@@ -30,11 +35,6 @@ mod node_type;
 mod prefix;
 mod string;
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-struct Node<'a> {
-    span: &'a str,
-    node: NodeType,
-}
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 struct SpanToken<'a> {
     span: &'a str,
@@ -49,7 +49,8 @@ type ParserResult<'a, T> = Result<T, Vec<Error<'a>>>;
 fn error_start(span: &str, error: ErrorType) -> Vec<Error> {
     vec![Error { span, error }]
 }
-type ParseResult<'a> = ParserResult<'a, Tree<Node<'a>>>;
+type AstResult<'a> = ParserResult<'a, Ast<'a>>;
+type TypedAstResult<'a> = ParserResult<'a, TypedAst<'a>>;
 type RawParserMapper = for<'a> fn((&'a str, Token<'a>)) -> SpanToken<'a>;
 struct Parser<'a> {
     src: &'a str,
@@ -78,38 +79,59 @@ impl<'a> PeekableIterator for Parser<'a> {
 }
 impl<'a> FusedIterator for Parser<'a> {}
 impl<'a> ParserIter for Parser<'a> {
-    type Node = ParseResult<'a>;
-    fn prefix_parse(&mut self) -> Self::Node {
+    type Ast = TypedAstResult<'a>;
+    type Kind = AstType;
+    fn prefix_parse(&mut self, kind: &Self::Kind) -> Self::Ast {
         let src = self.src;
         let peeked = self
             .peek()
-            .ok_or_else(|| error_start(&src[src.len()..], ErrorType::NoExpr))?;
-        if Parser::valid_prefix(peeked.token) {
-            return Err(error_start(&peeked.span[..0], ErrorType::NoExpr));
+            .ok_or_else(|| error_start(&src[src.len()..], ErrorType::no_expected_kind(*kind)))?;
+        if Parser::valid_prefix(peeked.token, *kind) {
+            return Err(error_start(
+                &peeked.span[..0],
+                ErrorType::no_expected_kind(*kind),
+            ));
         }
         let prefix = self.next().unwrap();
         match prefix.token {
-            Token::Keyword(keyword) => prefix::keyword(self, prefix.span, keyword),
-            Token::Operator(operator) => prefix::operator(self, prefix.span, operator),
+            Token::Keyword(keyword) => {
+                prefix::keyword(self, prefix.span, keyword).map(|ast| TypedAst {
+                    tree: ast,
+                    kind: AstType::Expr,
+                })
+            }
+            Token::Operator(operator) => {
+                prefix::operator(self, prefix.span, operator).map(|ast| TypedAst {
+                    tree: ast,
+                    kind: AstType::Expr,
+                })
+            }
             Token::Int(radix, num) => {
                 match integer::parse_u64(radix.as_int() as u64, num.as_bytes()) {
-                    Some(num) => Ok(Tree::new(Node {
-                        span: prefix.span,
-                        node: NodeType::UInt(num),
-                    })),
+                    Some(num) => Ok(TypedAst {
+                        kind: AstType::Expr,
+                        tree: Tree::new(Node {
+                            span: prefix.span,
+                            node: NodeType::UInt(num),
+                        }),
+                    }),
                     None => Err(error_start(prefix.span, ErrorType::IntegerOverflow)),
                 }
             }
             Token::Float(num) => match float::parse_float(num) {
-                Some(num) => Ok(Tree::new(Node {
-                    span: prefix.span,
-                    node: NodeType::Float(num),
-                })),
+                Some(num) => Ok(TypedAst {
+                    kind: AstType::Expr,
+                    tree: Tree::new(Node {
+                        span: prefix.span,
+                        node: NodeType::Float(num),
+                    }),
+                }),
                 None => Err(error_start(prefix.span, ErrorType::ExpOverflow)),
             },
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
-                let fragment = BracketFragment::parse_rest(self)?;
+                let fragment = BracketFragment::parse_rest(self, *kind)?;
+                let kind = fragment.kind;
                 let (node, children) = match fragment.syntax {
                     BracketSyntax::Empty => (NodeType::Array, TreeVec::new()),
                     BracketSyntax::Single(expr) => (NodeType::Array, join_trees![expr]),
@@ -119,145 +141,204 @@ impl<'a> ParserIter for Parser<'a> {
                         (NodeType::ArrayRange(range_type), children)
                     }
                 };
-                Ok(Tree {
-                    content: Node {
-                        span: span_from_spans(self.src, prefix.span, fragment.right_bracket_span),
-                        node,
+                Ok(TypedAst {
+                    kind,
+                    tree: Tree {
+                        content: Node {
+                            span: span_from_spans(
+                                self.src,
+                                prefix.span,
+                                fragment.right_bracket_span,
+                            ),
+                            node,
+                        },
+                        children,
                     },
-                    children,
                 })
             }
-            Token::Bracket(Opening::Open, Bracket::Brace) => parse_block_rest(self, prefix.span),
-            Token::Str(content) => Ok(Tree {
-                content: Node {
-                    span: prefix.span,
-                    node: NodeType::Str,
+            Token::Bracket(Opening::Open, Bracket::Brace) => parse_block_rest(self, prefix.span)
+                .map(|ast| TypedAst {
+                    tree: ast,
+                    kind: AstType::Expr,
+                }),
+            Token::Str(content) => Ok(TypedAst {
+                kind: AstType::Expr,
+                tree: Tree {
+                    content: Node {
+                        span: prefix.span,
+                        node: NodeType::Str,
+                    },
+                    children: parse_content(content)?,
                 },
-                children: parse_content(content)?,
             }),
             Token::Char(content) => {
                 let children = parse_content(content)?;
                 if children.total() == 1 {
-                    Ok(Tree {
-                        content: Node {
-                            span: prefix.span,
-                            node: NodeType::Char,
+                    Ok(TypedAst {
+                        kind: AstType::Expr,
+                        tree: Tree {
+                            content: Node {
+                                span: prefix.span,
+                                node: NodeType::Char,
+                            },
+                            children,
                         },
-                        children,
                     })
                 } else {
                     Err(error_start(prefix.span, ErrorType::NonSingleChar))
                 }
             }
+            Token::Underscore => todo!(),
             Token::Ident => todo!(),
             Token::UnterminatedQuote => Err(error_start(prefix.span, ErrorType::UnterminatedQuote)),
             Token::InvalidNumber => Err(error_start(prefix.span, ErrorType::InvalidNumber)),
             _ => unreachable!(),
         }
     }
-    fn infix_parse(&mut self, left_node: Self::Node, infix: Self::Item) -> Self::Node {
-        match infix.token {
-            Token::Operator(operator) => infix::operator(self, left_node, infix.span, operator),
+    fn infix_parse(
+        &mut self,
+        left_node: Self::Ast,
+        infix: Self::Item,
+        kind: &Self::Kind,
+    ) -> Self::Ast {
+        debug_assert!(kind.is_expr());
+        let left = left_node.map(|ast| ast.tree);
+        let tree = match infix.token {
+            Token::Operator(operator) => infix::operator(self, left, infix.span, operator)?,
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
-                infix::index_or_slice(self, left_node, infix.span, false)
+                infix::index_or_slice(self, left, infix.span, false)?
             }
             _ => panic!("expected infix token, found {:?}", infix.token),
-        }
-    }
-    fn infix_precedence(infix: &Self::Item) -> Option<u32> {
-        Some(match infix.token {
-            Token::Bracket(Opening::Open, Bracket::Bracket) => 100,
-            Token::Bracket(Opening::Open, Bracket::Parenthesis) => 100,
-            Token::Operator(operator) => match operator {
-                Operator::Dot => 100,
-                Operator::Question => 100,
-                Operator::Star => 80,
-                Operator::Slash => 80,
-                Operator::DoubleSlash => 80,
-                Operator::Percent => 80,
-                Operator::Plus => 70,
-                Operator::Minus => 70,
-                Operator::DoublePlus => 70,
-                Operator::DoubleEqual => 60,
-                Operator::NotEqual => 60,
-                Operator::Less => 60,
-                Operator::LessEqual => 60,
-                Operator::Greater => 60,
-                Operator::GreaterEqual => 60,
-                Operator::Amp => 50,
-                Operator::DoubleAmp => 50,
-                Operator::Pipe => 40,
-                Operator::DoublePipe => 40,
-                Operator::DoubleQuestion => 30,
-                Operator::LeftArrow => 20,
-                _ => return None,
-            },
-            _ => return None,
+        };
+        Ok(TypedAst {
+            tree,
+            kind: AstType::Expr,
         })
+    }
+    fn infix_precedence(infix: &Self::Item, kind: &Self::Kind) -> Option<u32> {
+        if kind.is_expr() {
+            Some(match infix.token {
+                Token::Bracket(Opening::Open, Bracket::Bracket) => 100,
+                Token::Bracket(Opening::Open, Bracket::Parenthesis) => 100,
+                Token::Operator(operator) => match operator {
+                    Operator::Dot => 100,
+                    Operator::Question => 100,
+                    Operator::Star => 80,
+                    Operator::Slash => 80,
+                    Operator::DoubleSlash => 80,
+                    Operator::Percent => 80,
+                    Operator::Plus => 70,
+                    Operator::Minus => 70,
+                    Operator::DoublePlus => 70,
+                    Operator::DoubleEqual => 60,
+                    Operator::NotEqual => 60,
+                    Operator::Less => 60,
+                    Operator::LessEqual => 60,
+                    Operator::Greater => 60,
+                    Operator::GreaterEqual => 60,
+                    Operator::Amp => 50,
+                    Operator::DoubleAmp => 50,
+                    Operator::Pipe => 40,
+                    Operator::DoublePipe => 40,
+                    Operator::DoubleQuestion => 30,
+                    Operator::LeftArrow => 20,
+                    _ => return None,
+                },
+                _ => return None,
+            })
+        } else {
+            None
+        }
     }
 }
 impl<'a> Parser<'a> {
     fn peek_token(&mut self) -> Option<Token> {
         self.peek().map(|token| token.token)
     }
-    fn valid_prefix(token: Token) -> bool {
+    fn valid_prefix(token: Token, kind: AstType) -> bool {
         match token {
             Token::Whitespace | Token::Comment => false,
-            Token::Int(_, _) => true,
-            Token::Float(_) => true,
-            Token::Str(_) => true,
-            Token::Char(_) => true,
-            Token::Keyword(keyword) => match keyword {
-                Keyword::True => true,
-                Keyword::False => true,
-                Keyword::Null => true,
-                Keyword::Clone => true,
-                Keyword::If => true,
-                Keyword::Else => false,
-                Keyword::For => true,
-                Keyword::In => false,
-                Keyword::Loop => true,
-                Keyword::While => true,
-                Keyword::Break => true,
-                Keyword::Continue => true,
-                Keyword::Return => true,
-            },
-            Token::Underscore => false,
+            Token::Int(_, _) => kind.is_expr(),
+            Token::Float(_) => kind.is_expr(),
+            Token::Str(_) => kind.is_expr(),
+            Token::Char(_) => kind.is_expr(),
+            Token::Keyword(keyword) => {
+                kind.is_expr()
+                    && match keyword {
+                        Keyword::True => true,
+                        Keyword::False => true,
+                        Keyword::Null => true,
+                        Keyword::Clone => true,
+                        Keyword::If => true,
+                        Keyword::Else => false,
+                        Keyword::For => true,
+                        Keyword::In => false,
+                        Keyword::Loop => true,
+                        Keyword::While => true,
+                        Keyword::Break => true,
+                        Keyword::Continue => true,
+                        Keyword::Return => true,
+                    }
+            }
+            Token::Underscore => kind.is_unpack(),
             Token::Ident => true,
             Token::Separator(_) => false,
             Token::Bracket(Opening::Open, _) => true,
             Token::Bracket(Opening::Close, _) => false,
-            Token::Operator(operator) => matches!(
-                operator,
-                Operator::Plus
-                    | Operator::Minus
-                    | Operator::Bang
-                    | Operator::Amp
-                    | Operator::DoubleAmp
-                    | Operator::RightThickArrow
-            ),
-            Token::InvalidNumber => true,
-            Token::UnterminatedQuote => true,
+            Token::Operator(operator) => {
+                kind.is_expr()
+                    && matches!(
+                        operator,
+                        Operator::Plus
+                            | Operator::Minus
+                            | Operator::Bang
+                            | Operator::Amp
+                            | Operator::DoubleAmp
+                            | Operator::RightThickArrow
+                    )
+            }
+            Token::InvalidNumber => kind.is_unpack(),
+            Token::UnterminatedQuote => kind.is_unpack(),
             Token::Unknown => false,
         }
     }
-    fn parse_optional_expr(&mut self, precedence: u32) -> ParserResult<'a, Option<Tree<Node<'a>>>> {
+    fn parse_optional(
+        &mut self,
+        precedence: u32,
+        kind: AstType,
+    ) -> ParserResult<'a, Option<TypedAst<'a>>> {
         let peeked = match self.peek_token() {
             Some(token) => token,
             None => return Ok(None),
         };
-        if Self::valid_prefix(peeked) {
-            self.partial_parse(precedence).map(Some)
+        if Self::valid_prefix(peeked, kind) {
+            self.partial_parse(precedence, &AstType::Expr).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+    fn parse_expr(&mut self, precedence: u32) -> AstResult<'a> {
+        self.partial_parse(precedence, &AstType::Expr)
+            .map(|ast| ast.tree)
+    }
+    fn parse_optional_expr(&mut self, precedence: u32) -> ParserResult<'a, Option<Ast<'a>>> {
+        let peeked = match self.peek_token() {
+            Some(token) => token,
+            None => return Ok(None),
+        };
+        if Self::valid_prefix(peeked, AstType::Expr) {
+            self.partial_parse(precedence, &AstType::Expr)
+                .map(|ast| Some(ast.tree))
         } else {
             Ok(None)
         }
     }
 }
-fn parse_block_rest<'a>(parser: &mut Parser<'a>, left_bracket_span: &'a str) -> ParseResult<'a> {
+fn parse_block_rest<'a>(parser: &mut Parser<'a>, left_bracket_span: &'a str) -> AstResult<'a> {
     todo!()
 }
-fn parse_block<'a>(parser: &mut Parser<'a>) -> ParseResult<'a> {
+fn parse_block<'a>(parser: &mut Parser<'a>) -> AstResult<'a> {
     let err_span = if let Some(token) = parser.peek() {
         if token.token != Token::Bracket(Opening::Open, Bracket::Brace) {
             let span = token.span;
