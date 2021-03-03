@@ -44,7 +44,7 @@ pub(super) fn keyword<'a>(
         })),
         Keyword::Clone => clone(parser, span),
         Keyword::If => parse_if(parser, span),
-        Keyword::For => todo!(),
+        Keyword::For => parse_for(parser, span),
         Keyword::Loop => parse_loop(parser, span),
         Keyword::While => parse_while(parser, span),
         Keyword::Break => parse_break(parser, span),
@@ -228,4 +228,25 @@ fn parse_else<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
             ]),
         )),
     }
+}
+fn parse_for<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
+    let iter_unpack = parser.parse_unpack(0)?;
+    if let Some(Token::Keyword(Keyword::In)) = parser.peek_token() {
+        parser.next();
+    } else {
+        let span = iter_unpack.content.span;
+        return Err(error_start(
+            &span[span.len()..],
+            ErrorType::NoExpectation(&[TokenKind::Keyword(Keyword::In)]),
+        ));
+    }
+    let iter_val = parser.parse_expr(0)?;
+    let block = parse_block(parser)?;
+    Ok(Tree {
+        content: Node {
+            span: span_from_spans(parser.src, span, block.content.span),
+            node: NodeType::While,
+        },
+        children: join_trees![iter_unpack, iter_val, block],
+    })
 }

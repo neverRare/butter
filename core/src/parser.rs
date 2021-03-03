@@ -342,6 +342,9 @@ impl<'a> Parser<'a> {
             Ok(None)
         }
     }
+    fn parse_unpack(&mut self, precedence: u32) -> AstResult<'a> {
+        self.parse(precedence, &AstType::Unpack).map(|ast| ast.ast)
+    }
 }
 fn parse_block_rest<'a>(parser: &mut Parser<'a>, left_bracket_span: &'a str) -> AstResult<'a> {
     todo!()
