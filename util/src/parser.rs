@@ -6,13 +6,13 @@ pub trait ParserIter: PeekableIterator {
     fn prefix_parse(&mut self, kind: &Self::Kind) -> Self::Ast;
     fn infix_parse(
         &mut self,
-        left_node: Self::Ast,
+        left_ast: Self::Ast,
         infix: Self::Item,
         kind: &Self::Kind,
     ) -> Self::Ast;
     fn infix_precedence(token: &Self::Item, kind: &Self::Kind) -> Option<u32>;
-    fn partial_parse(&mut self, precedence: u32, kind: &Self::Kind) -> Self::Ast {
-        let mut node = Self::prefix_parse(self, kind);
+    fn parse(&mut self, precedence: u32, kind: &Self::Kind) -> Self::Ast {
+        let mut ast = Self::prefix_parse(self, kind);
         while let Some(token) = self.peek() {
             if Self::infix_precedence(token, kind)
                 .map(|num| num <= precedence)
@@ -21,9 +21,9 @@ pub trait ParserIter: PeekableIterator {
                 break;
             }
             let infix = self.next().unwrap();
-            node = self.infix_parse(node, infix, kind);
+            ast = self.infix_parse(ast, infix, kind);
         }
-        node
+        ast
     }
 }
 #[cfg(test)]
@@ -72,7 +72,7 @@ mod test {
                 }
                 Token::OpenGroup => {
                     self.next();
-                    let inside = self.partial_parse(0, &());
+                    let inside = self.parse(0, &());
                     if let Token::CloseGroup = self.peek()? {
                         inside
                     } else {
@@ -83,7 +83,7 @@ mod test {
                     self.next();
                     Some(Tree {
                         content: Node::Prefix,
-                        children: crate::join_trees![self.partial_parse(30, &())?],
+                        children: crate::join_trees![self.parse(30, &())?],
                     })
                 }
                 _ => None,
@@ -100,7 +100,7 @@ mod test {
                 Token::InfixRight => (Node::InfixRight, 19),
                 _ => unreachable!(),
             };
-            let right = self.partial_parse(precedence, &())?;
+            let right = self.parse(precedence, &())?;
             Some(Tree {
                 content,
                 children: crate::join_trees![left_node?, right],
@@ -117,7 +117,7 @@ mod test {
     macro_rules! assert_parser {
         ([$($token:expr),* $(,)?], $content:expr => {$($children:tt)*} $(,)?) => {
             assert_eq!(
-                Parser([$($token),*].iter().copied().peekable()).partial_parse(0, &()),
+                Parser([$($token),*].iter().copied().peekable()).parse(0, &()),
                 Some(Tree {
                     content: $content,
                     children: tree_vec! { $($children)* },

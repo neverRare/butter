@@ -7,8 +7,8 @@ pub struct Node<'a> {
     pub node: NodeType,
 }
 pub type Ast<'a> = Tree<Node<'a>>;
-pub(super) struct TypedAst<'a> {
-    pub tree: Tree<Node<'a>>,
+pub(super) struct KindedAst<'a> {
+    pub ast: Ast<'a>,
     pub kind: AstType,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

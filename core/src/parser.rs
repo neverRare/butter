@@ -5,8 +5,8 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::ast::Ast;
 use crate::parser::ast::AstType;
+use crate::parser::ast::KindedAst;
 use crate::parser::ast::Node;
-use crate::parser::ast::TypedAst;
 use crate::parser::error::ErrorType;
 use crate::parser::error::TokenKind;
 use crate::parser::node_type::NodeType;
@@ -50,7 +50,7 @@ fn error_start(span: &str, error: ErrorType) -> Vec<Error> {
     vec![Error { span, error }]
 }
 type AstResult<'a> = ParserResult<'a, Ast<'a>>;
-type TypedAstResult<'a> = ParserResult<'a, TypedAst<'a>>;
+type TypedAstResult<'a> = ParserResult<'a, KindedAst<'a>>;
 type RawParserMapper = for<'a> fn((&'a str, Token<'a>)) -> SpanToken<'a>;
 struct Parser<'a> {
     src: &'a str,
@@ -95,22 +95,22 @@ impl<'a> ParserIter for Parser<'a> {
         let prefix = self.next().unwrap();
         match prefix.token {
             Token::Keyword(keyword) => {
-                prefix::keyword(self, prefix.span, keyword).map(|ast| TypedAst {
-                    tree: ast,
+                prefix::keyword(self, prefix.span, keyword).map(|ast| KindedAst {
+                    ast,
                     kind: AstType::Expr,
                 })
             }
             Token::Operator(operator) => {
-                prefix::operator(self, prefix.span, operator).map(|ast| TypedAst {
-                    tree: ast,
+                prefix::operator(self, prefix.span, operator).map(|ast| KindedAst {
+                    ast,
                     kind: AstType::Expr,
                 })
             }
             Token::Int(radix, num) => {
                 match integer::parse_u64(radix.as_int() as u64, num.as_bytes()) {
-                    Some(num) => Ok(TypedAst {
+                    Some(num) => Ok(KindedAst {
                         kind: AstType::Expr,
-                        tree: Tree::new(Node {
+                        ast: Tree::new(Node {
                             span: prefix.span,
                             node: NodeType::UInt(num),
                         }),
@@ -119,9 +119,9 @@ impl<'a> ParserIter for Parser<'a> {
                 }
             }
             Token::Float(num) => match float::parse_float(num) {
-                Some(num) => Ok(TypedAst {
+                Some(num) => Ok(KindedAst {
                     kind: AstType::Expr,
-                    tree: Tree::new(Node {
+                    ast: Tree::new(Node {
                         span: prefix.span,
                         node: NodeType::Float(num),
                     }),
@@ -141,9 +141,9 @@ impl<'a> ParserIter for Parser<'a> {
                         (NodeType::ArrayRange(range_type), children)
                     }
                 };
-                Ok(TypedAst {
+                Ok(KindedAst {
                     kind,
-                    tree: Tree {
+                    ast: Tree {
                         content: Node {
                             span: span_from_spans(
                                 self.src,
@@ -157,13 +157,13 @@ impl<'a> ParserIter for Parser<'a> {
                 })
             }
             Token::Bracket(Opening::Open, Bracket::Brace) => parse_block_rest(self, prefix.span)
-                .map(|ast| TypedAst {
-                    tree: ast,
+                .map(|ast| KindedAst {
+                    ast,
                     kind: AstType::Expr,
                 }),
-            Token::Str(content) => Ok(TypedAst {
+            Token::Str(content) => Ok(KindedAst {
                 kind: AstType::Expr,
-                tree: Tree {
+                ast: Tree {
                     content: Node {
                         span: prefix.span,
                         node: NodeType::Str,
@@ -174,9 +174,9 @@ impl<'a> ParserIter for Parser<'a> {
             Token::Char(content) => {
                 let children = parse_content(content)?;
                 if children.total() == 1 {
-                    Ok(TypedAst {
+                    Ok(KindedAst {
                         kind: AstType::Expr,
-                        tree: Tree {
+                        ast: Tree {
                             content: Node {
                                 span: prefix.span,
                                 node: NodeType::Char,
@@ -188,9 +188,9 @@ impl<'a> ParserIter for Parser<'a> {
                     Err(error_start(prefix.span, ErrorType::NonSingleChar))
                 }
             }
-            Token::Underscore => Ok(TypedAst {
+            Token::Underscore => Ok(KindedAst {
                 kind: AstType::Unpack,
-                tree: Tree {
+                ast: Tree {
                     content: Node {
                         span: prefix.span,
                         node: NodeType::Ignore,
@@ -211,8 +211,8 @@ impl<'a> ParserIter for Parser<'a> {
         kind: &Self::Kind,
     ) -> Self::Ast {
         debug_assert!(kind.is_expr());
-        let left = left_node.map(|ast| ast.tree);
-        let tree = match infix.token {
+        let left = left_node.map(|ast| ast.ast);
+        let ast = match infix.token {
             Token::Operator(operator) => infix::operator(self, left, infix.span, operator)?,
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
@@ -220,8 +220,8 @@ impl<'a> ParserIter for Parser<'a> {
             }
             _ => panic!("expected infix token, found {:?}", infix.token),
         };
-        Ok(TypedAst {
-            tree,
+        Ok(KindedAst {
+            ast,
             kind: AstType::Expr,
         })
     }
@@ -316,20 +316,19 @@ impl<'a> Parser<'a> {
         &mut self,
         precedence: u32,
         kind: AstType,
-    ) -> ParserResult<'a, Option<TypedAst<'a>>> {
+    ) -> ParserResult<'a, Option<KindedAst<'a>>> {
         let peeked = match self.peek_token() {
             Some(token) => token,
             None => return Ok(None),
         };
         if Self::valid_prefix(peeked, kind) {
-            self.partial_parse(precedence, &AstType::Expr).map(Some)
+            self.parse(precedence, &AstType::Expr).map(Some)
         } else {
             Ok(None)
         }
     }
     fn parse_expr(&mut self, precedence: u32) -> AstResult<'a> {
-        self.partial_parse(precedence, &AstType::Expr)
-            .map(|ast| ast.tree)
+        self.parse(precedence, &AstType::Expr).map(|ast| ast.ast)
     }
     fn parse_optional_expr(&mut self, precedence: u32) -> ParserResult<'a, Option<Ast<'a>>> {
         let peeked = match self.peek_token() {
@@ -337,8 +336,8 @@ impl<'a> Parser<'a> {
             None => return Ok(None),
         };
         if Self::valid_prefix(peeked, AstType::Expr) {
-            self.partial_parse(precedence, &AstType::Expr)
-                .map(|ast| Some(ast.tree))
+            self.parse(precedence, &AstType::Expr)
+                .map(|ast| Some(ast.ast))
         } else {
             Ok(None)
         }

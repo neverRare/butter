@@ -49,7 +49,7 @@ impl<'a> BracketFragment<'a> {
             Some(Token::Bracket(Opening::Close, Bracket::Bracket)) => {
                 let right_bracket_span = parser.next().unwrap().span;
                 let (kind, syntax) = match first {
-                    Some(expr) => (expr.kind, BracketSyntax::Single(expr.tree)),
+                    Some(ast) => (ast.kind, BracketSyntax::Single(ast.ast)),
                     None => (AstType::ExprOrUnpack, BracketSyntax::Empty),
                 };
                 Ok(Self {
@@ -67,7 +67,7 @@ impl<'a> BracketFragment<'a> {
                     .unwrap_or(AstType::ExprOrUnpack);
                 if let Token::Separator(Separator::Comma) = token.token {
                     match first {
-                        Some(expr) => elements.push(expr.tree),
+                        Some(ast) => elements.push(ast.ast),
                         None => {
                             let comma_span = parser.next().unwrap().span;
                             return Err(error_start(&comma_span[..0], ErrorType::NoExpr));
@@ -89,20 +89,20 @@ impl<'a> BracketFragment<'a> {
                             }
                         }
                         star_before = true;
-                        let ast = parser.partial_parse(0, &kind)?;
+                        let ast = parser.parse(0, &kind)?;
                         kind = ast.kind;
                         elements.push(Tree {
                             content: Node {
-                                span: span_from_spans(parser.src, star_span, ast.tree.content.span),
+                                span: span_from_spans(parser.src, star_span, ast.ast.content.span),
                                 node: NodeType::SplatOrRest,
                             },
-                            children: join_trees![ast.tree],
+                            children: join_trees![ast.ast],
                         });
                     } else {
                         match parser.parse_optional(0, kind)? {
                             Some(ast) => {
                                 kind = ast.kind;
-                                elements.push(ast.tree);
+                                elements.push(ast.ast);
                             }
                             None => break,
                         }
@@ -121,7 +121,7 @@ impl<'a> BracketFragment<'a> {
             | Some(Token::Operator(Operator::GreaterLess))
                 if kind.is_expr() =>
             {
-                let first = first.map(|ast| ast.tree);
+                let first = first.map(|ast| ast.ast);
                 let operator = {
                     if let Token::Operator(operator) = parser.next().unwrap().token {
                         operator
