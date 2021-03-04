@@ -49,7 +49,7 @@ user = (
 If you wish to ignore some fields, either don't write it or rename it to `_`.
 
 ```butter
-(email) = user;
+(email,) = user;
 -- or
 (name = _, email) = user;
 ```

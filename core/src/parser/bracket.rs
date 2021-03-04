@@ -5,6 +5,7 @@ use crate::lexer::Separator;
 use crate::lexer::Token;
 use crate::parser::ast::Ast;
 use crate::parser::ast::AstType;
+use crate::parser::ast::AstVec;
 use crate::parser::error_start;
 use crate::parser::node_type::RangeType;
 use crate::parser::ErrorType;
@@ -32,7 +33,7 @@ static EXPECTED_TOKEN: &[TokenKind] = &[
 pub(super) enum BracketSyntax<'a> {
     Empty,
     Single(Ast<'a>),
-    Multiple(TreeVec<Node<'a>>),
+    Multiple(AstVec<'a>),
     Range(Option<Ast<'a>>, RangeType, Option<Ast<'a>>),
 }
 pub(super) struct BracketFragment<'a> {
@@ -108,7 +109,10 @@ impl<'a> BracketFragment<'a> {
                         }
                     }
                 }
-                let right_bracket_span = get_right_bracket_span(parser, &EXPECTED_TOKEN[1..2])?;
+                let right_bracket_span = parser.get_span(
+                    Token::Bracket(Opening::Close, Bracket::Bracket),
+                    &EXPECTED_TOKEN[1..2],
+                )?;
                 Ok(Self {
                     syntax: BracketSyntax::Multiple(elements),
                     kind,
@@ -130,7 +134,10 @@ impl<'a> BracketFragment<'a> {
                     }
                 };
                 let second = parser.parse_optional_expr(0)?;
-                let right_bracket_span = get_right_bracket_span(parser, &EXPECTED_TOKEN[1..1])?;
+                let right_bracket_span = parser.get_span(
+                    Token::Bracket(Opening::Close, Bracket::Bracket),
+                    &EXPECTED_TOKEN[1..1],
+                )?;
                 let range_type = match (&first, operator, &second) {
                     (Some(_), operator, Some(_)) => match operator {
                         Operator::DoubleDot => RangeType::Inclusive,
@@ -171,20 +178,5 @@ impl<'a> BracketFragment<'a> {
                 Err(error_start(span, ErrorType::NoExpectation(expected)))
             }
         }
-    }
-}
-fn get_right_bracket_span<'a>(
-    parser: &mut Parser<'a>,
-    expectation: &'static [TokenKind],
-) -> ParserResult<'a, &'a str> {
-    let token = parser.peek();
-    if let Some(Token::Bracket(Opening::Close, Bracket::Bracket)) = token.map(|token| token.token) {
-        Ok(parser.next().unwrap().span)
-    } else {
-        let span = match token {
-            Some(token) => &token.span[..0],
-            None => &parser.src[parser.src.len()..],
-        };
-        Err(error_start(span, ErrorType::NoExpectation(expectation)))
     }
 }

@@ -7,8 +7,8 @@ use crate::parser::ast::Ast;
 use crate::parser::ast::AstType;
 use crate::parser::ast::KindedAst;
 use crate::parser::ast::Node;
-use crate::parser::error::ErrorType;
 use crate::parser::error::Error;
+use crate::parser::error::ErrorType;
 use crate::parser::error::TokenKind;
 use crate::parser::node_type::NodeType;
 use crate::parser::string::parse_content;
@@ -33,6 +33,7 @@ mod float;
 mod infix;
 mod integer;
 mod node_type;
+mod parenthesis;
 mod prefix;
 mod string;
 
@@ -257,6 +258,26 @@ impl<'a> ParserIter for Parser<'a> {
 impl<'a> Parser<'a> {
     fn peek_token(&mut self) -> Option<Token> {
         self.peek().map(|token| token.token)
+    }
+    fn get_span(
+        &mut self,
+        expectation: Token,
+        more_expectation: &'static [TokenKind],
+    ) -> ParserResult<'a, &'a str> {
+        let token = self.peek();
+        match token.map(|token| token.token) {
+            Some(token) if token == expectation => Ok(self.next().unwrap().span),
+            _ => {
+                let span = match token {
+                    Some(token) => &token.span[..0],
+                    None => &self.src[self.src.len()..],
+                };
+                Err(error_start(
+                    span,
+                    ErrorType::NoExpectation(more_expectation),
+                ))
+            }
+        }
     }
     fn valid_prefix(token: Token, kind: AstType) -> bool {
         match token {

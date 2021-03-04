@@ -1,5 +1,6 @@
 use crate::parser::NodeType;
 use util::tree_vec::Tree;
+use util::tree_vec::TreeVec;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Node<'a> {
@@ -7,6 +8,7 @@ pub struct Node<'a> {
     pub node: NodeType,
 }
 pub type Ast<'a> = Tree<Node<'a>>;
+pub type AstVec<'a> = TreeVec<Node<'a>>;
 pub(super) struct KindedAst<'a> {
     pub ast: Ast<'a>,
     pub kind: AstType,

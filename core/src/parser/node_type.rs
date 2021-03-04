@@ -43,7 +43,8 @@ pub enum RangeType {
 pub enum NodeType {
     Label,
 
-    Field,
+    NamedField,
+    UnnamedField,
     Name,
     SplatOrRest,
 
