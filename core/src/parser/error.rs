@@ -8,7 +8,7 @@ use crate::parser::AstType;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ErrorType {
     NonPlace,
-    NoExpectation(&'static [TokenKind]),
+    NoExpectation(&'static [ExpectedToken]),
     NoExpr,
     NoUnpack,
     NoExprNorUnpack,
@@ -36,15 +36,15 @@ pub struct Error<'a> {
     pub error: ErrorType,
 }
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub enum TokenKind {
-    Int,
-    Float,
-    Str,
-    Char,
+pub enum ExpectedToken {
     Keyword(Keyword),
-    Underscore,
     Ident,
     Separator(Separator),
     Bracket(Opening, Bracket),
     Operator(Operator),
+    // Int,
+    // Float,
+    // Str,
+    // Char,
+    // Underscore,
 }

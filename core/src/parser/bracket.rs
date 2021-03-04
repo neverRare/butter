@@ -9,11 +9,11 @@ use crate::parser::ast::AstVec;
 use crate::parser::error_start;
 use crate::parser::node_type::RangeType;
 use crate::parser::ErrorType;
+use crate::parser::ExpectedToken;
 use crate::parser::Node;
 use crate::parser::NodeType;
 use crate::parser::Parser;
 use crate::parser::ParserResult;
-use crate::parser::TokenKind;
 use util::iter::PeekableIterator;
 use util::join_trees;
 use util::parser::ParserIter;
@@ -21,14 +21,14 @@ use util::span::span_from_spans;
 use util::tree_vec::Tree;
 use util::tree_vec::TreeVec;
 
-static EXPECTED_TOKEN: &[TokenKind] = &[
-    TokenKind::Operator(Operator::Star),
-    TokenKind::Bracket(Opening::Close, Bracket::Bracket),
-    TokenKind::Separator(Separator::Comma),
-    TokenKind::Operator(Operator::DoubleDot),
-    TokenKind::Operator(Operator::DotLess),
-    TokenKind::Operator(Operator::GreaterDot),
-    TokenKind::Operator(Operator::GreaterLess),
+static EXPECTED_TOKEN: &[ExpectedToken] = &[
+    ExpectedToken::Operator(Operator::Star),
+    ExpectedToken::Bracket(Opening::Close, Bracket::Bracket),
+    ExpectedToken::Separator(Separator::Comma),
+    ExpectedToken::Operator(Operator::DoubleDot),
+    ExpectedToken::Operator(Operator::DotLess),
+    ExpectedToken::Operator(Operator::GreaterDot),
+    ExpectedToken::Operator(Operator::GreaterLess),
 ];
 pub(super) enum BracketSyntax<'a> {
     Empty,

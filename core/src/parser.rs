@@ -9,7 +9,7 @@ use crate::parser::ast::KindedAst;
 use crate::parser::ast::Node;
 use crate::parser::error::Error;
 use crate::parser::error::ErrorType;
-use crate::parser::error::TokenKind;
+use crate::parser::error::ExpectedToken;
 use crate::parser::node_type::NodeType;
 use crate::parser::string::parse_content;
 use bracket::BracketFragment;
@@ -262,7 +262,7 @@ impl<'a> Parser<'a> {
     fn get_span(
         &mut self,
         expectation: Token,
-        more_expectation: &'static [TokenKind],
+        more_expectation: &'static [ExpectedToken],
     ) -> ParserResult<'a, &'a str> {
         let token = self.peek();
         match token.map(|token| token.token) {
@@ -378,7 +378,7 @@ fn parse_block<'a>(parser: &mut Parser<'a>) -> AstResult<'a> {
     if let Some(span) = err_span {
         return Err(error_start(
             span,
-            ErrorType::NoExpectation(&[TokenKind::Bracket(Opening::Open, Bracket::Brace)]),
+            ErrorType::NoExpectation(&[ExpectedToken::Bracket(Opening::Open, Bracket::Brace)]),
         ));
     }
     let bracket = parser.next().unwrap();

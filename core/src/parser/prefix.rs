@@ -12,11 +12,11 @@ use crate::parser::parse_block;
 use crate::parser::parse_block_rest;
 use crate::parser::AstResult;
 use crate::parser::ErrorType;
+use crate::parser::ExpectedToken;
 use crate::parser::KindedAst;
 use crate::parser::KindedAstResult;
 use crate::parser::Node;
 use crate::parser::Parser;
-use crate::parser::TokenKind;
 use util::join_trees;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
@@ -226,8 +226,8 @@ fn parse_else<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
         Some(_) | None => Err(error_start(
             &span[span.len()..],
             ErrorType::NoExpectation(&[
-                TokenKind::Bracket(Opening::Open, Bracket::Brace),
-                TokenKind::Keyword(Keyword::If),
+                ExpectedToken::Bracket(Opening::Open, Bracket::Brace),
+                ExpectedToken::Keyword(Keyword::If),
             ]),
         )),
     }
@@ -240,7 +240,7 @@ fn parse_for<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
         let span = iter_unpack.content.span;
         return Err(error_start(
             &span[span.len()..],
-            ErrorType::NoExpectation(&[TokenKind::Keyword(Keyword::In)]),
+            ErrorType::NoExpectation(&[ExpectedToken::Keyword(Keyword::In)]),
         ));
     }
     let iter_val = parser.parse_expr(0)?;

@@ -6,7 +6,7 @@ use crate::parser::ast::AstType;
 use crate::parser::bracket::BracketFragment;
 use crate::parser::bracket::BracketSyntax;
 use crate::parser::error::ErrorType;
-use crate::parser::error::TokenKind;
+use crate::parser::error::ExpectedToken;
 use crate::parser::error_start;
 use crate::parser::node_type::Binary;
 use crate::parser::node_type::NodeType;
@@ -100,7 +100,7 @@ fn property_access<'a>(
         }
         Some(_) | None => Err(error_start(
             &span[span.len()..],
-            ErrorType::NoExpectation(&[TokenKind::Ident]),
+            ErrorType::NoExpectation(&[ExpectedToken::Ident]),
         )),
     };
     let (left, right) = aggregate_error(left, right)?;
@@ -123,8 +123,8 @@ fn question<'a>(parser: &mut Parser<'a>, left: AstResult<'a>, span: &'a str) -> 
         Some(_) | None => Err(error_start(
             &span[span.len()..],
             ErrorType::NoExpectation(&[
-                TokenKind::Operator(Operator::Dot),
-                TokenKind::Bracket(Opening::Open, Bracket::Bracket),
+                ExpectedToken::Operator(Operator::Dot),
+                ExpectedToken::Bracket(Opening::Open, Bracket::Bracket),
             ]),
         )),
     }
