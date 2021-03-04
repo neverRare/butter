@@ -61,7 +61,7 @@ impl<'a> BracketFragment<'a> {
                     None if index_or_slice => {
                         return Err(error_start(&right_bracket_span[..0], ErrorType::NoExpr));
                     }
-                    None => (AstType::ExprOrUnpack, BracketSyntax::Empty),
+                    None => (kind, BracketSyntax::Empty),
                 };
                 Ok(Self {
                     syntax,
@@ -82,10 +82,7 @@ impl<'a> BracketFragment<'a> {
             Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star)) => {
                 let token = token.unwrap();
                 let mut elements = TreeVec::new();
-                let mut kind = first
-                    .as_ref()
-                    .map(|ast| ast.kind)
-                    .unwrap_or(AstType::ExprOrUnpack);
+                let mut kind = kind;
                 if let Token::Separator(Separator::Comma) = token.token {
                     match first {
                         Some(ast) => elements.push(ast.ast),

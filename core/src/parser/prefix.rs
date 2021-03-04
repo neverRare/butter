@@ -309,7 +309,7 @@ pub(super) fn ident<'a>(
         })
     } else {
         Ok(KindedAst {
-            kind: AstType::ExprOrUnpack,
+            kind,
             ast: Tree::new(Node {
                 span,
                 node: NodeType::Ident,
