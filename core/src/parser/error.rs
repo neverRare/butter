@@ -13,7 +13,6 @@ pub enum ErrorType {
     NoUnpack,
     NoExprNorUnpack,
     RestAfterRest,
-    NonIndexNorSlice,
     UnterminatedQuote,
     IntegerOverflow,
     ExpOverflow,

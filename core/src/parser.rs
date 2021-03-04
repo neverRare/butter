@@ -127,7 +127,7 @@ impl<'a> ParserIter for Parser<'a> {
             },
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
-                let fragment = BracketFragment::parse_rest(self, *kind)?;
+                let fragment = BracketFragment::parse_rest(self, *kind, false)?;
                 let kind = fragment.kind;
                 let (node, children) = match fragment.syntax {
                     BracketSyntax::Empty => (NodeType::Array, TreeVec::new()),
@@ -210,7 +210,7 @@ impl<'a> ParserIter for Parser<'a> {
             Token::Operator(operator) => infix::operator(self, left, infix.span, operator)?,
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
-                infix::index_or_slice(self, left, infix.span, false)?
+                infix::index_or_slice(self, left, false)?
             }
             _ => panic!("expected infix token, found {:?}", infix.token),
         };

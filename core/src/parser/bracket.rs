@@ -42,7 +42,14 @@ pub(super) struct BracketFragment<'a> {
     pub right_bracket_span: &'a str,
 }
 impl<'a> BracketFragment<'a> {
-    pub(super) fn parse_rest(parser: &mut Parser<'a>, kind: AstType) -> ParserResult<'a, Self> {
+    pub(super) fn parse_rest(
+        parser: &mut Parser<'a>,
+        kind: AstType,
+        index_or_slice: bool,
+    ) -> ParserResult<'a, Self> {
+        if index_or_slice {
+            assert!(kind.is_expr());
+        }
         // TODO: aggregate error as possible
         let first = parser.parse_optional(0, kind)?;
         let token = parser.peek();
@@ -51,6 +58,9 @@ impl<'a> BracketFragment<'a> {
                 let right_bracket_span = parser.next().unwrap().span;
                 let (kind, syntax) = match first {
                     Some(ast) => (ast.kind, BracketSyntax::Single(ast.ast)),
+                    None if index_or_slice => {
+                        return Err(error_start(&right_bracket_span[..0], ErrorType::NoExpr));
+                    }
                     None => (AstType::ExprOrUnpack, BracketSyntax::Empty),
                 };
                 Ok(Self {
@@ -58,6 +68,16 @@ impl<'a> BracketFragment<'a> {
                     kind,
                     right_bracket_span,
                 })
+            }
+            Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star))
+                if index_or_slice =>
+            {
+                let error = if first.is_some() {
+                    ErrorType::NoExpectation(&EXPECTED_TOKEN[1..2])
+                } else {
+                    ErrorType::NoExpr
+                };
+                Err(error_start(&token.unwrap().span[..0], error))
             }
             Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star)) => {
                 let token = token.unwrap();
