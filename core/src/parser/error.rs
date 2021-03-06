@@ -12,6 +12,7 @@ pub enum ErrorType {
     NoExpr,
     NoUnpack,
     NoExprNorUnpack,
+    NotNamed,
     RestAfterRest,
     UnterminatedQuote,
     IntegerOverflow,

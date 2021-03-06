@@ -22,6 +22,7 @@ use util::tree_vec::Tree;
 
 pub(super) enum ParenthesisSyntax<'a> {
     Empty,
+    SingleIdent(&'a str),
     Single(Ast<'a>),
     NamedFields(AstVec<'a>),
     UnnamedFields(AstVec<'a>),
@@ -37,12 +38,100 @@ impl<'a> ParenthesisFragment<'a> {
         if arg {
             assert!(kind.is_expr());
         }
-        todo!()
+        if let Some(Token::Bracket(Opening::Close, Bracket::Parenthesis)) = parser.peek_token() {
+            let right_parenthesis_span = parser.next().unwrap().span;
+            return Ok(Self {
+                syntax: ParenthesisSyntax::Empty,
+                kind,
+                have_splat_or_rest: false,
+                right_parenthesis_span,
+            });
+        }
+        let first = FieldFragment::parse(parser, kind, FieldTypeRequest::Either, false)?;
+        if let Some(Token::Bracket(Opening::Close, Bracket::Parenthesis)) = parser.peek_token() {
+            let right_parenthesis_span = parser.next().unwrap().span;
+            let have_splat_or_rest = matches!(first.syntax, FieldSyntax::SplatOrRest(_));
+            let kind = first.kind;
+            let syntax = match first.syntax {
+                FieldSyntax::Ident(ident) => ParenthesisSyntax::SingleIdent(ident),
+                FieldSyntax::Unnamed(ast) => ParenthesisSyntax::Single(ast),
+                FieldSyntax::Named(ast) => ParenthesisSyntax::NamedFields(join_trees![ast]),
+                FieldSyntax::SplatOrRest(ast) => ParenthesisSyntax::NamedFields(join_trees![ast]),
+            };
+            return Ok(Self {
+                syntax,
+                kind,
+                have_splat_or_rest,
+                right_parenthesis_span,
+            });
+        }
+        let mut star_before = matches!(first.syntax, FieldSyntax::SplatOrRest(_));
+        let mut fields = match first.syntax {
+            FieldSyntax::Ident(ident) => join_trees![field_shortcut(ident)],
+            FieldSyntax::Unnamed(ast) if !arg => {
+                return Err(error_start(ast.content.span, ErrorType::NotNamed));
+            }
+            FieldSyntax::Unnamed(ast) | FieldSyntax::Named(ast) | FieldSyntax::SplatOrRest(ast) => {
+                join_trees![ast]
+            }
+        };
+        let mut kind = first.kind;
+        let mut request = if arg {
+            FieldTypeRequest::Either
+        } else {
+            FieldTypeRequest::Named
+        };
+        while let Some(Token::Separator(Separator::Comma)) = parser.peek_token() {
+            let fragment = FieldFragment::parse(parser, kind, request, star_before)?;
+            kind = fragment.kind;
+            let field = match fragment.syntax {
+                FieldSyntax::Ident(ident) => field_shortcut(ident),
+                FieldSyntax::Unnamed(ast) => {
+                    debug_assert!(request.is_unnamed());
+                    request = FieldTypeRequest::Unnamed;
+                    ast
+                }
+                FieldSyntax::Named(ast) => {
+                    debug_assert!(request.is_named());
+                    request = FieldTypeRequest::Named;
+                    ast
+                }
+                FieldSyntax::SplatOrRest(ast) => {
+                    star_before = true;
+                    ast
+                }
+            };
+            fields.push(field);
+        }
+        let right_parenthesis_span = parser.get_span(
+            Token::Bracket(Opening::Close, Bracket::Parenthesis),
+            &[
+                ExpectedToken::Separator(Separator::Comma),
+                ExpectedToken::Bracket(Opening::Close, Bracket::Parenthesis),
+            ],
+        )?;
+        let syntax = match request {
+            FieldTypeRequest::Either | FieldTypeRequest::Named => {
+                ParenthesisSyntax::NamedFields(fields)
+            }
+            FieldTypeRequest::Unnamed => ParenthesisSyntax::UnnamedFields(fields),
+        };
+        Ok(Self {
+            syntax,
+            kind,
+            have_splat_or_rest: star_before,
+            right_parenthesis_span,
+        })
     }
 }
+enum FieldSyntax<'a> {
+    Ident(&'a str),
+    Unnamed(Ast<'a>),
+    Named(Ast<'a>),
+    SplatOrRest(Ast<'a>),
+}
 struct FieldFragment<'a> {
-    ast: Ast<'a>,
-    field_kind: FieldType,
+    syntax: FieldSyntax<'a>,
     kind: AstType,
 }
 impl<'a> FieldFragment<'a> {
@@ -68,7 +157,7 @@ impl<'a> FieldFragment<'a> {
                             node: NodeType::Name,
                         });
                         Ok(Self {
-                            ast: Tree {
+                            syntax: FieldSyntax::Named(Tree {
                                 content: Node {
                                     span: span_from_spans(
                                         parser.src,
@@ -78,40 +167,28 @@ impl<'a> FieldFragment<'a> {
                                     node: NodeType::Field,
                                 },
                                 children: join_trees![name_ast, ast.ast],
-                            },
-                            field_kind: FieldType::Named,
+                            }),
                             kind: ast.kind,
                         })
                     }
                     Some(Token::Separator(Separator::Comma))
-                    | Some(Token::Bracket(Opening::Close, Bracket::Parenthesis)) => {
-                        let name_ast = Tree::new(Node {
-                            span: ident.span,
-                            node: NodeType::Name,
-                        });
-                        let ident_ast = Tree::new(Node {
-                            span: ident.span,
-                            node: NodeType::Ident,
-                        });
+                    | Some(Token::Bracket(Opening::Close, Bracket::Parenthesis)) => Ok(Self {
+                        syntax: FieldSyntax::Ident(ident.span),
+                        kind,
+                    }),
+                    Some(_) | None if field_kind.is_unnamed() => {
+                        let ast = prefix::ident(parser, ident.span, kind)?;
                         Ok(Self {
-                            ast: Tree {
-                                content: Node {
-                                    span: ident.span,
-                                    node: NodeType::Field,
-                                },
-                                children: join_trees![name_ast, ident_ast],
-                            },
-                            field_kind: FieldType::Named,
-                            kind,
+                            syntax: FieldSyntax::Unnamed(ast.ast),
+                            kind: ast.kind,
                         })
                     }
                     Some(_) | None => {
-                        let ast = prefix::ident(parser, ident.span, kind)?;
-                        Ok(Self {
-                            ast: ast.ast,
-                            field_kind: FieldType::Unnamed,
-                            kind: ast.kind,
-                        })
+                        let ident_span = ident.span;
+                        Err(error_start(
+                            &ident_span[ident_span.len()..],
+                            ErrorType::NoExpectation(&[ExpectedToken::Operator(Operator::Equal)]),
+                        ))
                     }
                 }
             }
@@ -135,22 +212,20 @@ impl<'a> FieldFragment<'a> {
                 };
                 let ast = parser.parse(0, &kind)?;
                 Ok(Self {
-                    ast: Tree {
+                    syntax: FieldSyntax::SplatOrRest(Tree {
                         content: Node {
                             span: span_from_spans(parser.src, star_span, ast.ast.content.span),
                             node: NodeType::SplatOrRest,
                         },
                         children: join_trees![ast.ast],
-                    },
-                    field_kind: FieldType::SplatOrRest,
+                    }),
                     kind: ast.kind,
                 })
             }
-            Some(_) | None if field_kind.is_nameless() => {
+            Some(_) | None if field_kind.is_unnamed() => {
                 let ast = parser.parse_expr(0)?;
                 Ok(Self {
-                    ast,
-                    field_kind: FieldType::Unnamed,
+                    syntax: FieldSyntax::Unnamed(ast),
                     kind: AstType::Expr,
                 })
             }
@@ -167,11 +242,6 @@ impl<'a> FieldFragment<'a> {
         }
     }
 }
-enum FieldType {
-    Unnamed,
-    Named,
-    SplatOrRest,
-}
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(super) enum FieldTypeRequest {
     Named,
@@ -182,7 +252,24 @@ impl FieldTypeRequest {
     pub fn is_named(self) -> bool {
         matches!(self, Self::Named | Self::Either)
     }
-    pub fn is_nameless(self) -> bool {
+    pub fn is_unnamed(self) -> bool {
         matches!(self, Self::Unnamed | Self::Either)
+    }
+}
+fn field_shortcut(ident: &str) -> Ast {
+    let name_ast = Tree::new(Node {
+        span: ident,
+        node: NodeType::Name,
+    });
+    let ident_ast = Tree::new(Node {
+        span: ident,
+        node: NodeType::Ident,
+    });
+    Tree {
+        content: Node {
+            span: ident,
+            node: NodeType::Field,
+        },
+        children: join_trees![name_ast, ident_ast],
     }
 }
