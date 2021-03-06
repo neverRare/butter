@@ -69,7 +69,9 @@ impl<'a> BracketFragment<'a> {
                     right_bracket_span,
                 })
             }
-            Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star)) if !index_or_slice => {
+            Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star))
+                if !index_or_slice =>
+            {
                 let token = token.unwrap();
                 let mut elements = TreeVec::new();
                 let mut kind = first.as_ref().map(|ast| ast.kind).unwrap_or(kind);
