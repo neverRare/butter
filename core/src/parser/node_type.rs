@@ -43,8 +43,7 @@ pub enum RangeType {
 pub enum NodeType {
     Label,
 
-    NamedField,
-    UnnamedField,
+    Field,
     Name,
     SplatOrRest,
 
@@ -76,6 +75,7 @@ pub enum NodeType {
     Array,
     ArrayRange(RangeType),
     Struct,
+    NamelessArgs,
 
     Property,
     OptionalProperty,

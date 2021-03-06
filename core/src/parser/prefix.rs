@@ -285,7 +285,7 @@ pub(super) fn ident<'a>(
         let field = Tree {
             content: Node {
                 span,
-                node: NodeType::NamedField,
+                node: NodeType::Field,
             },
             children: join_trees![name, ident],
         };
