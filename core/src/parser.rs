@@ -180,7 +180,7 @@ impl<'a> ParserIter for Parser<'a> {
                     let kind = if !kind.is_unpack() {
                         AstType::Expr
                     } else {
-                        debug_assert_eq!(kind, AstType::ExprOrUnpack);
+                        debug_assert_eq!(*kind, AstType::ExprOrUnpack);
                         debug_assert_eq!(ast.kind, AstType::ExprOrUnpack);
                         ast.kind
                     };
