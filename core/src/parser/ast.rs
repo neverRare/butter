@@ -13,17 +13,31 @@ pub(super) struct KindedAst<'a> {
     pub ast: Ast<'a>,
     pub kind: AstType,
 }
+impl<'a> KindedAst<'a> {
+    pub fn new_expr(ast: Ast<'a>) -> Self {
+        Self {
+            ast,
+            kind: AstType::Expr,
+        }
+    }
+    pub fn new_unpack(ast: Ast<'a>) -> Self {
+        Self {
+            ast,
+            kind: AstType::Unpack,
+        }
+    }
+}
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(super) enum AstType {
     Expr,
     Unpack,
-    ExprOrUnpack,
+    Either,
 }
 impl AstType {
     pub fn is_expr(self) -> bool {
-        matches!(self, Self::Expr | Self::ExprOrUnpack)
+        matches!(self, Self::Expr | Self::Either)
     }
     pub fn is_unpack(self) -> bool {
-        matches!(self, Self::Unpack | Self::ExprOrUnpack)
+        matches!(self, Self::Unpack | Self::Either)
     }
 }

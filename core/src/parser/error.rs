@@ -26,7 +26,7 @@ impl ErrorType {
         match kind {
             AstType::Expr => Self::NoExpr,
             AstType::Unpack => Self::NoUnpack,
-            AstType::ExprOrUnpack => Self::NoExprNorUnpack,
+            AstType::Either => Self::NoExprNorUnpack,
         }
     }
 }

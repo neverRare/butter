@@ -12,15 +12,20 @@ use crate::parser::parenthesis;
 use crate::parser::parse_block;
 use crate::parser::parse_block_rest;
 use crate::parser::AstResult;
+use crate::parser::BracketFragment;
+use crate::parser::BracketSyntax;
 use crate::parser::ErrorType;
 use crate::parser::ExpectedToken;
 use crate::parser::KindedAst;
 use crate::parser::KindedAstResult;
 use crate::parser::Node;
+use crate::parser::ParenthesisFragment;
+use crate::parser::ParenthesisSyntax;
 use crate::parser::Parser;
 use util::join_trees;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
+use util::tree_vec::TreeVec;
 
 pub(super) fn operator<'a>(
     parser: &mut Parser<'a>,
@@ -284,16 +289,13 @@ pub(super) fn ident<'a>(
             children: join_trees![field],
         };
         let body = parser.parse_expr(0)?;
-        Ok(KindedAst {
-            kind: AstType::Expr,
-            ast: Tree {
-                content: Node {
-                    span: span_from_spans(parser.src, span, body.content.span),
-                    node: NodeType::Fun,
-                },
-                children: join_trees![parameter, body],
+        Ok(KindedAst::new_expr(Tree {
+            content: Node {
+                span: span_from_spans(parser.src, span, body.content.span),
+                node: NodeType::Fun,
             },
-        })
+            children: join_trees![parameter, body],
+        }))
     } else {
         Ok(KindedAst {
             kind,
@@ -302,5 +304,102 @@ pub(super) fn ident<'a>(
                 node: NodeType::Ident,
             }),
         })
+    }
+}
+pub(super) fn array<'a>(
+    parser: &mut Parser<'a>,
+    left_bracket_span: &'a str,
+    kind: AstType,
+) -> KindedAstResult<'a> {
+    let fragment = BracketFragment::parse_rest(parser, kind, false)?;
+    let kind = fragment.kind;
+    let (node, children) = match fragment.syntax {
+        BracketSyntax::Empty => (NodeType::Array, TreeVec::new()),
+        BracketSyntax::Single(expr) => (NodeType::Array, join_trees![expr]),
+        BracketSyntax::Multiple(elements) => (NodeType::Array, elements),
+        BracketSyntax::Range(left, range_type, right) => {
+            let children = left.into_iter().chain(right.into_iter()).collect();
+            (NodeType::ArrayRange(range_type), children)
+        }
+    };
+    Ok(KindedAst {
+        kind,
+        ast: Tree {
+            content: Node {
+                span: span_from_spans(parser.src, left_bracket_span, fragment.right_bracket_span),
+                node,
+            },
+            children,
+        },
+    })
+}
+pub(super) fn struct_or_group_or_fun<'a>(
+    parser: &mut Parser<'a>,
+    left_parenthesis_span: &'a str,
+    kind: AstType,
+) -> KindedAstResult<'a> {
+    if kind.is_expr() {
+        let fragment = ParenthesisFragment::parse_rest(parser, AstType::Either, false)?;
+        if fragment.kind.is_unpack()
+            && matches!(
+                parser.peek_token(),
+                Some(Token::Operator(Operator::RightThickArrow)),
+            )
+        {
+            let params = match fragment.syntax {
+                ParenthesisSyntax::Empty => TreeVec::new(),
+                ParenthesisSyntax::SingleIdent(ident) => {
+                    join_trees![parenthesis::field_shortcut(ident)]
+                }
+                ParenthesisSyntax::Single(ast) if kind.is_unpack() => {
+                    return Ok(KindedAst::new_unpack(ast));
+                }
+                ParenthesisSyntax::Single(ast) => {
+                    return Err(error_start(ast.content.span, ErrorType::NotNamed))
+                }
+                ParenthesisSyntax::NamedFields(fields) => fields,
+                ParenthesisSyntax::UnnamedFields(_) => unreachable!(),
+            };
+            let param = Tree {
+                content: Node {
+                    span: span_from_spans(
+                        parser.src,
+                        left_parenthesis_span,
+                        fragment.right_parenthesis_span,
+                    ),
+                    node: NodeType::Struct,
+                },
+                children: params,
+            };
+            parser.next();
+            let body = parser.parse_expr(0)?;
+            Ok(KindedAst::new_expr(Tree {
+                content: Node {
+                    span: span_from_spans(parser.src, left_parenthesis_span, body.content.span),
+                    node: NodeType::Fun,
+                },
+                children: join_trees![param, body],
+            }))
+        } else if fragment.kind.is_expr() {
+            let ast = fragment.into_kinded_ast(parser, left_parenthesis_span);
+            let kind = if !kind.is_unpack() {
+                AstType::Expr
+            } else {
+                debug_assert_eq!(kind, AstType::Either);
+                debug_assert_eq!(ast.kind, AstType::Either);
+                ast.kind
+            };
+            Ok(KindedAst { kind, ast: ast.ast })
+        } else {
+            let right_parenthesis_span = fragment.right_parenthesis_span;
+            Err(error_start(
+                &right_parenthesis_span[right_parenthesis_span.len()..],
+                ErrorType::NoExpectation(&[ExpectedToken::Operator(Operator::RightThickArrow)]),
+            ))
+        }
+    } else {
+        let ast = ParenthesisFragment::parse_rest(parser, AstType::Unpack, false)?
+            .into_kinded_ast(parser, left_parenthesis_span);
+        Ok(ast)
     }
 }

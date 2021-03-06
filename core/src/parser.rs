@@ -20,13 +20,10 @@ use std::iter::FusedIterator;
 use std::iter::Map;
 use std::iter::Peekable;
 use util::iter::PeekableIterator;
-use util::join_trees;
 use util::lexer::LexFilter;
 use util::lexer::SpanFilterIter;
 use util::parser::ParserIter;
-use util::span::span_from_spans;
 use util::tree_vec::Tree;
-use util::tree_vec::TreeVec;
 
 mod ast;
 mod bracket;
@@ -94,178 +91,61 @@ impl<'a> ParserIter for Parser<'a> {
         let prefix = self.next().unwrap();
         match prefix.token {
             Token::Keyword(keyword) => {
-                prefix::keyword(self, prefix.span, keyword).map(|ast| KindedAst {
-                    ast,
-                    kind: AstType::Expr,
-                })
+                prefix::keyword(self, prefix.span, keyword).map(KindedAst::new_expr)
             }
             Token::Operator(operator) => {
-                prefix::operator(self, prefix.span, operator).map(|ast| KindedAst {
-                    ast,
-                    kind: AstType::Expr,
-                })
+                prefix::operator(self, prefix.span, operator).map(KindedAst::new_expr)
             }
             Token::Int(radix, num) => {
                 match integer::parse_u64(radix.as_int() as u64, num.as_bytes()) {
-                    Some(num) => Ok(KindedAst {
-                        kind: AstType::Expr,
-                        ast: Tree::new(Node {
-                            span: prefix.span,
-                            node: NodeType::UInt(num),
-                        }),
-                    }),
+                    Some(num) => Ok(KindedAst::new_expr(Tree::new(Node {
+                        span: prefix.span,
+                        node: NodeType::UInt(num),
+                    }))),
                     None => Err(error_start(prefix.span, ErrorType::IntegerOverflow)),
                 }
             }
             Token::Float(num) => match float::parse_float(num) {
-                Some(num) => Ok(KindedAst {
-                    kind: AstType::Expr,
-                    ast: Tree::new(Node {
-                        span: prefix.span,
-                        node: NodeType::Float(num),
-                    }),
-                }),
+                Some(num) => Ok(KindedAst::new_expr(Tree::new(Node {
+                    span: prefix.span,
+                    node: NodeType::Float(num),
+                }))),
                 None => Err(error_start(prefix.span, ErrorType::ExpOverflow)),
             },
-            Token::Bracket(Opening::Open, Bracket::Parenthesis) if kind.is_expr() => {
-                let fragment = ParenthesisFragment::parse_rest(self, AstType::ExprOrUnpack, false)?;
-                if fragment.kind.is_unpack()
-                    && matches!(
-                        self.peek_token(),
-                        Some(Token::Operator(Operator::RightThickArrow)),
-                    )
-                {
-                    let params = match fragment.syntax {
-                        ParenthesisSyntax::Empty => TreeVec::new(),
-                        ParenthesisSyntax::SingleIdent(ident) => {
-                            join_trees![parenthesis::field_shortcut(ident)]
-                        }
-                        ParenthesisSyntax::Single(ast) if kind.is_unpack() => {
-                            return Ok(KindedAst {
-                                ast,
-                                kind: AstType::Unpack,
-                            });
-                        }
-                        ParenthesisSyntax::Single(ast) => {
-                            return Err(error_start(ast.content.span, ErrorType::NotNamed))
-                        }
-                        ParenthesisSyntax::NamedFields(fields) => fields,
-                        ParenthesisSyntax::UnnamedFields(_) => unreachable!(),
-                    };
-                    let param = Tree {
-                        content: Node {
-                            span: span_from_spans(
-                                self.src,
-                                prefix.span,
-                                fragment.right_parenthesis_span,
-                            ),
-                            node: NodeType::Struct,
-                        },
-                        children: params,
-                    };
-                    self.next();
-                    let body = self.parse_expr(0)?;
-                    Ok(KindedAst {
-                        kind: AstType::Expr,
-                        ast: Tree {
-                            content: Node {
-                                span: span_from_spans(self.src, prefix.span, body.content.span),
-                                node: NodeType::Fun,
-                            },
-                            children: join_trees![param, body],
-                        },
-                    })
-                } else if fragment.kind.is_expr() {
-                    let ast = fragment.into_kinded_ast(self, prefix.span);
-                    let kind = if !kind.is_unpack() {
-                        AstType::Expr
-                    } else {
-                        debug_assert_eq!(*kind, AstType::ExprOrUnpack);
-                        debug_assert_eq!(ast.kind, AstType::ExprOrUnpack);
-                        ast.kind
-                    };
-                    Ok(KindedAst { kind, ast: ast.ast })
-                } else {
-                    let right_parenthesis_span = fragment.right_parenthesis_span;
-                    Err(error_start(
-                        &right_parenthesis_span[right_parenthesis_span.len()..],
-                        ErrorType::NoExpectation(&[ExpectedToken::Operator(
-                            Operator::RightThickArrow,
-                        )]),
-                    ))
-                }
-            }
             Token::Bracket(Opening::Open, Bracket::Parenthesis) => {
-                let ast = ParenthesisFragment::parse_rest(self, AstType::Unpack, false)?
-                    .into_kinded_ast(self, prefix.span);
-                Ok(ast)
+                prefix::struct_or_group_or_fun(self, prefix.span, *kind)
             }
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
-                let fragment = BracketFragment::parse_rest(self, *kind, false)?;
-                let kind = fragment.kind;
-                let (node, children) = match fragment.syntax {
-                    BracketSyntax::Empty => (NodeType::Array, TreeVec::new()),
-                    BracketSyntax::Single(expr) => (NodeType::Array, join_trees![expr]),
-                    BracketSyntax::Multiple(elements) => (NodeType::Array, elements),
-                    BracketSyntax::Range(left, range_type, right) => {
-                        let children = left.into_iter().chain(right.into_iter()).collect();
-                        (NodeType::ArrayRange(range_type), children)
-                    }
-                };
-                Ok(KindedAst {
-                    kind,
-                    ast: Tree {
-                        content: Node {
-                            span: span_from_spans(
-                                self.src,
-                                prefix.span,
-                                fragment.right_bracket_span,
-                            ),
-                            node,
-                        },
-                        children,
-                    },
-                })
+                prefix::array(self, prefix.span, *kind)
             }
-            Token::Bracket(Opening::Open, Bracket::Brace) => parse_block_rest(self, prefix.span)
-                .map(|ast| KindedAst {
-                    ast,
-                    kind: AstType::Expr,
-                }),
-            Token::Str(content) => Ok(KindedAst {
-                kind: AstType::Expr,
-                ast: Tree {
-                    content: Node {
-                        span: prefix.span,
-                        node: NodeType::Str,
-                    },
-                    children: parse_content(content)?,
+            Token::Bracket(Opening::Open, Bracket::Brace) => {
+                parse_block_rest(self, prefix.span).map(KindedAst::new_expr)
+            }
+            Token::Str(content) => Ok(KindedAst::new_expr(Tree {
+                content: Node {
+                    span: prefix.span,
+                    node: NodeType::Str,
                 },
-            }),
+                children: parse_content(content)?,
+            })),
             Token::Char(content) => {
                 let children = parse_content(content)?;
                 if children.total() == 1 {
-                    Ok(KindedAst {
-                        kind: AstType::Expr,
-                        ast: Tree {
-                            content: Node {
-                                span: prefix.span,
-                                node: NodeType::Char,
-                            },
-                            children,
+                    Ok(KindedAst::new_expr(Tree {
+                        content: Node {
+                            span: prefix.span,
+                            node: NodeType::Char,
                         },
-                    })
+                        children,
+                    }))
                 } else {
                     Err(error_start(prefix.span, ErrorType::NonSingleChar))
                 }
             }
-            Token::Underscore => Ok(KindedAst {
-                kind: AstType::Unpack,
-                ast: Tree::new(Node {
-                    span: prefix.span,
-                    node: NodeType::Ignore,
-                }),
-            }),
+            Token::Underscore => Ok(KindedAst::new_unpack(Tree::new(Node {
+                span: prefix.span,
+                node: NodeType::Ignore,
+            }))),
             Token::Ident => prefix::ident(self, prefix.span, *kind),
             Token::UnterminatedQuote => Err(error_start(prefix.span, ErrorType::UnterminatedQuote)),
             Token::InvalidNumber => Err(error_start(prefix.span, ErrorType::InvalidNumber)),
@@ -290,10 +170,7 @@ impl<'a> ParserIter for Parser<'a> {
             }
             _ => panic!("expected infix token, found {:?}", infix.token),
         };
-        Ok(KindedAst {
-            ast,
-            kind: AstType::Expr,
-        })
+        Ok(KindedAst::new_expr(ast))
     }
     fn infix_precedence(infix: &Self::Item, kind: &Self::Kind) -> Option<u32> {
         if kind.is_expr() {

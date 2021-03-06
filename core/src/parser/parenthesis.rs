@@ -199,24 +199,23 @@ impl<'a> FieldFragment<'a> {
                 match parser.peek_token() {
                     Some(Token::Operator(Operator::Equal)) => {
                         parser.next();
-                        let ast = parser.parse(0, &kind)?;
+                        let next_ast = parser.parse(0, &kind)?;
                         let name_ast = Tree::new(Node {
                             span: ident.span,
                             node: NodeType::Name,
                         });
+                        let span =
+                            span_from_spans(parser.src, ident.span, next_ast.ast.content.span);
+                        let ast = Tree {
+                            content: Node {
+                                span,
+                                node: NodeType::Field,
+                            },
+                            children: join_trees![name_ast, next_ast.ast],
+                        };
                         Ok(Self {
-                            syntax: FieldSyntax::Named(Tree {
-                                content: Node {
-                                    span: span_from_spans(
-                                        parser.src,
-                                        ident.span,
-                                        ast.ast.content.span,
-                                    ),
-                                    node: NodeType::Field,
-                                },
-                                children: join_trees![name_ast, ast.ast],
-                            }),
-                            kind: ast.kind,
+                            syntax: FieldSyntax::Named(ast),
+                            kind: next_ast.kind,
                         })
                     }
                     Some(Token::Separator(Separator::Comma))
