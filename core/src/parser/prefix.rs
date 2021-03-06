@@ -8,6 +8,7 @@ use crate::parser::ast::AstType;
 use crate::parser::error_start;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
+use crate::parser::parenthesis;
 use crate::parser::parse_block;
 use crate::parser::parse_block_rest;
 use crate::parser::AstResult;
@@ -274,21 +275,7 @@ pub(super) fn ident<'a>(
 ) -> KindedAstResult<'a> {
     if Some(Token::Operator(Operator::RightThickArrow)) == parser.peek_token() && kind.is_expr() {
         parser.next();
-        let name = Tree::new(Node {
-            span,
-            node: NodeType::Name,
-        });
-        let ident = Tree::new(Node {
-            span,
-            node: NodeType::Ident,
-        });
-        let field = Tree {
-            content: Node {
-                span,
-                node: NodeType::Field,
-            },
-            children: join_trees![name, ident],
-        };
+        let field = parenthesis::field_shortcut(span);
         let parameter = Tree {
             content: Node {
                 span,

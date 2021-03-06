@@ -256,7 +256,7 @@ impl FieldTypeRequest {
         matches!(self, Self::Unnamed | Self::Either)
     }
 }
-fn field_shortcut(ident: &str) -> Ast {
+pub(super) fn field_shortcut(ident: &str) -> Ast {
     let name_ast = Tree::new(Node {
         span: ident,
         node: NodeType::Name,
