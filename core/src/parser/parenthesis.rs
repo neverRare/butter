@@ -82,6 +82,11 @@ impl<'a> ParenthesisFragment<'a> {
             FieldTypeRequest::Named
         };
         while let Some(Token::Separator(Separator::Comma)) = parser.peek_token() {
+            parser.next();
+            if let Some(Token::Bracket(Opening::Close, Bracket::Parenthesis)) = parser.peek_token()
+            {
+                break;
+            }
             let fragment = FieldFragment::parse(parser, kind, request, star_before)?;
             kind = fragment.kind;
             let field = match fragment.syntax {

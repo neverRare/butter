@@ -89,6 +89,11 @@ impl<'a> BracketFragment<'a> {
                 let mut star_before = false;
                 while let Some(Token::Separator(Separator::Comma)) = parser.peek_token() {
                     parser.next();
+                    if let Some(Token::Bracket(Opening::Close, Bracket::Bracket)) =
+                        parser.peek_token()
+                    {
+                        break;
+                    }
                     if let Some(Token::Operator(Operator::Star)) = parser.peek_token() {
                         let star_span = parser.next().unwrap().span;
                         if star_before {
@@ -109,13 +114,9 @@ impl<'a> BracketFragment<'a> {
                             children: join_trees![ast.ast],
                         });
                     } else {
-                        match parser.parse_optional(0, kind)? {
-                            Some(ast) => {
-                                kind = ast.kind;
-                                elements.push(ast.ast);
-                            }
-                            None => break,
-                        }
+                        let ast = parser.parse(0, &kind)?;
+                        kind = ast.kind;
+                        elements.push(ast.ast);
                     }
                 }
                 let right_bracket_span = parser.get_span(
