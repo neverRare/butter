@@ -10,6 +10,7 @@ use crate::parser::Ast;
 use crate::parser::AstType;
 use crate::parser::ErrorType;
 use crate::parser::ExpectedToken;
+use crate::parser::KindedAst;
 use crate::parser::Node;
 use crate::parser::NodeType;
 use crate::parser::Parser;
@@ -19,6 +20,7 @@ use util::join_trees;
 use util::parser::ParserIter;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
+use util::tree_vec::TreeVec;
 
 pub(super) enum ParenthesisSyntax<'a> {
     Empty,
@@ -127,6 +129,47 @@ impl<'a> ParenthesisFragment<'a> {
             have_splat_or_rest: star_before,
             right_parenthesis_span,
         })
+    }
+    pub(super) fn into_kinded_ast(
+        self,
+        parser: &Parser<'a>,
+        left_parenthesis_span: &'a str,
+    ) -> KindedAst<'a> {
+        let fields = match self.syntax {
+            ParenthesisSyntax::Empty => TreeVec::new(),
+            ParenthesisSyntax::SingleIdent(ident) => {
+                return KindedAst {
+                    ast: Tree::new(Node {
+                        span: ident,
+                        node: NodeType::Ident,
+                    }),
+                    kind: self.kind,
+                };
+            }
+            ParenthesisSyntax::Single(ast) => {
+                return KindedAst {
+                    ast,
+                    kind: self.kind,
+                };
+            }
+            ParenthesisSyntax::UnnamedFields(_) => panic!("unexpected unnamed fields"),
+            ParenthesisSyntax::NamedFields(fields) => fields,
+        };
+        let span = span_from_spans(
+            parser.src,
+            left_parenthesis_span,
+            self.right_parenthesis_span,
+        );
+        KindedAst {
+            kind: self.kind,
+            ast: Tree {
+                content: Node {
+                    span,
+                    node: NodeType::Struct,
+                },
+                children: fields,
+            },
+        }
     }
 }
 enum FieldSyntax<'a> {

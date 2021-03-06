@@ -11,6 +11,8 @@ use crate::parser::error::Error;
 use crate::parser::error::ErrorType;
 use crate::parser::error::ExpectedToken;
 use crate::parser::node_type::NodeType;
+use crate::parser::parenthesis::ParenthesisFragment;
+use crate::parser::parenthesis::ParenthesisSyntax;
 use crate::parser::string::parse_content;
 use bracket::BracketFragment;
 use bracket::BracketSyntax;
@@ -125,7 +127,79 @@ impl<'a> ParserIter for Parser<'a> {
                 }),
                 None => Err(error_start(prefix.span, ErrorType::ExpOverflow)),
             },
-            Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Parenthesis) if kind.is_expr() => {
+                let fragment = ParenthesisFragment::parse_rest(self, AstType::ExprOrUnpack, false)?;
+                if fragment.kind.is_unpack()
+                    && matches!(
+                        self.peek_token(),
+                        Some(Token::Operator(Operator::RightThickArrow)),
+                    )
+                {
+                    let params = match fragment.syntax {
+                        ParenthesisSyntax::Empty => TreeVec::new(),
+                        ParenthesisSyntax::SingleIdent(ident) => {
+                            join_trees![parenthesis::field_shortcut(ident)]
+                        }
+                        ParenthesisSyntax::Single(ast) if kind.is_unpack() => {
+                            return Ok(KindedAst {
+                                ast,
+                                kind: AstType::Unpack,
+                            });
+                        }
+                        ParenthesisSyntax::Single(ast) => {
+                            return Err(error_start(ast.content.span, ErrorType::NotNamed))
+                        }
+                        ParenthesisSyntax::NamedFields(fields) => fields,
+                        ParenthesisSyntax::UnnamedFields(_) => unreachable!(),
+                    };
+                    let param = Tree {
+                        content: Node {
+                            span: span_from_spans(
+                                self.src,
+                                prefix.span,
+                                fragment.right_parenthesis_span,
+                            ),
+                            node: NodeType::Struct,
+                        },
+                        children: params,
+                    };
+                    self.next();
+                    let body = self.parse_expr(0)?;
+                    Ok(KindedAst {
+                        kind: AstType::Expr,
+                        ast: Tree {
+                            content: Node {
+                                span: span_from_spans(self.src, prefix.span, body.content.span),
+                                node: NodeType::Fun,
+                            },
+                            children: join_trees![param, body],
+                        },
+                    })
+                } else if fragment.kind.is_expr() {
+                    let ast = fragment.into_kinded_ast(self, prefix.span);
+                    let kind = if !kind.is_unpack() {
+                        AstType::Expr
+                    } else {
+                        debug_assert_eq!(kind, AstType::ExprOrUnpack);
+                        debug_assert_eq!(ast.kind, AstType::ExprOrUnpack);
+                        ast.kind
+                    };
+                    Ok(KindedAst { kind, ast: ast.ast })
+                } else {
+                    let right_parenthesis_span = fragment.right_parenthesis_span;
+                    Err(error_start(
+                        &right_parenthesis_span[right_parenthesis_span.len()..],
+                        ErrorType::NoExpectation(&[ExpectedToken::Operator(
+                            Operator::RightThickArrow,
+                        )]),
+                    ))
+                }
+            }
+            Token::Bracket(Opening::Open, Bracket::Parenthesis) => {
+                let ast = ParenthesisFragment::parse_rest(self, AstType::Unpack, false)?
+                    .into_kinded_ast(self, prefix.span);
+                Ok(ast)
+            }
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
                 let fragment = BracketFragment::parse_rest(self, *kind, false)?;
                 let kind = fragment.kind;
