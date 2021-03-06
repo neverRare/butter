@@ -69,17 +69,7 @@ impl<'a> BracketFragment<'a> {
                     right_bracket_span,
                 })
             }
-            Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star))
-                if index_or_slice =>
-            {
-                let error = if first.is_some() {
-                    ErrorType::NoExpectation(&EXPECTED_TOKEN[1..2])
-                } else {
-                    ErrorType::NoExpr
-                };
-                Err(error_start(&token.unwrap().span[..0], error))
-            }
-            Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star)) => {
+            Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star)) if !index_or_slice => {
                 let token = token.unwrap();
                 let mut elements = TreeVec::new();
                 let mut kind = first.as_ref().map(|ast| ast.kind).unwrap_or(kind);
