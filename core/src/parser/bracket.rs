@@ -82,7 +82,7 @@ impl<'a> BracketFragment<'a> {
             Some(Token::Separator(Separator::Comma)) | Some(Token::Operator(Operator::Star)) => {
                 let token = token.unwrap();
                 let mut elements = TreeVec::new();
-                let mut kind = kind;
+                let mut kind = first.as_ref().map(|ast| ast.kind).unwrap_or(kind);
                 if let Token::Separator(Separator::Comma) = token.token {
                     match first {
                         Some(ast) => elements.push(ast.ast),
