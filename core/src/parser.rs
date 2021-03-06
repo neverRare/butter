@@ -204,7 +204,7 @@ impl<'a> ParserIter for Parser<'a> {
         infix: Self::Item,
         kind: &Self::Kind,
     ) -> Self::Ast {
-        debug_assert!(kind.is_expr());
+        assert!(kind.is_expr());
         let left = left_node.map(|ast| ast.ast);
         let ast = match infix.token {
             Token::Operator(operator) => infix::operator(self, left, infix.span, operator)?,
