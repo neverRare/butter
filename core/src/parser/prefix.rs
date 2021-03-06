@@ -5,12 +5,12 @@ use crate::lexer::Operator;
 use crate::lexer::Token;
 use crate::parser::ast::Ast;
 use crate::parser::ast::AstType;
+use crate::parser::block::block;
+use crate::parser::block_rest;
 use crate::parser::error_start;
 use crate::parser::node_type::NodeType;
 use crate::parser::node_type::Unary;
 use crate::parser::parenthesis;
-use crate::parser::parse_block;
-use crate::parser::parse_block_rest;
 use crate::parser::AstResult;
 use crate::parser::BracketFragment;
 use crate::parser::BracketSyntax;
@@ -177,7 +177,7 @@ fn optional_label<'a>(parser: &mut Parser<'a>) -> Option<Ast<'a>> {
     }
 }
 fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
-    let block = parse_block(parser)?;
+    let block = block(parser)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, block.content.span),
@@ -188,7 +188,7 @@ fn parse_loop<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
 }
 fn parse_while<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     let condition = parser.parse_expr(0)?;
-    let block = parse_block(parser)?;
+    let block = block(parser)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, block.content.span),
@@ -199,7 +199,7 @@ fn parse_while<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
 }
 fn parse_if<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     let condition = parser.parse_expr(0)?;
-    let block = parse_block(parser)?;
+    let block = block(parser)?;
     let block_span = block.content.span;
     let mut children = join_trees![condition, block];
     let end_span;
@@ -223,7 +223,7 @@ fn parse_else<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
     match parser.peek_token() {
         Some(Token::Bracket(Opening::Open, Bracket::Brace)) => {
             let token_span = parser.next().unwrap().span;
-            parse_block_rest(parser, token_span)
+            block_rest(parser, token_span)
         }
         Some(Token::Keyword(Keyword::If)) => {
             let token_span = parser.next().unwrap().span;
@@ -250,7 +250,7 @@ fn parse_for<'a>(parser: &mut Parser<'a>, span: &'a str) -> AstResult<'a> {
         ));
     }
     let iter_val = parser.parse_expr(0)?;
-    let block = parse_block(parser)?;
+    let block = block(parser)?;
     Ok(Tree {
         content: Node {
             span: span_from_spans(parser.src, span, block.content.span),

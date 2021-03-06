@@ -7,6 +7,7 @@ use crate::parser::ast::Ast;
 use crate::parser::ast::AstType;
 use crate::parser::ast::KindedAst;
 use crate::parser::ast::Node;
+use crate::parser::block::block_rest;
 use crate::parser::error::Error;
 use crate::parser::error::ErrorType;
 use crate::parser::error::ExpectedToken;
@@ -26,6 +27,7 @@ use util::parser::ParserIter;
 use util::tree_vec::Tree;
 
 mod ast;
+mod block;
 mod bracket;
 mod error;
 mod float;
@@ -119,7 +121,7 @@ impl<'a> ParserIter for Parser<'a> {
                 prefix::array(self, prefix.span, *kind)
             }
             Token::Bracket(Opening::Open, Bracket::Brace) => {
-                parse_block_rest(self, prefix.span).map(KindedAst::new_expr)
+                block_rest(self, prefix.span).map(KindedAst::new_expr)
             }
             Token::Str(content) => Ok(KindedAst::new_expr(Tree {
                 content: Node {
@@ -312,28 +314,4 @@ impl<'a> Parser<'a> {
     fn parse_unpack(&mut self, precedence: u32) -> AstResult<'a> {
         self.parse(precedence, &AstType::Unpack).map(|ast| ast.ast)
     }
-}
-fn parse_block_rest<'a>(parser: &mut Parser<'a>, left_bracket_span: &'a str) -> AstResult<'a> {
-    todo!()
-}
-fn parse_block<'a>(parser: &mut Parser<'a>) -> AstResult<'a> {
-    let err_span = if let Some(token) = parser.peek() {
-        if token.token != Token::Bracket(Opening::Open, Bracket::Brace) {
-            let span = token.span;
-            Some(&span[..0])
-        } else {
-            None
-        }
-    } else {
-        let src = parser.src;
-        Some(&src[src.len()..])
-    };
-    if let Some(span) = err_span {
-        return Err(error_start(
-            span,
-            ErrorType::NoExpectation(&[ExpectedToken::Bracket(Opening::Open, Bracket::Brace)]),
-        ));
-    }
-    let bracket = parser.next().unwrap();
-    parse_block_rest(parser, bracket.span)
 }
