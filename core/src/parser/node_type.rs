@@ -75,7 +75,7 @@ pub enum NodeType {
     Array,
     ArrayRange(RangeType),
     Struct,
-    NamelessArgs,
+    UnnamedArgs,
 
     Property,
     OptionalProperty,
@@ -83,6 +83,7 @@ pub enum NodeType {
     OptionalIndex,
     Slice(RangeType),
     OptionalSlice(RangeType),
+    Call,
 
     Block,
     BlockWithExpr,

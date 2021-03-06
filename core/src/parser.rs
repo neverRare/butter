@@ -208,7 +208,9 @@ impl<'a> ParserIter for Parser<'a> {
         let left = left_node.map(|ast| ast.ast);
         let ast = match infix.token {
             Token::Operator(operator) => infix::operator(self, left, infix.span, operator)?,
-            Token::Bracket(Opening::Open, Bracket::Parenthesis) => todo!(),
+            Token::Bracket(Opening::Open, Bracket::Parenthesis) => {
+                infix::call(self, left, infix.span)?
+            }
             Token::Bracket(Opening::Open, Bracket::Bracket) => {
                 infix::index_or_slice(self, left, false)?
             }

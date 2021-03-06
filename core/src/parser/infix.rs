@@ -10,6 +10,9 @@ use crate::parser::error::ExpectedToken;
 use crate::parser::error_start;
 use crate::parser::node_type::Binary;
 use crate::parser::node_type::NodeType;
+use crate::parser::parenthesis::field_shortcut;
+use crate::parser::parenthesis::ParenthesisFragment;
+use crate::parser::parenthesis::ParenthesisSyntax;
 use crate::parser::AstResult;
 use crate::parser::Node;
 use crate::parser::Parser;
@@ -18,6 +21,7 @@ use util::aggregate_error;
 use util::join_trees;
 use util::span::span_from_spans;
 use util::tree_vec::Tree;
+use util::tree_vec::TreeVec;
 
 pub(super) fn operator<'a>(
     parser: &mut Parser<'a>,
@@ -161,5 +165,41 @@ pub(super) fn index_or_slice<'a>(
     Ok(Tree {
         content: Node { node, span },
         children,
+    })
+}
+pub(super) fn call<'a>(
+    parser: &mut Parser<'a>,
+    left: AstResult<'a>,
+    left_parenthesis_span: &'a str,
+) -> AstResult<'a> {
+    let right =
+        ParenthesisFragment::parse_rest(parser, AstType::Expr, true).map(|parenthesis_fragment| {
+            let (arg_node, args) = match parenthesis_fragment.syntax {
+                ParenthesisSyntax::Empty => (NodeType::Struct, TreeVec::new()),
+                ParenthesisSyntax::SingleIdent(ident) => {
+                    (NodeType::Struct, join_trees![field_shortcut(ident)])
+                }
+                ParenthesisSyntax::Single(expr) => (NodeType::UnnamedArgs, join_trees![expr]),
+                ParenthesisSyntax::UnnamedFields(args) => (NodeType::UnnamedArgs, args),
+                ParenthesisSyntax::NamedFields(args) => (NodeType::Struct, args),
+            };
+            (parenthesis_fragment.right_parenthesis_span, arg_node, args)
+        });
+    let (left, (right_parenthesis_span, arg_node, args)) = aggregate_error(left, right)?;
+    let arg_span = span_from_spans(parser.src, left_parenthesis_span, right_parenthesis_span);
+    let arg = Tree {
+        content: Node {
+            span: arg_span,
+            node: arg_node,
+        },
+        children: args,
+    };
+    let span = span_from_spans(parser.src, left.content.span, right_parenthesis_span);
+    Ok(Tree {
+        content: Node {
+            span,
+            node: NodeType::Call,
+        },
+        children: join_trees![left, arg],
     })
 }
