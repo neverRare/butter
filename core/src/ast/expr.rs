@@ -20,14 +20,15 @@ pub mod control_flow;
 pub mod operator;
 pub mod range;
 
+#[derive(Debug, PartialEq, Clone)]
 pub enum ExprType<'a> {
     True,
     False,
     Null,
 
     Ident(&'a str),
-    Char(StrContent<'a>),
-    Str(Str<'a>),
+    Char(u8),
+    Str(Vec<u8>),
     UInt(u64),
     Float(f64),
 
@@ -55,14 +56,8 @@ pub enum ExprType<'a> {
     While(While<'a>),
     Loop(Block<'a>),
 }
+#[derive(Debug, PartialEq, Clone)]
 pub struct Expr<'a> {
     pub span: &'a str,
     pub expr: ExprType<'a>,
-}
-pub struct StrContent<'a> {
-    pub span: &'a str,
-    pub content: u8,
-}
-pub struct Str<'a> {
-    pub contents: Vec<StrContent<'a>>,
 }

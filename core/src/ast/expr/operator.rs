@@ -32,23 +32,28 @@ pub enum Binary {
     NullOr,
     Assign,
 }
+#[derive(Debug, PartialEq, Clone)]
 pub struct UnaryExpr<'a> {
     pub op: Unary,
     pub expr: Box<Expr<'a>>,
 }
+#[derive(Debug, PartialEq, Clone)]
 pub struct BinaryExpr<'a> {
     pub op: Unary,
     pub left: Box<Expr<'a>>,
     pub right: Box<Expr<'a>>,
 }
+#[derive(Debug, PartialEq, Clone)]
 pub struct Property<'a> {
     pub expr: Box<Expr<'a>>,
     pub name: &'a str,
 }
+#[derive(Debug, PartialEq, Clone)]
 pub struct Slice<'a> {
     pub expr: Box<Expr<'a>>,
     pub range: Range<'a>,
 }
+#[derive(Debug, PartialEq, Clone)]
 pub struct Call<'a> {
     pub expr: Box<Expr<'a>>,
     pub args: Arg<'a>,
