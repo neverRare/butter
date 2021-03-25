@@ -26,7 +26,7 @@ fn lex<'a, I, P>(parser: P) -> impl Parser<I, Output = P::Output>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    P: Parser<I>
+    P: Parser<I>,
 {
     parser.skip(insignificants())
 }
