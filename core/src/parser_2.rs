@@ -8,17 +8,25 @@ use combine::RangeStream;
 
 mod ident_keyword;
 
-pub fn comments<'a, I>() -> impl Parser<I, Output = ()>
+fn comments<'a, I>() -> impl Parser<I, Output = ()>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     skip_many((string("--"), take_while(|ch: char| ch != '\n')))
 }
-pub fn insignificants<'a, I>() -> impl Parser<I, Output = ()>
+fn insignificants<'a, I>() -> impl Parser<I, Output = ()>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     skip_many(spaces().or(comments()))
+}
+fn lex<'a, I, P>(parser: P) -> impl Parser<I, Output = P::Output>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    P: Parser<I>
+{
+    parser.skip(insignificants())
 }
