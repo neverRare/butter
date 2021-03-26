@@ -1,12 +1,10 @@
-use crate::ast::expr::compound::Array;
+use crate::ast::expr::compound::Element;
 use crate::ast::expr::compound::Struct;
 use crate::ast::expr::control_flow::Block;
 use crate::ast::expr::control_flow::Break;
-use crate::ast::expr::control_flow::Continue;
 use crate::ast::expr::control_flow::For;
 use crate::ast::expr::control_flow::Fun;
 use crate::ast::expr::control_flow::If;
-use crate::ast::expr::control_flow::Return;
 use crate::ast::expr::control_flow::While;
 use crate::ast::expr::operator::BinaryExpr;
 use crate::ast::expr::operator::Call;
@@ -33,13 +31,13 @@ pub enum Expr<'a> {
     Float(f64),
 
     Break(Break<'a>),
-    Continue(Continue<'a>),
-    Return(Return<'a>),
+    Continue(Option<&'a str>),
+    Return(Option<Box<Expr<'a>>>),
 
     Unary(UnaryExpr<'a>),
     Binary(BinaryExpr<'a>),
 
-    Array(Array<'a>),
+    Array(Vec<Element<'a>>),
     ArrayRange(Range<'a>),
     Struct(Struct<'a>),
 

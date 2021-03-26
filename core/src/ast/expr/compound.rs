@@ -1,10 +1,6 @@
 use crate::ast::expr::Expr;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Array<'a> {
-    pub elements: Vec<Element<'a>>,
-}
-#[derive(Debug, PartialEq, Clone)]
 pub enum Element<'a> {
     Element(Expr<'a>),
     Splat(Expr<'a>),

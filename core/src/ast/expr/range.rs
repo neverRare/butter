@@ -8,6 +8,6 @@ pub enum Bound<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Range<'a> {
-    left: Bound<'a>,
-    right: Bound<'a>,
+    pub left: Bound<'a>,
+    pub right: Bound<'a>,
 }

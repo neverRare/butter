@@ -3,12 +3,8 @@ pub enum Pattern<'a> {
     Ignore,
     Var(&'a str),
     Struct(StructPattern<'a>),
-    Array(ArrayPattern<'a>),
+    Array(Vec<Pattern<'a>>),
     ArrayWithRest(ArrayWithRest<'a>),
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct ArrayPattern<'a> {
-    pub elements: Vec<Pattern<'a>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ArrayWithRest<'a> {

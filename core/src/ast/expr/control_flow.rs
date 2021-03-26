@@ -8,14 +8,6 @@ pub struct Break<'a> {
     pub label: Option<&'a str>,
     pub expr: Option<Box<Expr<'a>>>,
 }
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Continue<'a> {
-    pub label: Option<&'a str>,
-}
-#[derive(Debug, PartialEq, Clone)]
-pub struct Return<'a> {
-    pub expr: Option<Box<Expr<'a>>>,
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block<'a> {
     pub statements: Vec<Statement<'a>>,
