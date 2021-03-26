@@ -1,9 +1,9 @@
 use crate::ast::pattern::ArrayWithRest;
 use crate::ast::pattern::Pattern;
 use crate::ast::pattern::StructPattern;
-use crate::parser_2::ident_keyword::ident;
-use crate::parser_2::ident_keyword::keyword;
-use crate::parser_2::lex;
+use crate::parser::ident_keyword::ident;
+use crate::parser::ident_keyword::keyword;
+use crate::parser::lex;
 use combine::attempt;
 use combine::choice;
 use combine::optional;
@@ -133,10 +133,10 @@ parser! {
 }
 #[cfg(test)]
 mod test {
-    use crate::parser_2::pattern::pattern;
-    use crate::parser_2::pattern::ArrayWithRest;
-    use crate::parser_2::pattern::Pattern;
-    use crate::parser_2::pattern::StructPattern;
+    use crate::parser::pattern::pattern;
+    use crate::parser::pattern::ArrayWithRest;
+    use crate::parser::pattern::Pattern;
+    use crate::parser::pattern::StructPattern;
     use combine::EasyParser;
     use std::array::IntoIter;
 
