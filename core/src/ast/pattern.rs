@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Pattern<'a> {
     Ignore,
@@ -14,15 +16,6 @@ pub struct ArrayWithRest<'a> {
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct StructPattern<'a> {
-    pub fields: Vec<PatternField<'a>>,
+    pub fields: HashMap<&'a str, Pattern<'a>>,
     pub rest: Option<Box<Pattern<'a>>>,
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Param<'a> {
-    pub fields: Vec<PatternField<'a>>,
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct PatternField<'a> {
-    pub name: &'a str,
-    pub content: Pattern<'a>,
 }

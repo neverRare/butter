@@ -1,7 +1,7 @@
 use crate::ast::expr::Expr;
-use crate::ast::pattern::Param;
 use crate::ast::pattern::Pattern;
 use crate::ast::statement::Statement;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Break<'a> {
@@ -15,7 +15,7 @@ pub struct Block<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a> {
-    pub params: Param<'a>,
+    pub params: HashMap<&'a str, Pattern<'a>>,
     pub body: Box<Expr<'a>>,
 }
 #[derive(Debug, PartialEq, Clone)]

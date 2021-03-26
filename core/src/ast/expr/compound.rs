@@ -1,4 +1,5 @@
 use crate::ast::expr::Expr;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Element<'a> {
@@ -8,12 +9,7 @@ pub enum Element<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Struct<'a> {
     pub splats: Vec<Expr<'a>>,
-    pub fields: Vec<Field<'a>>,
-}
-#[derive(Debug, PartialEq, Clone)]
-pub struct Field<'a> {
-    pub name: &'a str,
-    pub expr: Expr<'a>,
+    pub fields: HashMap<&'a str, Expr<'a>>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum Arg<'a> {

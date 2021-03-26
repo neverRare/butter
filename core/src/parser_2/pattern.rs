@@ -1,6 +1,5 @@
 use crate::ast::pattern::ArrayWithRest;
 use crate::ast::pattern::Pattern;
-use crate::ast::pattern::PatternField;
 use crate::ast::pattern::StructPattern;
 use crate::parser_2::ident_keyword::ident;
 use crate::parser_2::ident_keyword::keyword;
@@ -14,6 +13,9 @@ use combine::sep_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use std::collections::HashMap;
+
+// TODO: handle trailing comma
 
 fn elements<'a, I>() -> impl Parser<I, Output = Vec<Pattern<'a>>>
 where
@@ -55,7 +57,7 @@ where
             None => Pattern::Array(left),
         })
 }
-fn field<'a, I>() -> impl Parser<I, Output = PatternField<'a>>
+fn field<'a, I>() -> impl Parser<I, Output = (&'a str, Pattern<'a>)>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -65,17 +67,15 @@ where
             Some((_, pattern)) => pattern,
             None => Pattern::Var(name),
         };
-        PatternField {
-            name,
-            content: pattern,
-        }
+        (name, pattern)
     })
 }
-fn fields<'a, I>() -> impl Parser<I, Output = Vec<PatternField<'a>>>
+fn fields<'a, I>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a>>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
+    // TODO: handle duplicated name as error
     sep_by(field(), lex(char(',')))
 }
 fn record<'a, I>() -> impl Parser<I, Output = StructPattern<'a>>
@@ -92,9 +92,9 @@ where
         .map(|(_, left, rest_right, _)| match rest_right {
             Some((rest, right)) => {
                 let fields = match right {
-                    Some((_, mut right)) => {
+                    Some((_, right)) => {
                         let mut fields = left;
-                        fields.append(&mut right);
+                        fields.extend(right);
                         fields
                     }
                     None => left,
