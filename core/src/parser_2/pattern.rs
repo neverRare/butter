@@ -119,7 +119,7 @@ where
         array(),
         record().map(Pattern::Struct),
         attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
-        lex(ident()).map(|ident| Pattern::Var(ident)),
+        lex(ident()).map(Pattern::Var),
     ))
 }
 parser! {
@@ -129,5 +129,72 @@ parser! {
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
         pattern_()
+    }
+}
+#[cfg(test)]
+mod test {
+    use crate::parser_2::pattern::pattern;
+    use crate::parser_2::pattern::ArrayWithRest;
+    use crate::parser_2::pattern::Pattern;
+    use crate::parser_2::pattern::StructPattern;
+    use combine::EasyParser;
+    use std::array::IntoIter;
+
+    #[test]
+    fn parse_array() {
+        let src = "[first, second]";
+        let expected = Pattern::Array(vec![Pattern::Var("first"), Pattern::Var("second")]);
+        assert_eq!(pattern().easy_parse(src), Ok((expected, "")));
+    }
+    #[test]
+    fn parse_array_with_rest() {
+        let src = "[first, *rest, last]";
+        let expected = Pattern::ArrayWithRest(ArrayWithRest {
+            left: vec![Pattern::Var("first")],
+            rest: Box::new(Pattern::Var("rest")),
+            right: vec![Pattern::Var("last")],
+        });
+        assert_eq!(pattern().easy_parse(src), Ok((expected, "")));
+    }
+    #[test]
+    fn parse_pattern() {
+        let src = "\
+(
+    shortcut,
+    var = foo,
+    ignore = _,
+    struct = (foo, *rest),
+    array = [first, second],
+    array_with_rest = [first, *rest, last]
+)";
+        let expected = Pattern::Struct(StructPattern {
+            fields: IntoIter::new([
+                ("shortcut", Pattern::Var("shortcut")),
+                ("var", Pattern::Var("foo")),
+                ("ignore", Pattern::Ignore),
+                (
+                    "struct",
+                    Pattern::Struct(StructPattern {
+                        fields: IntoIter::new([("foo", Pattern::Var("foo"))]).collect(),
+                        rest: Some(Box::new(Pattern::Var("rest"))),
+                    }),
+                ),
+                (
+                    "array",
+                    Pattern::Array(vec![Pattern::Var("first"), Pattern::Var("second")]),
+                ),
+                (
+                    "array_with_rest",
+                    Pattern::ArrayWithRest(ArrayWithRest {
+                        left: vec![Pattern::Var("first")],
+                        rest: Box::new(Pattern::Var("rest")),
+                        right: vec![Pattern::Var("last")],
+                    }),
+                ),
+            ])
+            .collect(),
+            rest: None,
+        });
+        assert_eq!(pattern().easy_parse(src), Ok((expected, "")));
     }
 }
