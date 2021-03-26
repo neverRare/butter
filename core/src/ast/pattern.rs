@@ -1,7 +1,7 @@
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum PatternType<'a> {
     Ignore,
-    Ident(&'a str),
+    Var(&'a str),
     Struct(StructPattern<'a>),
     Array(ArrayPattern<'a>),
     ArrayWithRest(ArrayWithRest<'a>),
@@ -9,7 +9,7 @@ pub enum PatternType<'a> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Pattern<'a> {
     pub span: &'a str,
-    pub unpack: PatternType<'a>,
+    pub pattern: PatternType<'a>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ArrayPattern<'a> {

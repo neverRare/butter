@@ -7,6 +7,7 @@ use combine::Parser;
 use combine::RangeStream;
 
 mod ident_keyword;
+mod pattern;
 
 fn comments<'a, I>() -> impl Parser<I, Output = ()>
 where
