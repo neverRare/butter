@@ -21,7 +21,7 @@ pub mod operator;
 pub mod range;
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum ExprType<'a> {
+pub enum Expr<'a> {
     True,
     False,
     Null,
@@ -55,9 +55,4 @@ pub enum ExprType<'a> {
     For(For<'a>),
     While(While<'a>),
     Loop(Block<'a>),
-}
-#[derive(Debug, PartialEq, Clone)]
-pub struct Expr<'a> {
-    pub span: &'a str,
-    pub expr: ExprType<'a>,
 }

@@ -1,15 +1,10 @@
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum PatternType<'a> {
+pub enum Pattern<'a> {
     Ignore,
     Var(&'a str),
     Struct(StructPattern<'a>),
     Array(ArrayPattern<'a>),
     ArrayWithRest(ArrayWithRest<'a>),
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct Pattern<'a> {
-    pub span: &'a str,
-    pub pattern: PatternType<'a>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ArrayPattern<'a> {

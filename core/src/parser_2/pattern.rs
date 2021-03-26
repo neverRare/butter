@@ -1,5 +1,4 @@
 use crate::ast::pattern::Pattern;
-use crate::ast::pattern::PatternType;
 use crate::parser_2::ident_keyword::ident;
 use crate::parser_2::ident_keyword::keyword;
 use crate::parser_2::lex;
@@ -16,14 +15,8 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
-        attempt(lex(keyword("_"))).map(|keyword| Pattern {
-            span: keyword,
-            pattern: PatternType::Ignore,
-        }),
-        lex(ident()).map(|ident| Pattern {
-            span: ident,
-            pattern: PatternType::Var(ident),
-        }),
+        attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
+        lex(ident()).map(|ident| Pattern::Var(ident)),
     ))
 }
 parser! {
