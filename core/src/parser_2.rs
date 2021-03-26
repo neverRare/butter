@@ -1,7 +1,8 @@
-use combine::parser::char::spaces;
+use combine::parser::char::space;
 use combine::parser::char::string;
 use combine::parser::range::take_while;
 use combine::skip_many;
+use combine::skip_many1;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -14,14 +15,14 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    skip_many((string("--"), take_while(|ch: char| ch != '\n')))
+    skip_many1((string("--"), take_while(|ch: char| ch != '\n')))
 }
 fn insignificants<'a, I>() -> impl Parser<I, Output = ()>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    skip_many((spaces(), comments()))
+    skip_many(skip_many1(space()).or(comments()))
 }
 fn lex<'a, I, P>(parser: P) -> impl Parser<I, Output = P::Output>
 where
@@ -36,6 +37,7 @@ mod test {
     use crate::parser_2::insignificants;
     use combine::Parser;
 
+    #[test]
     fn insignificant() {
         assert_eq!(
             insignificants()
