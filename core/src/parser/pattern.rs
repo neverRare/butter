@@ -4,13 +4,13 @@ use crate::ast::pattern::StructPattern;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
+use crate::parser::sep_optional_end_by;
 use combine::attempt;
 use combine::between;
 use combine::choice;
 use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
-use combine::sep_by;
 use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
@@ -30,12 +30,7 @@ where
     RP: Parser<I>,
     C: Extend<EP::Output> + Default,
 {
-    let no_rest = move || {
-        choice((
-            attempt(sep_end_by(element(), lex(char(',')))),
-            sep_by(element(), lex(char(','))),
-        ))
-    };
+    let no_rest = move || sep_optional_end_by(element, || lex(char(',')));
     let have_rest = move || {
         (
             sep_end_by(element(), lex(char(','))),

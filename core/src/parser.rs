@@ -1,6 +1,10 @@
+use combine::attempt;
+use combine::choice;
 use combine::parser::char::space;
 use combine::parser::char::string;
 use combine::parser::range::take_while;
+use combine::sep_by;
+use combine::sep_end_by;
 use combine::skip_many;
 use combine::skip_many1;
 use combine::ParseError;
@@ -10,6 +14,22 @@ use combine::RangeStream;
 mod ident_keyword;
 mod pattern;
 
+fn sep_optional_end_by<'a, I, EP, SP, C>(
+    element: fn() -> EP,
+    separator: fn() -> SP,
+) -> impl Parser<I, Output = C>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    EP: Parser<I>,
+    SP: Parser<I>,
+    C: Extend<EP::Output> + Default,
+{
+    choice((
+        attempt(sep_end_by(element(), separator())),
+        sep_by(element(), separator()),
+    ))
+}
 fn comments<'a, I>() -> impl Parser<I, Output = ()>
 where
     I: RangeStream<Token = char, Range = &'a str>,
