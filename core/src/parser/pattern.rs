@@ -17,8 +17,6 @@ use combine::Parser;
 use combine::RangeStream;
 use std::collections::HashMap;
 
-// TODO: handle trailing comma
-
 fn optional_rest<'a, I, EP, RP, C>(
     left: char,
     right: char,
@@ -32,7 +30,12 @@ where
     RP: Parser<I>,
     C: Extend<EP::Output> + Default,
 {
-    let no_rest = move || sep_by(element(), lex(char(',')));
+    let no_rest = move || {
+        choice((
+            attempt(sep_end_by(element(), lex(char(',')))),
+            sep_by(element(), lex(char(','))),
+        ))
+    };
     let have_rest = move || {
         (
             sep_end_by(element(), lex(char(','))),
@@ -50,8 +53,8 @@ where
     };
     let middle = move || {
         choice((
-            attempt(no_rest()).map(|collection| (collection, None)),
-            have_rest().map(|(left, rest, right)| (left, Some((rest, right)))),
+            attempt(have_rest()).map(|(left, rest, right)| (left, Some((rest, right)))),
+            no_rest().map(|collection| (collection, None)),
         ))
     };
     between(lex(char(left)), lex(char(right)), middle())
@@ -159,7 +162,7 @@ mod test {
     ignore = _,
     struct = (foo, *rest),
     array = [first, second],
-    array_with_rest = [first, *rest, last]
+    array_with_rest = [first, *rest, last],
 )";
         let expected = Pattern::Struct(StructPattern {
             fields: IntoIter::new([
