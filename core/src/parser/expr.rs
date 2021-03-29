@@ -1,6 +1,8 @@
 use crate::ast::expr::Expr;
+use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
 use crate::parser::Parser;
+use combine::attempt;
 use combine::between;
 use combine::choice;
 use combine::parser;
@@ -20,7 +22,12 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    choice((group(),))
+    choice((
+        attempt(lex(keyword("true"))).map(|_| Expr::True),
+        attempt(lex(keyword("false"))).map(|_| Expr::False),
+        attempt(lex(keyword("null"))).map(|_| Expr::Null),
+        group(),
+    ))
 }
 fn expr_<'a, I>(precedence: u32) -> impl Parser<I, Output = Expr<'a>>
 where
