@@ -102,13 +102,6 @@ where
         },
     })
 }
-fn group<'a, I>() -> impl Parser<I, Output = Pattern<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
-    between(lex(char('(')), lex(char(')')), pattern())
-}
 fn pattern_<'a, I>() -> impl Parser<I, Output = Pattern<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
@@ -116,7 +109,7 @@ where
 {
     choice((
         array(),
-        attempt(group()),
+        attempt(between(lex(char('(')), lex(char(')')), pattern())),
         record().map(Pattern::Struct),
         attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
         lex(ident()).map(Pattern::Var),
