@@ -11,6 +11,7 @@ use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
 
+mod expr;
 mod ident_keyword;
 mod pattern;
 

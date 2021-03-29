@@ -180,10 +180,7 @@ mod test {
                         rest: Some(Box::new(Pattern::Var("rest"))),
                     }),
                 ),
-                (
-                    "group",
-                    Pattern::Var("foo"),
-                ),
+                ("group", Pattern::Var("foo")),
                 (
                     "array",
                     Pattern::Array(vec![Pattern::Var("first"), Pattern::Var("second")]),
