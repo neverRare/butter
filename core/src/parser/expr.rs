@@ -13,21 +13,28 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    between(lex(char('(')), lex(char(')')), prefix_expr())
+    between(lex(char('(')), lex(char(')')), expr(0))
 }
-fn prefix_expr_<'a, I>() -> impl Parser<I, Output = Expr<'a>>
+fn prefix_expr<'a, I>() -> impl Parser<I, Output = Expr<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((group(),))
 }
+fn expr_<'a, I>(precedence: u32) -> impl Parser<I, Output = Expr<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    prefix_expr()
+}
 parser! {
-    pub fn prefix_expr['a, I]()(I) -> Expr<'a>
+    pub fn expr['a, I](precedence: u32)(I) -> Expr<'a>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        prefix_expr_()
+        expr_(*precedence)
     }
 }
