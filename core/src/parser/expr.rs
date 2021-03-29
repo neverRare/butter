@@ -1,3 +1,4 @@
+use crate::parser::ident_keyword::ident;
 use crate::ast::expr::Expr;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
@@ -23,9 +24,10 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
-        attempt(lex(keyword("true"))).map(|_| Expr::True),
-        attempt(lex(keyword("false"))).map(|_| Expr::False),
-        attempt(lex(keyword("null"))).map(|_| Expr::Null),
+        attempt(lex(ident())).map(Expr::Var),
+        lex(keyword("false")).map(|_| Expr::False),
+        lex(keyword("null")).map(|_| Expr::Null),
+        lex(keyword("true")).map(|_| Expr::True),
         group(),
     ))
 }

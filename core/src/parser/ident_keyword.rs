@@ -31,8 +31,8 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     ident_or_keyword::<'a>().and_then(|ident| match ident {
-        "_" | "true" | "false" | "null" | "clone" | "if" | "else" | "for" | "in" | "loop"
-        | "while" | "break" | "continue" | "return" => {
+        "_" | "break" | "clone" | "continue" | "else" | "false" | "for" | "if" | "in" | "loop"
+        | "null" | "return" | "true" | "while" => {
             Err(<StreamErrorFor<I>>::unexpected_static_message("keyword"))
         }
         _ => Ok(ident),
