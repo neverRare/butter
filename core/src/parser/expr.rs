@@ -1,5 +1,5 @@
-use crate::parser::ident_keyword::ident;
 use crate::ast::expr::Expr;
+use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
 use crate::parser::Parser;
@@ -24,11 +24,11 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
+        group(),
         attempt(lex(ident())).map(Expr::Var),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
-        group(),
     ))
 }
 fn expr_<'a, I>(precedence: u32) -> impl Parser<I, Output = Expr<'a>>
