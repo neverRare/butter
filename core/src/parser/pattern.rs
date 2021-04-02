@@ -102,26 +102,19 @@ where
         },
     })
 }
-fn pattern_<'a, I>() -> impl Parser<I, Output = Pattern<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
-    choice((
-        array(),
-        attempt(between(lex(char('(')), lex(char(')')), pattern())),
-        record().map(Pattern::Struct),
-        attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
-        lex(ident()).map(Pattern::Var),
-    ))
-}
 parser! {
     pub fn pattern['a, I]()(I) -> Pattern<'a>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        pattern_()
+        choice((
+            array(),
+            attempt(between(lex(char('(')), lex(char(')')), pattern())),
+            record().map(Pattern::Struct),
+            attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
+            lex(ident()).map(Pattern::Var),
+        ))
     }
 }
 #[cfg(test)]
