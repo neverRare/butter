@@ -8,9 +8,11 @@ use crate::parser::Parser;
 use combine::attempt;
 use combine::between;
 use combine::choice;
+use combine::error::StreamError;
 use combine::many;
 use combine::parser;
 use combine::parser::char::char;
+use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::RangeStream;
 
@@ -36,6 +38,20 @@ parser! {
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         P: Parser<I, Output = PartialAst<'a>>,
     ] {
-        (prefix_expr(), many(infix_parser)).map(|(prefix, infixes): (Expr, Vec<PartialAst>)| prefix)
+        (prefix_expr(), many(infix_parser)).and_then(|(prefix, infixes)| {
+            let mut prefix = prefix;
+            let infixes: Vec<_> = infixes;
+            for infix in infixes {
+                prefix = match infix.combine_from(prefix) {
+                    Some(expr) => expr,
+                    None => {
+                        return Err(<StreamErrorFor<I>>::unexpected_static_message(
+                            "non place expression",
+                        ))
+                    }
+                };
+            }
+            Ok(prefix)
+        })
     }
 }

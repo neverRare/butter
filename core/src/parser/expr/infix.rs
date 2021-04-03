@@ -1,5 +1,11 @@
 use crate::ast::expr::compound::Arg;
+use crate::ast::expr::operator::Assign;
+use crate::ast::expr::operator::Binary;
+use crate::ast::expr::operator::Call;
+use crate::ast::expr::operator::Property;
+use crate::ast::expr::operator::Slice;
 use crate::ast::expr::range::Range;
+use crate::ast::expr::PlaceExpr;
 use crate::parser::expr::expr;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
@@ -44,6 +50,76 @@ pub enum PartialAst<'a> {
     Slice(Range<'a>),
     OptionalSlice(Range<'a>),
     Call(Arg<'a>),
+}
+impl<'a> PartialAst<'a> {
+    // None means <- is applied to non-place expression
+    pub fn combine_from(self, left: Expr<'a>) -> Option<Expr<'a>> {
+        macro_rules! binary {
+            ($left:ident, $infix:ident, [$($ident:ident),* $(,)?] $(,)?) => {{
+                $(
+                    if let Self::$ident(right) = $infix {
+                        return Some(Expr::$ident(Binary {
+                            left: Box::new($left),
+                            right: Box::new(right),
+                        }))
+                    }
+                )*
+            };
+        }}
+        binary!(
+            left,
+            self,
+            [
+                Add,
+                Sub,
+                Multiply,
+                Div,
+                FloorDiv,
+                Mod,
+                And,
+                Or,
+                LazyAnd,
+                LazyOr,
+                Equal,
+                NotEqual,
+                Greater,
+                GreaterEqual,
+                Less,
+                LessEqual,
+                Concatenate,
+                NullOr,
+                Index,
+                OptionalIndex,
+            ],
+        );
+        Some(match self {
+            Self::Assign(right) => Expr::Assign(Assign {
+                place: Box::new(PlaceExpr::from_expr(left)?),
+                expr: Box::new(right),
+            }),
+            Self::Property(name) => Expr::Property(Property {
+                expr: Box::new(left),
+                name,
+            }),
+            Self::OptionalProperty(name) => Expr::OptionalProperty(Property {
+                expr: Box::new(left),
+                name,
+            }),
+            Self::Slice(range) => Expr::Slice(Slice {
+                expr: Box::new(left),
+                range,
+            }),
+            Self::OptionalSlice(range) => Expr::OptionalSlice(Slice {
+                expr: Box::new(left),
+                range,
+            }),
+            Self::Call(args) => Expr::Call(Call {
+                expr: Box::new(left),
+                args,
+            }),
+            _ => unreachable!(),
+        })
+    }
 }
 // `.` `?.` element access or slice `[...]` `?[...]` function call `(...)`
 pub fn infix_7<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>

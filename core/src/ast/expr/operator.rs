@@ -19,11 +19,6 @@ pub struct Property<'a> {
     pub name: &'a str,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Index<'a> {
-    pub expr: Box<Expr<'a>>,
-    pub index: Box<Expr<'a>>,
-}
-#[derive(Debug, PartialEq, Clone)]
 pub struct Slice<'a> {
     pub expr: Box<Expr<'a>>,
     pub range: Range<'a>,

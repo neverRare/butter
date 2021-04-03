@@ -9,7 +9,6 @@ use crate::ast::expr::control_flow::While;
 use crate::ast::expr::operator::Assign;
 use crate::ast::expr::operator::Binary;
 use crate::ast::expr::operator::Call;
-use crate::ast::expr::operator::Index;
 use crate::ast::expr::operator::Property;
 use crate::ast::expr::operator::Slice;
 use crate::ast::expr::range::Range;
@@ -69,8 +68,8 @@ pub enum Expr<'a> {
 
     Property(Property<'a>),
     OptionalProperty(Property<'a>),
-    Index(Index<'a>),
-    OptionalIndex(Index<'a>),
+    Index(Binary<'a>),
+    OptionalIndex(Binary<'a>),
     Slice(Slice<'a>),
     OptionalSlice(Slice<'a>),
     Call(Call<'a>),
@@ -87,5 +86,16 @@ pub enum PlaceExpr<'a> {
     Var(&'a str),
     Ref(Box<Expr<'a>>),
     Property(Property<'a>),
-    Index(Index<'a>),
+    Index(Binary<'a>),
+}
+impl<'a> PlaceExpr<'a> {
+    pub fn from_expr(expr: Expr<'a>) -> Option<Self> {
+        Some(match expr {
+            Expr::Var(var) => Self::Var(var),
+            Expr::Ref(expr) => Self::Ref(expr),
+            Expr::Property(prop_expr) => Self::Property(prop_expr),
+            Expr::Index(ind_expr) => Self::Index(ind_expr),
+            _ => return None,
+        })
+    }
 }
