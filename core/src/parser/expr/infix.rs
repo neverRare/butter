@@ -128,7 +128,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     // HACK: avoid range operators
-    let dot_not_range = || (char('.'), look_ahead(satisfy(|ch| ch != '.' || ch != '<')));
+    let dot_not_range = || (char('.'), look_ahead(satisfy(|ch| ch != '.' && ch != '<')));
     choice(((attempt(lex(dot_not_range())), ident()).map(|(_, name)| PartialAst::Property(name)),))
 }
 // `*` `/` `//` `%`
@@ -166,7 +166,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     // HACK: avoid range operators
-    let greater_not_range = || (char('>'), look_ahead(satisfy(|ch| ch != '.' || ch != '<')));
+    let greater_not_range = || (char('>'), look_ahead(satisfy(|ch| ch != '.' && ch != '<')));
     choice((
         (attempt(lex(string("=="))), expr(infix_5())).map(|(_, expr)| PartialAst::Equal(expr)),
         (attempt(lex(string("!="))), expr(infix_5())).map(|(_, expr)| PartialAst::NotEqual(expr)),
