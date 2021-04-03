@@ -1,13 +1,16 @@
 use crate::ast::expr::Expr;
+use crate::parser::expr::infix::infix_0;
 use crate::parser::expr::infix::PartialAst;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
 use crate::parser::Parser;
 use combine::attempt;
+use combine::between;
 use combine::choice;
 use combine::many;
 use combine::parser;
+use combine::parser::char::char;
 use combine::ParseError;
 use combine::RangeStream;
 
@@ -19,7 +22,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
-        // between(lex(char('(')), lex(char(')')), expr(0)),
+        between(lex(char('(')), lex(char(')')), expr(infix_0())),
         attempt(lex(ident())).map(Expr::Var),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),

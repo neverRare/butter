@@ -1,10 +1,16 @@
 use crate::ast::expr::compound::Arg;
 use crate::ast::expr::range::Range;
+use crate::parser::expr::expr;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
+use combine::attempt;
 use combine::choice;
+use combine::look_ahead;
+use combine::parser;
 use combine::parser::char::char;
+use combine::parser::char::string;
+use combine::satisfy;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -39,10 +45,109 @@ pub enum PartialAst<'a> {
     OptionalSlice(Range<'a>),
     Call(Arg<'a>),
 }
-pub fn infix_9<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+// `.` `?.` element access or slice `[...]` `?[...]` function call `(...)`
+pub fn infix_7<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    choice(((lex(char('.')), ident()).map(|(_, name)| PartialAst::Property(name)),))
+    // HACK: avoid range operators
+    let dot_not_range = || (char('.'), look_ahead(satisfy(|ch| ch != '.' || ch != '<')));
+    choice(((attempt(lex(dot_not_range())), ident()).map(|(_, name)| PartialAst::Property(name)),))
+}
+// `*` `/` `//` `%`
+pub fn infix_6<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        (attempt(lex(string("//"))), expr(infix_7())).map(|(_, expr)| PartialAst::FloorDiv(expr)),
+        infix_7(),
+        (lex(char('*')), expr(infix_7())).map(|(_, expr)| PartialAst::Multiply(expr)),
+        (lex(char('/')), expr(infix_7())).map(|(_, expr)| PartialAst::Div(expr)),
+        (lex(char('%')), expr(infix_7())).map(|(_, expr)| PartialAst::Mod(expr)),
+    ))
+}
+// `+` `-` `++`
+pub fn infix_5<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        (attempt(lex(string("++"))), expr(infix_6()))
+            .map(|(_, expr)| PartialAst::Concatenate(expr)),
+        infix_6(),
+        (lex(char('+')), expr(infix_6())).map(|(_, expr)| PartialAst::Add(expr)),
+        (lex(char('-')), expr(infix_6())).map(|(_, expr)| PartialAst::Sub(expr)),
+    ))
+}
+// `==` `!=` `<` `>` `<=` `>=`
+pub fn infix_4<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    // HACK: avoid range operators
+    let greater_not_range = || (char('>'), look_ahead(satisfy(|ch| ch != '.' || ch != '<')));
+    choice((
+        (attempt(lex(string("=="))), expr(infix_5())).map(|(_, expr)| PartialAst::Equal(expr)),
+        (attempt(lex(string("!="))), expr(infix_5())).map(|(_, expr)| PartialAst::NotEqual(expr)),
+        (attempt(lex(string("<="))), expr(infix_5())).map(|(_, expr)| PartialAst::LessEqual(expr)),
+        (attempt(lex(string(">="))), expr(infix_5()))
+            .map(|(_, expr)| PartialAst::GreaterEqual(expr)),
+        (attempt(lex(greater_not_range())), expr(infix_5()))
+            .map(|(_, expr)| PartialAst::Greater(expr)),
+        infix_5(),
+        (lex(char('<')), expr(infix_5())).map(|(_, expr)| PartialAst::Less(expr)),
+    ))
+}
+// `&` `&&`
+pub fn infix_3<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        (attempt(lex(string("&&"))), expr(infix_4())).map(|(_, expr)| PartialAst::LazyAnd(expr)),
+        infix_4(),
+        (lex(char('&')), expr(infix_4())).map(|(_, expr)| PartialAst::And(expr)),
+    ))
+}
+// `|` `||`
+pub fn infix_2<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        (attempt(lex(string("||"))), expr(infix_3())).map(|(_, expr)| PartialAst::LazyOr(expr)),
+        infix_3(),
+        (lex(char('|')), expr(infix_3())).map(|(_, expr)| PartialAst::Or(expr)),
+    ))
+}
+// `??`
+pub fn infix_1<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        (attempt(lex(string("??"))), expr(infix_2())).map(|(_, expr)| PartialAst::NullOr(expr)),
+        infix_2(),
+    ))
+}
+// `<-`
+parser! {
+    pub fn infix_0['a, I]()(I) -> PartialAst<'a>
+    where [
+        I: RangeStream<Token = char, Range = &'a str>,
+        I::Error: ParseError<I::Token, I::Range, I::Position>,
+    ] {
+        choice((
+            (attempt(lex(string("<-"))), expr(infix_0())).map(|(_, expr)| PartialAst::Assign(expr)),
+            infix_1(),
+        ))
+    }
 }
