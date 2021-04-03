@@ -2,6 +2,7 @@ use crate::ast::expr::Expr;
 use crate::parser::expr::array::range;
 use crate::parser::expr::infix::infix_0;
 use crate::parser::expr::infix::PartialAst;
+use crate::parser::expr::record::record;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
@@ -19,6 +20,7 @@ use combine::RangeStream;
 
 mod array;
 mod infix;
+mod record;
 
 fn prefix_expr<'a, I>() -> impl Parser<I, Output = Expr<'a>>
 where
@@ -27,7 +29,8 @@ where
 {
     choice((
         range().map(Expr::ArrayRange),
-        between(lex(char('(')), lex(char(')')), expr(infix_0())),
+        attempt(between(lex(char('(')), lex(char(')')), expr(infix_0()))),
+        record().map(Expr::Struct),
         attempt(lex(ident())).map(Expr::Var),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),

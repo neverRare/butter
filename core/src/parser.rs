@@ -15,6 +15,7 @@ mod expr;
 mod ident_keyword;
 mod pattern;
 
+// TODO: this is bad
 fn sep_optional_end_by<'a, I, EP, SP, C>(
     element: fn() -> EP,
     separator: fn() -> SP,
