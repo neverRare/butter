@@ -6,11 +6,13 @@ use crate::ast::expr::operator::Property;
 use crate::ast::expr::operator::Slice;
 use crate::ast::expr::range::Range;
 use crate::ast::expr::PlaceExpr;
+use crate::parser::expr::array::range;
 use crate::parser::expr::expr;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
 use combine::attempt;
+use combine::between;
 use combine::choice;
 use combine::look_ahead;
 use combine::parser;
@@ -129,7 +131,22 @@ where
 {
     // HACK: avoid range operators
     let dot_not_range = || (char('.'), look_ahead(satisfy(|ch| ch != '.' && ch != '<')));
-    choice(((attempt(lex(dot_not_range())), ident()).map(|(_, name)| PartialAst::Property(name)),))
+    let property = || {
+        (attempt(lex(dot_not_range())), lex(ident())).map(|(_, name)| PartialAst::Property(name))
+    };
+    let index = || between(lex(char('[')), lex(char(']')), expr(infix_0())).map(PartialAst::Index);
+    let property_index_slice =
+        || choice((property(), attempt(index()), range().map(PartialAst::Slice)));
+    let optional = || {
+        (lex(char('?')), property_index_slice()).map(|(_, infix)| match infix {
+            PartialAst::Property(name) => PartialAst::OptionalProperty(name),
+            PartialAst::Index(index) => PartialAst::OptionalIndex(index),
+            PartialAst::Slice(range) => PartialAst::OptionalSlice(range),
+            _ => unreachable!(),
+        })
+    };
+    // TODO: call parser
+    choice((property_index_slice(), optional()))
 }
 // `*` `/` `//` `%`
 pub fn infix_6<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>

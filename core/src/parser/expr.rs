@@ -1,4 +1,5 @@
 use crate::ast::expr::Expr;
+use crate::parser::expr::array::range;
 use crate::parser::expr::infix::infix_0;
 use crate::parser::expr::infix::PartialAst;
 use crate::parser::ident_keyword::ident;
@@ -16,6 +17,7 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::RangeStream;
 
+mod array;
 mod infix;
 
 fn prefix_expr<'a, I>() -> impl Parser<I, Output = Expr<'a>>
@@ -24,6 +26,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
+        range().map(Expr::ArrayRange),
         between(lex(char('(')), lex(char(')')), expr(infix_0())),
         attempt(lex(ident())).map(Expr::Var),
         lex(keyword("false")).map(|_| Expr::False),
