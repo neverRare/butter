@@ -1,6 +1,5 @@
-use combine::eof;
 use combine::error::StreamError;
-use combine::look_ahead;
+use combine::not_followed_by;
 use combine::parser::char::string;
 use combine::parser::range::recognize;
 use combine::parser::range::take_while;
@@ -26,11 +25,7 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    (
-        string(keyword),
-        look_ahead(satisfy(|ch| !rest(ch)).map(|_| ()).or(eof())),
-    )
-        .map(|(keyword, _)| keyword)
+    string(keyword).skip(not_followed_by(satisfy(rest)))
 }
 pub fn ident<'a, I>() -> impl Parser<I, Output = &'a str>
 where

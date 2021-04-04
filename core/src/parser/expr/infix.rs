@@ -17,9 +17,8 @@ use crate::parser::sep_optional_end_by;
 use combine::attempt;
 use combine::between;
 use combine::choice;
-use combine::eof;
 use combine::error::StreamError;
-use combine::look_ahead;
+use combine::not_followed_by;
 use combine::parser;
 use combine::parser::char::char;
 use combine::parser::char::string;
@@ -141,12 +140,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     // HACK: avoid range operators
-    let dot_not_range = || {
-        (
-            char('.'),
-            look_ahead(satisfy(|ch| ch != '.' && ch != '<').map(|_| ()).or(eof())),
-        )
-    };
+    let dot_not_range = || char('.').skip(not_followed_by(satisfy(|ch| ch == '.' || ch == '<')));
     let property = || {
         (attempt(lex(dot_not_range())), lex(ident())).map(|(_, name)| PartialAst::Property(name))
     };
@@ -221,12 +215,8 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     // HACK: avoid range operators
-    let greater_not_range = || {
-        (
-            char('>'),
-            look_ahead(satisfy(|ch| ch != '.' && ch != '<').map(|_| ()).or(eof())),
-        )
-    };
+    let greater_not_range =
+        || char('>').skip(not_followed_by(satisfy(|ch| ch == '.' || ch == '<')));
     choice((
         (attempt(lex(string("=="))), expr(infix_5())).map(|(_, expr)| PartialAst::Equal(expr)),
         (attempt(lex(string("!="))), expr(infix_5())).map(|(_, expr)| PartialAst::NotEqual(expr)),
