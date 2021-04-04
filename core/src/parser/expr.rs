@@ -5,6 +5,7 @@ use crate::parser::expr::infix::infix_0;
 use crate::parser::expr::infix::infix_7;
 use crate::parser::expr::infix::PartialAst;
 use crate::parser::expr::record::record;
+use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::ident_or_keyword;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
