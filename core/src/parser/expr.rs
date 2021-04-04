@@ -39,6 +39,7 @@ where
         (lex(char('&')), expr(infix_7())).map(|(_, expr)| Expr::Ref(Box::new(expr))),
         (lex(char('+')), expr(infix_7())).map(|(_, expr)| Expr::Plus(Box::new(expr))),
         (lex(char('-')), expr(infix_7())).map(|(_, expr)| Expr::Minus(Box::new(expr))),
+        attempt(lex(ident())).map(Expr::Var),
         (attempt(lex(keyword("clone"))), expr(infix_7()))
             .map(|(_, expr)| Expr::Clone(Box::new(expr))),
         lex(keyword("false")).map(|_| Expr::False),
@@ -59,7 +60,6 @@ where
             .map(|(_, label)| Expr::Continue(label)),
         (lex(keyword("return")), optional(expr(infix_0())))
             .map(|(_, expr)| Expr::Return(expr.map(Box::new))),
-        lex(ident()).map(Expr::Var),
     ))
 }
 parser! {
