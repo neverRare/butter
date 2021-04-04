@@ -1,6 +1,7 @@
 use crate::ast::expr::Expr;
 use crate::parser::expr::array::range;
 use crate::parser::expr::infix::infix_0;
+use crate::parser::expr::infix::infix_7;
 use crate::parser::expr::infix::PartialAst;
 use crate::parser::expr::record::record;
 use crate::parser::ident_keyword::ident;
@@ -31,7 +32,12 @@ where
         range().map(Expr::ArrayRange),
         attempt(between(lex(char('(')), lex(char(')')), expr(infix_0()))),
         record().map(Expr::Struct),
+        (lex(char('!')), expr(infix_7())).map(|(_, expr)| Expr::Not(Box::new(expr))),
+        (lex(char('&')), expr(infix_7())).map(|(_, expr)| Expr::Ref(Box::new(expr))),
+        (lex(char('+')), expr(infix_7())).map(|(_, expr)| Expr::Plus(Box::new(expr))),
+        (lex(char('-')), expr(infix_7())).map(|(_, expr)| Expr::Minus(Box::new(expr))),
         attempt(lex(ident())).map(Expr::Var),
+        (lex(keyword("clone")), expr(infix_7())).map(|(_, expr)| Expr::Clone(Box::new(expr))),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
