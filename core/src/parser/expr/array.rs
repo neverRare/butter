@@ -4,10 +4,9 @@ use crate::parser::expr::expr;
 use crate::parser::expr::infix_0;
 use crate::parser::lex;
 use combine::between;
+use combine::choice;
 use combine::optional;
 use combine::parser::char::char;
-use combine::parser::range::recognize;
-use combine::satisfy;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -18,10 +17,10 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let operator = || {
-        recognize((
-            satisfy(|ch: char| matches!(ch, '.' | '>')),
-            satisfy(|ch: char| matches!(ch, '.' | '<')),
-        ))
+        (
+            choice((char('.').map(|_| true), (char('>').map(|_| false)))),
+            choice((char('.').map(|_| true), (char('<').map(|_| false)))),
+        )
     };
     let range = || {
         (
@@ -29,19 +28,16 @@ where
             lex(operator()),
             optional(expr(infix_0())),
         )
-            .map(|(left, op, right)| {
-                let op: &str = op;
-                let left = match (left, &op[..1]) {
-                    (Some(expr), ".") => Bound::Inclusive(Box::new(expr)),
-                    (Some(expr), ">") => Bound::Exclusive(Box::new(expr)),
+            .map(|(left, (left_in, right_in), right)| {
+                let left = match (left, left_in) {
+                    (Some(expr), true) => Bound::Inclusive(Box::new(expr)),
+                    (Some(expr), false) => Bound::Exclusive(Box::new(expr)),
                     (None, _) => Bound::NoBound,
-                    _ => unreachable!(),
                 };
-                let right = match (&op[1..], right) {
-                    (".", Some(expr)) => Bound::Inclusive(Box::new(expr)),
-                    ("<", Some(expr)) => Bound::Exclusive(Box::new(expr)),
+                let right = match (right_in, right) {
+                    (true, Some(expr)) => Bound::Inclusive(Box::new(expr)),
+                    (false, Some(expr)) => Bound::Exclusive(Box::new(expr)),
                     (_, None) => Bound::NoBound,
-                    _ => unreachable!(),
                 };
                 Range { left, right }
             })
