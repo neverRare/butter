@@ -11,8 +11,3 @@ pub struct Struct<'a> {
     pub splats: Vec<Expr<'a>>,
     pub fields: HashMap<&'a str, Expr<'a>>,
 }
-#[derive(Debug, PartialEq, Clone)]
-pub enum Arg<'a> {
-    Named(Struct<'a>),
-    Unnamed(Vec<Expr<'a>>),
-}

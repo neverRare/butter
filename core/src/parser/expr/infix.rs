@@ -1,24 +1,29 @@
-use crate::ast::expr::compound::Arg;
+use crate::ast::expr::compound::Struct;
 use crate::ast::expr::operator::Assign;
 use crate::ast::expr::operator::Binary;
-use crate::ast::expr::operator::Call;
+use crate::ast::expr::operator::NamedArgCall;
 use crate::ast::expr::operator::Property;
 use crate::ast::expr::operator::Slice;
+use crate::ast::expr::operator::UnnamedArgCall;
 use crate::ast::expr::range::Range;
 use crate::ast::expr::PlaceExpr;
 use crate::parser::expr::array::range;
 use crate::parser::expr::expr;
+use crate::parser::expr::record;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
+use crate::parser::sep_optional_end_by;
 use combine::attempt;
 use combine::between;
 use combine::choice;
+use combine::error::StreamError;
 use combine::look_ahead;
 use combine::parser;
 use combine::parser::char::char;
 use combine::parser::char::string;
 use combine::satisfy;
+use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -51,7 +56,8 @@ pub enum PartialAst<'a> {
     OptionalIndex(Expr<'a>),
     Slice(Range<'a>),
     OptionalSlice(Range<'a>),
-    Call(Arg<'a>),
+    NamedArgCall(Struct<'a>),
+    UnnamedArgCall(Vec<Expr<'a>>),
 }
 impl<'a> PartialAst<'a> {
     // None means <- is applied to non-place expression
@@ -115,7 +121,11 @@ impl<'a> PartialAst<'a> {
                 expr: Box::new(left),
                 range,
             }),
-            Self::Call(args) => Expr::Call(Call {
+            Self::NamedArgCall(args) => Expr::NamedArgCall(NamedArgCall {
+                expr: Box::new(left),
+                args,
+            }),
+            Self::UnnamedArgCall(args) => Expr::UnnamedArgCall(UnnamedArgCall {
                 expr: Box::new(left),
                 args,
             }),
@@ -145,8 +155,30 @@ where
             _ => unreachable!(),
         })
     };
-    // TODO: call parser
-    choice((property_index_slice(), optional()))
+    let nameless_arg = || {
+        expr(infix_0()).and_then(|expr| {
+            if let Expr::Var(_) = expr {
+                Err(<StreamErrorFor<I>>::unexpected_static_message(
+                    "mixed named and unnamed argument",
+                ))
+            } else {
+                Ok(expr)
+            }
+        })
+    };
+    let nameless_args = || {
+        between(
+            lex(char('(')),
+            lex(char(')')),
+            sep_optional_end_by(nameless_arg, || lex(char(','))),
+        )
+    };
+    choice((
+        property_index_slice(),
+        optional(),
+        attempt(record()).map(PartialAst::NamedArgCall),
+        nameless_args().map(PartialAst::UnnamedArgCall),
+    ))
 }
 // `*` `/` `//` `%`
 pub fn infix_6<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>

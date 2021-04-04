@@ -8,9 +8,10 @@ use crate::ast::expr::control_flow::If;
 use crate::ast::expr::control_flow::While;
 use crate::ast::expr::operator::Assign;
 use crate::ast::expr::operator::Binary;
-use crate::ast::expr::operator::Call;
+use crate::ast::expr::operator::NamedArgCall;
 use crate::ast::expr::operator::Property;
 use crate::ast::expr::operator::Slice;
+use crate::ast::expr::operator::UnnamedArgCall;
 use crate::ast::expr::range::Range;
 
 pub mod compound;
@@ -72,7 +73,8 @@ pub enum Expr<'a> {
     OptionalIndex(Binary<'a>),
     Slice(Slice<'a>),
     OptionalSlice(Slice<'a>),
-    Call(Call<'a>),
+    NamedArgCall(NamedArgCall<'a>),
+    UnnamedArgCall(UnnamedArgCall<'a>),
 
     Block(Block<'a>),
     Fun(Fun<'a>),

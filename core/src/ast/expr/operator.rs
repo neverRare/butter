@@ -1,7 +1,7 @@
-use crate::ast::expr::compound::Arg;
 use crate::ast::expr::range::Range;
 use crate::ast::expr::Expr;
 use crate::ast::expr::PlaceExpr;
+use crate::ast::expr::Struct;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Binary<'a> {
@@ -24,7 +24,12 @@ pub struct Slice<'a> {
     pub range: Range<'a>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Call<'a> {
+pub struct NamedArgCall<'a> {
     pub expr: Box<Expr<'a>>,
-    pub args: Arg<'a>,
+    pub args: Struct<'a>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct UnnamedArgCall<'a> {
+    pub expr: Box<Expr<'a>>,
+    pub args: Vec<Expr<'a>>,
 }
