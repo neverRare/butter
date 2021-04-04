@@ -54,7 +54,7 @@ mod test {
 
     #[test]
     fn test_keyword() {
-        assert_eq!(keyword("true").easy_parse("true"), Ok(("foo", "")));
+        assert_eq!(keyword("true").easy_parse("true"), Ok(("true", "")));
     }
     #[test]
     fn non_keyword() {
