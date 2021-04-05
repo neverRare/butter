@@ -136,89 +136,97 @@ impl<'a> PartialAst<'a> {
         })
     }
 }
+
+fn full_infix_<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    let property = || lex(char('.')).with(lex(ident())).map(PartialAst::Property);
+    let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
+    let property_index_slice =
+        || choice((property(), attempt(index()), range().map(PartialAst::Slice)));
+    let optional = || {
+        lex(char('?'))
+            .with(property_index_slice())
+            .map(|infix| match infix {
+                PartialAst::Property(name) => PartialAst::OptionalProperty(name),
+                PartialAst::Index(index) => PartialAst::OptionalIndex(index),
+                PartialAst::Slice(range) => PartialAst::OptionalSlice(range),
+                _ => unreachable!(),
+            })
+    };
+    let nameless_arg = || {
+        expr(0).and_then(|expr| {
+            if let Expr::Var(_) = expr {
+                Err(<StreamErrorFor<I>>::unexpected_static_message(
+                    "mixed named and unnamed argument",
+                ))
+            } else {
+                Ok(expr)
+            }
+        })
+    };
+    let nameless_args = || {
+        between(
+            lex(char('(')),
+            lex(char(')')),
+            sep_optional_end_by(nameless_arg, || lex(char(','))),
+        )
+    };
+    choice((
+        attempt(lex(string("//")))
+            .with(expr(7))
+            .map(PartialAst::FloorDiv),
+        attempt(lex(string("++")))
+            .with(expr(6))
+            .map(PartialAst::Concatenate),
+        attempt(lex(string("==")))
+            .with(expr(5))
+            .map(PartialAst::Equal),
+        attempt(lex(string("!=")))
+            .with(expr(5))
+            .map(PartialAst::NotEqual),
+        attempt(lex(string("<=")))
+            .with(expr(5))
+            .map(PartialAst::LessEqual),
+        attempt(lex(string(">=")))
+            .with(expr(5))
+            .map(PartialAst::GreaterEqual),
+        attempt(lex(string("&&")))
+            .with(expr(4))
+            .map(PartialAst::LazyAnd),
+        attempt(lex(string("||")))
+            .with(expr(3))
+            .map(PartialAst::LazyOr),
+        attempt(lex(string("??")))
+            .with(expr(2))
+            .map(PartialAst::NullOr),
+        attempt(lex(string("<-")))
+            .with(expr(0))
+            .map(PartialAst::Assign),
+        lex(char('|')).with(expr(3)).map(PartialAst::Or),
+        lex(char('&')).with(expr(4)).map(PartialAst::And),
+        lex(char('<')).with(expr(5)).map(PartialAst::Less),
+        lex(char('>')).with(expr(5)).map(PartialAst::Greater),
+        lex(char('+')).with(expr(6)).map(PartialAst::Add),
+        lex(char('-')).with(expr(6)).map(PartialAst::Sub),
+        lex(char('*')).with(expr(7)).map(PartialAst::Multiply),
+        lex(char('/')).with(expr(7)).map(PartialAst::Div),
+        lex(char('%')).with(expr(7)).map(PartialAst::Mod),
+        property_index_slice(),
+        optional(),
+        attempt(record()).map(PartialAst::NamedArgCall),
+        nameless_args().map(PartialAst::UnnamedArgCall),
+    ))
+}
 parser! {
     fn full_infix['a, I]()(I) -> PartialAst<'a>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        let property = || lex(char('.')).with(lex(ident())).map(PartialAst::Property);
-        let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
-        let property_index_slice =
-            || choice((property(), attempt(index()), range().map(PartialAst::Slice)));
-        let optional = || {
-            lex(char('?'))
-                .with(property_index_slice())
-                .map(|infix| match infix {
-                    PartialAst::Property(name) => PartialAst::OptionalProperty(name),
-                    PartialAst::Index(index) => PartialAst::OptionalIndex(index),
-                    PartialAst::Slice(range) => PartialAst::OptionalSlice(range),
-                    _ => unreachable!(),
-                })
-        };
-        let nameless_arg = || {
-            expr(0).and_then(|expr| {
-                if let Expr::Var(_) = expr {
-                    Err(<StreamErrorFor<I>>::unexpected_static_message(
-                        "mixed named and unnamed argument",
-                    ))
-                } else {
-                    Ok(expr)
-                }
-            })
-        };
-        let nameless_args = || {
-            between(
-                lex(char('(')),
-                lex(char(')')),
-                sep_optional_end_by(nameless_arg, || lex(char(','))),
-            )
-        };
-        choice((
-            attempt(lex(string("//")))
-                .with(expr(7))
-                .map(PartialAst::FloorDiv),
-            attempt(lex(string("++")))
-                .with(expr(6))
-                .map(PartialAst::Concatenate),
-            attempt(lex(string("==")))
-                .with(expr(5))
-                .map(PartialAst::Equal),
-            attempt(lex(string("!=")))
-                .with(expr(5))
-                .map(PartialAst::NotEqual),
-            attempt(lex(string("<=")))
-                .with(expr(5))
-                .map(PartialAst::LessEqual),
-            attempt(lex(string(">=")))
-                .with(expr(5))
-                .map(PartialAst::GreaterEqual),
-            attempt(lex(string("&&")))
-                .with(expr(4))
-                .map(PartialAst::LazyAnd),
-            attempt(lex(string("||")))
-                .with(expr(3))
-                .map(PartialAst::LazyOr),
-            attempt(lex(string("??")))
-                .with(expr(2))
-                .map(PartialAst::NullOr),
-            attempt(lex(string("<-")))
-                .with(expr(0))
-                .map(PartialAst::Assign),
-            lex(char('|')).with(expr(3)).map(PartialAst::Or),
-            lex(char('&')).with(expr(4)).map(PartialAst::And),
-            lex(char('<')).with(expr(5)).map(PartialAst::Less),
-            lex(char('>')).with(expr(5)).map(PartialAst::Greater),
-            lex(char('+')).with(expr(6)).map(PartialAst::Add),
-            lex(char('-')).with(expr(6)).map(PartialAst::Sub),
-            lex(char('*')).with(expr(7)).map(PartialAst::Multiply),
-            lex(char('/')).with(expr(7)).map(PartialAst::Div),
-            lex(char('%')).with(expr(7)).map(PartialAst::Mod),
-            property_index_slice(),
-            optional(),
-            attempt(record()).map(PartialAst::NamedArgCall),
-            nameless_args().map(PartialAst::UnnamedArgCall),
-        ))
+        full_infix_()
     }
 }
 pub fn infix<'a, I>(precedence: u8) -> impl Parser<I, Output = PartialAst<'a>>

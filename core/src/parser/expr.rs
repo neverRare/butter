@@ -17,60 +17,90 @@ use combine::parser;
 use combine::parser::char::char;
 use combine::stream::StreamErrorFor;
 use combine::ParseError;
+use combine::Parser;
 use combine::RangeStream;
 
 mod array;
 mod infix;
 mod record;
 
+fn prefix_expr_<'a, I>() -> impl Parser<I, Output = Expr<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        range().map(Expr::ArrayRange),
+        attempt(between(lex(char('(')), lex(char(')')), expr(0))),
+        record().map(Expr::Struct),
+        lex(char('!'))
+            .with(expr(7))
+            .map(|expr| Expr::Not(Box::new(expr))),
+        lex(char('&'))
+            .with(expr(7))
+            .map(|expr| Expr::Ref(Box::new(expr))),
+        lex(char('+'))
+            .with(expr(7))
+            .map(|expr| Expr::Plus(Box::new(expr))),
+        lex(char('-'))
+            .with(expr(7))
+            .map(|expr| Expr::Minus(Box::new(expr))),
+        attempt(lex(ident())).map(Expr::Var),
+        attempt(lex(keyword("clone")))
+            .with(expr(7))
+            .map(|expr| Expr::Clone(Box::new(expr))),
+        lex(keyword("false")).map(|_| Expr::False),
+        lex(keyword("null")).map(|_| Expr::Null),
+        lex(keyword("true")).map(|_| Expr::True),
+        lex(keyword("break"))
+            .with((
+                optional(lex(ident_or_keyword())),
+                optional(lex(char('=')).with(expr(0))),
+            ))
+            .map(|(label, expr)| {
+                Expr::Break(Break {
+                    label,
+                    expr: expr.map(Box::new),
+                })
+            }),
+        lex(keyword("continue"))
+            .with(optional(lex(ident_or_keyword())))
+            .map(Expr::Continue),
+        lex(keyword("return"))
+            .with(optional(expr(0)))
+            .map(|expr| Expr::Return(expr.map(Box::new))),
+    ))
+}
 parser! {
     fn prefix_expr['a, I]()(I) -> Expr<'a>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        choice((
-            range().map(Expr::ArrayRange),
-            attempt(between(lex(char('(')), lex(char(')')), expr(0))),
-            record().map(Expr::Struct),
-            lex(char('!'))
-                .with(expr(7))
-                .map(|expr| Expr::Not(Box::new(expr))),
-            lex(char('&'))
-                .with(expr(7))
-                .map(|expr| Expr::Ref(Box::new(expr))),
-            lex(char('+'))
-                .with(expr(7))
-                .map(|expr| Expr::Plus(Box::new(expr))),
-            lex(char('-'))
-                .with(expr(7))
-                .map(|expr| Expr::Minus(Box::new(expr))),
-            attempt(lex(ident())).map(Expr::Var),
-            attempt(lex(keyword("clone")))
-                .with(expr(7))
-                .map(|expr| Expr::Clone(Box::new(expr))),
-            lex(keyword("false")).map(|_| Expr::False),
-            lex(keyword("null")).map(|_| Expr::Null),
-            lex(keyword("true")).map(|_| Expr::True),
-            lex(keyword("break"))
-                .with((
-                    optional(lex(ident_or_keyword())),
-                    optional(lex(char('=')).with(expr(0))),
-                ))
-                .map(|(label, expr)| {
-                    Expr::Break(Break {
-                        label,
-                        expr: expr.map(Box::new),
-                    })
-                }),
-            lex(keyword("continue"))
-                .with(optional(lex(ident_or_keyword())))
-                .map(Expr::Continue),
-            lex(keyword("return"))
-                .with(optional(expr(0)))
-                .map(|expr| Expr::Return(expr.map(Box::new))),
-        ))
+        prefix_expr_()
     }
+}
+
+fn expr_<'a, I>(precedence: u8) -> impl Parser<I, Output = Expr<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    (prefix_expr(), many(infix(precedence))).and_then(|(prefix, infixes)| {
+        let mut prefix = prefix;
+        let infixes: Vec<_> = infixes;
+        for infix in infixes {
+            prefix = match infix.combine_from(prefix) {
+                Some(expr) => expr,
+                None => {
+                    return Err(<StreamErrorFor<I>>::unexpected_static_message(
+                        "non place expression",
+                    ))
+                }
+            };
+        }
+        Ok(prefix)
+    })
 }
 parser! {
     pub fn expr['a, I](precedence: u8)(I) -> Expr<'a>
@@ -78,21 +108,7 @@ parser! {
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        (prefix_expr(), many(infix(*precedence))).and_then(|(prefix, infixes)| {
-            let mut prefix = prefix;
-            let infixes: Vec<_> = infixes;
-            for infix in infixes {
-                prefix = match infix.combine_from(prefix) {
-                    Some(expr) => expr,
-                    None => {
-                        return Err(<StreamErrorFor<I>>::unexpected_static_message(
-                            "non place expression",
-                        ))
-                    }
-                };
-            }
-            Ok(prefix)
-        })
+        expr_(*precedence)
     }
 }
 #[cfg(test)]
