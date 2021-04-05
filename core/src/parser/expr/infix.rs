@@ -18,11 +18,13 @@ use combine::any;
 use combine::attempt;
 use combine::between;
 use combine::choice;
+use combine::eof;
 use combine::error::StreamError;
 use combine::look_ahead;
 use combine::parser::char::char;
 use combine::parser::char::string;
 use combine::parser::range::recognize;
+use combine::satisfy;
 use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
@@ -231,8 +233,16 @@ where
     let double_operator = || recognize((any(), any())).and_then(checker);
     let valid_operator = || attempt(double_operator()).or(single_operator());
     look_ahead(valid_operator())
-        // TODO: resolve the following to ignore range operators, this leads to cryptic error >:(
-        // .with(not_followed_by(range_operator()))
+        // HACK: this avoids range operator, cannot use `not_followed_by` as it
+        // leads to cryptic error, smh combine crate
+        .with(look_ahead((
+            satisfy(|ch: char| ch != '.' && ch != '>')
+                .map(|_| ())
+                .or(eof()),
+            satisfy(|ch: char| ch != '.' && ch != '<')
+                .map(|_| ())
+                .or(eof()),
+        )))
         .with(full_infix())
 }
 pub fn precedence_of(token: &str) -> Option<u8> {
