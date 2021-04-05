@@ -14,15 +14,15 @@ use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
 use crate::parser::sep_optional_end_by;
+use combine::any;
 use combine::attempt;
 use combine::between;
 use combine::choice;
 use combine::error::StreamError;
-use combine::not_followed_by;
-use combine::parser;
+use combine::look_ahead;
 use combine::parser::char::char;
 use combine::parser::char::string;
-use combine::satisfy;
+use combine::parser::range::recognize;
 use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
@@ -133,18 +133,13 @@ impl<'a> PartialAst<'a> {
         })
     }
 }
-// `.` `?.` element access or slice `[...]` `?[...]` function call `(...)`
-pub fn infix_7<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+pub fn full_infix<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    // HACK: avoid range operators
-    let dot_not_range = || char('.').skip(not_followed_by(satisfy(|ch| ch == '.' || ch == '<')));
-    let property = || {
-        (attempt(lex(dot_not_range())), lex(ident())).map(|(_, name)| PartialAst::Property(name))
-    };
-    let index = || between(lex(char('[')), lex(char(']')), expr(infix_0())).map(PartialAst::Index);
+    let property = || (lex(char('.')), lex(ident())).map(|(_, name)| PartialAst::Property(name));
+    let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
     let property_index_slice =
         || choice((property(), attempt(index()), range().map(PartialAst::Slice)));
     let optional = || {
@@ -156,7 +151,7 @@ where
         })
     };
     let nameless_arg = || {
-        expr(infix_0()).and_then(|expr| {
+        expr(0).and_then(|expr| {
             if let Expr::Var(_) = expr {
                 Err(<StreamErrorFor<I>>::unexpected_static_message(
                     "mixed named and unnamed argument",
@@ -174,106 +169,60 @@ where
         )
     };
     choice((
+        (attempt(lex(string("//"))), expr(7)).map(|(_, expr)| PartialAst::FloorDiv(expr)),
+        (attempt(lex(string("++"))), expr(6)).map(|(_, expr)| PartialAst::Concatenate(expr)),
+        (attempt(lex(string("=="))), expr(5)).map(|(_, expr)| PartialAst::Equal(expr)),
+        (attempt(lex(string("!="))), expr(5)).map(|(_, expr)| PartialAst::NotEqual(expr)),
+        (attempt(lex(string("<="))), expr(5)).map(|(_, expr)| PartialAst::LessEqual(expr)),
+        (attempt(lex(string(">="))), expr(5)).map(|(_, expr)| PartialAst::GreaterEqual(expr)),
+        (attempt(lex(string("&&"))), expr(4)).map(|(_, expr)| PartialAst::LazyAnd(expr)),
+        (attempt(lex(string("||"))), expr(3)).map(|(_, expr)| PartialAst::LazyOr(expr)),
+        (attempt(lex(string("??"))), expr(2)).map(|(_, expr)| PartialAst::NullOr(expr)),
+        (attempt(lex(string("<-"))), expr(0)).map(|(_, expr)| PartialAst::Assign(expr)),
+        (lex(char('|')), expr(3)).map(|(_, expr)| PartialAst::Or(expr)),
+        (lex(char('&')), expr(4)).map(|(_, expr)| PartialAst::And(expr)),
+        (lex(char('<')), expr(5)).map(|(_, expr)| PartialAst::Less(expr)),
+        (lex(char('>')), expr(5)).map(|(_, expr)| PartialAst::Greater(expr)),
+        (lex(char('+')), expr(6)).map(|(_, expr)| PartialAst::Add(expr)),
+        (lex(char('-')), expr(6)).map(|(_, expr)| PartialAst::Sub(expr)),
+        (lex(char('*')), expr(7)).map(|(_, expr)| PartialAst::Multiply(expr)),
+        (lex(char('/')), expr(7)).map(|(_, expr)| PartialAst::Div(expr)),
+        (lex(char('%')), expr(7)).map(|(_, expr)| PartialAst::Mod(expr)),
         property_index_slice(),
         optional(),
         attempt(record()).map(PartialAst::NamedArgCall),
         nameless_args().map(PartialAst::UnnamedArgCall),
     ))
 }
-// `*` `/` `//` `%`
-pub fn infix_6<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+pub fn infix<'a, I>(precedence: u8) -> impl Parser<I, Output = PartialAst<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    choice((
-        (attempt(lex(string("//"))), expr(infix_7())).map(|(_, expr)| PartialAst::FloorDiv(expr)),
-        infix_7(),
-        (lex(char('*')), expr(infix_7())).map(|(_, expr)| PartialAst::Multiply(expr)),
-        (lex(char('/')), expr(infix_7())).map(|(_, expr)| PartialAst::Div(expr)),
-        (lex(char('%')), expr(infix_7())).map(|(_, expr)| PartialAst::Mod(expr)),
-    ))
+    let checker = move |token| match precedence_of(token) {
+        Some(this_precedence) if this_precedence > precedence => Ok(token),
+        _ => Err(<StreamErrorFor<I>>::expected_static_message(
+            "infix operator",
+        )),
+    };
+    let single_operator = || recognize(any()).and_then(checker);
+    let double_operator = || recognize((any(), any())).and_then(checker);
+    let valid_operator = || attempt(double_operator()).or(single_operator());
+    look_ahead(valid_operator())
+        // TODO: resolve the following to ignore range operators, this leads to cryptic error >:(
+        // .with(not_followed_by(range_operator()))
+        .with(full_infix())
 }
-// `+` `-` `++`
-pub fn infix_5<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
-    choice((
-        (attempt(lex(string("++"))), expr(infix_6()))
-            .map(|(_, expr)| PartialAst::Concatenate(expr)),
-        infix_6(),
-        (lex(char('+')), expr(infix_6())).map(|(_, expr)| PartialAst::Add(expr)),
-        (lex(char('-')), expr(infix_6())).map(|(_, expr)| PartialAst::Sub(expr)),
-    ))
-}
-// `==` `!=` `<` `>` `<=` `>=`
-pub fn infix_4<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
-    // HACK: avoid range operators
-    let greater_not_range =
-        || char('>').skip(not_followed_by(satisfy(|ch| ch == '.' || ch == '<')));
-    choice((
-        (attempt(lex(string("=="))), expr(infix_5())).map(|(_, expr)| PartialAst::Equal(expr)),
-        (attempt(lex(string("!="))), expr(infix_5())).map(|(_, expr)| PartialAst::NotEqual(expr)),
-        (attempt(lex(string("<="))), expr(infix_5())).map(|(_, expr)| PartialAst::LessEqual(expr)),
-        (attempt(lex(string(">="))), expr(infix_5()))
-            .map(|(_, expr)| PartialAst::GreaterEqual(expr)),
-        (attempt(lex(greater_not_range())), expr(infix_5()))
-            .map(|(_, expr)| PartialAst::Greater(expr)),
-        infix_5(),
-        (lex(char('<')), expr(infix_5())).map(|(_, expr)| PartialAst::Less(expr)),
-    ))
-}
-// `&` `&&`
-pub fn infix_3<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
-    choice((
-        (attempt(lex(string("&&"))), expr(infix_4())).map(|(_, expr)| PartialAst::LazyAnd(expr)),
-        infix_4(),
-        (lex(char('&')), expr(infix_4())).map(|(_, expr)| PartialAst::And(expr)),
-    ))
-}
-// `|` `||`
-pub fn infix_2<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
-    choice((
-        (attempt(lex(string("||"))), expr(infix_3())).map(|(_, expr)| PartialAst::LazyOr(expr)),
-        infix_3(),
-        (lex(char('|')), expr(infix_3())).map(|(_, expr)| PartialAst::Or(expr)),
-    ))
-}
-// `??`
-pub fn infix_1<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
-    choice((
-        (attempt(lex(string("??"))), expr(infix_2())).map(|(_, expr)| PartialAst::NullOr(expr)),
-        infix_2(),
-    ))
-}
-// `<-`
-parser! {
-    pub fn infix_0['a, I]()(I) -> PartialAst<'a>
-    where [
-        I: RangeStream<Token = char, Range = &'a str>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-    ] {
-        choice((
-            (attempt(lex(string("<-"))), expr(infix_0())).map(|(_, expr)| PartialAst::Assign(expr)),
-            infix_1(),
-        ))
+pub fn precedence_of(token: &str) -> Option<u8> {
+    match token {
+        "." | "[" | "?" | "(" => Some(8),
+        "*" | "/" | "//" | "%" => Some(7),
+        "+" | "-" | "++" => Some(6),
+        "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(5),
+        "&&" | "&" => Some(4),
+        "||" | "|" => Some(3),
+        "??" => Some(2),
+        "<-" => Some(1),
+        _ => None,
     }
 }

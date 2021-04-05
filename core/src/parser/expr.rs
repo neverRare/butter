@@ -1,9 +1,7 @@
 use crate::ast::expr::control_flow::Break;
 use crate::ast::expr::Expr;
 use crate::parser::expr::array::range;
-use crate::parser::expr::infix::infix_0;
-use crate::parser::expr::infix::infix_7;
-use crate::parser::expr::infix::PartialAst;
+use crate::parser::expr::infix::infix;
 use crate::parser::expr::record::record;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::ident_or_keyword;
@@ -33,22 +31,21 @@ where
 {
     choice((
         range().map(Expr::ArrayRange),
-        attempt(between(lex(char('(')), lex(char(')')), expr(infix_0()))),
+        attempt(between(lex(char('(')), lex(char(')')), expr(0))),
         record().map(Expr::Struct),
-        (lex(char('!')), expr(infix_7())).map(|(_, expr)| Expr::Not(Box::new(expr))),
-        (lex(char('&')), expr(infix_7())).map(|(_, expr)| Expr::Ref(Box::new(expr))),
-        (lex(char('+')), expr(infix_7())).map(|(_, expr)| Expr::Plus(Box::new(expr))),
-        (lex(char('-')), expr(infix_7())).map(|(_, expr)| Expr::Minus(Box::new(expr))),
+        (lex(char('!')), expr(7)).map(|(_, expr)| Expr::Not(Box::new(expr))),
+        (lex(char('&')), expr(7)).map(|(_, expr)| Expr::Ref(Box::new(expr))),
+        (lex(char('+')), expr(7)).map(|(_, expr)| Expr::Plus(Box::new(expr))),
+        (lex(char('-')), expr(7)).map(|(_, expr)| Expr::Minus(Box::new(expr))),
         attempt(lex(ident())).map(Expr::Var),
-        (attempt(lex(keyword("clone"))), expr(infix_7()))
-            .map(|(_, expr)| Expr::Clone(Box::new(expr))),
+        (attempt(lex(keyword("clone"))), expr(7)).map(|(_, expr)| Expr::Clone(Box::new(expr))),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
         (
             lex(keyword("break")),
             optional(lex(ident_or_keyword())),
-            optional((lex(char('=')), expr(infix_0()))),
+            optional((lex(char('=')), expr(0))),
         )
             .map(|(_, label, expr)| {
                 Expr::Break(Break {
@@ -58,18 +55,17 @@ where
             }),
         (lex(keyword("continue")), optional(lex(ident_or_keyword())))
             .map(|(_, label)| Expr::Continue(label)),
-        (lex(keyword("return")), optional(expr(infix_0())))
+        (lex(keyword("return")), optional(expr(0)))
             .map(|(_, expr)| Expr::Return(expr.map(Box::new))),
     ))
 }
 parser! {
-    pub fn expr['a, I, P](infix_parser: P)(I) -> Expr<'a>
+    pub fn expr['a, I](precedence: u8)(I) -> Expr<'a>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        P: Parser<I, Output = PartialAst<'a>>,
     ] {
-        (prefix_expr(), many(infix_parser)).and_then(|(prefix, infixes)| {
+        (prefix_expr(), many(infix(*precedence))).and_then(|(prefix, infixes)| {
             let mut prefix = prefix;
             let infixes: Vec<_> = infixes;
             for infix in infixes {

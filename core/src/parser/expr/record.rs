@@ -1,6 +1,5 @@
 use crate::ast::expr::compound::Struct;
 use crate::parser::expr::expr;
-use crate::parser::expr::infix_0;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
@@ -41,12 +40,12 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let field = || {
-        (lex(ident()), optional((lex(char('=')), expr(infix_0())))).map(|(name, expr)| match expr {
+        (lex(ident()), optional((lex(char('=')), expr(0)))).map(|(name, expr)| match expr {
             Some((_, expr)) => (name, expr),
             None => (name, Expr::Var(name)),
         })
     };
-    let splat = || (lex(char('*')), expr(infix_0())).map(|(_, expr)| expr);
+    let splat = || (lex(char('*')), expr(0)).map(|(_, expr)| expr);
     choice((
         field().map(|(name, expr)| FieldSplat::Field(name, expr)),
         splat().map(FieldSplat::Splat),
