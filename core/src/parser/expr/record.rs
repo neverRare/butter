@@ -45,7 +45,7 @@ where
             None => (name, Expr::Var(name)),
         })
     };
-    let splat = || (lex(char('*')), expr(0)).map(|(_, expr)| expr);
+    let splat = || lex(char('*')).with(expr(0));
     choice((
         field().map(|(name, expr)| FieldSplat::Field(name, expr)),
         splat().map(FieldSplat::Splat),

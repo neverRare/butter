@@ -33,30 +33,42 @@ where
         range().map(Expr::ArrayRange),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
         record().map(Expr::Struct),
-        (lex(char('!')), expr(7)).map(|(_, expr)| Expr::Not(Box::new(expr))),
-        (lex(char('&')), expr(7)).map(|(_, expr)| Expr::Ref(Box::new(expr))),
-        (lex(char('+')), expr(7)).map(|(_, expr)| Expr::Plus(Box::new(expr))),
-        (lex(char('-')), expr(7)).map(|(_, expr)| Expr::Minus(Box::new(expr))),
+        lex(char('!'))
+            .with(expr(7))
+            .map(|expr| Expr::Not(Box::new(expr))),
+        lex(char('&'))
+            .with(expr(7))
+            .map(|expr| Expr::Ref(Box::new(expr))),
+        lex(char('+'))
+            .with(expr(7))
+            .map(|expr| Expr::Plus(Box::new(expr))),
+        lex(char('-'))
+            .with(expr(7))
+            .map(|expr| Expr::Minus(Box::new(expr))),
         attempt(lex(ident())).map(Expr::Var),
-        (attempt(lex(keyword("clone"))), expr(7)).map(|(_, expr)| Expr::Clone(Box::new(expr))),
+        attempt(lex(keyword("clone")))
+            .with(expr(7))
+            .map(|expr| Expr::Clone(Box::new(expr))),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
-        (
-            lex(keyword("break")),
-            optional(lex(ident_or_keyword())),
-            optional((lex(char('=')), expr(0))),
-        )
-            .map(|(_, label, expr)| {
+        lex(keyword("break"))
+            .with((
+                optional(lex(ident_or_keyword())),
+                optional(lex(char('=')).with(expr(0))),
+            ))
+            .map(|(label, expr)| {
                 Expr::Break(Break {
                     label,
-                    expr: expr.map(|(_, expr)| Box::new(expr)),
+                    expr: expr.map(Box::new),
                 })
             }),
-        (lex(keyword("continue")), optional(lex(ident_or_keyword())))
-            .map(|(_, label)| Expr::Continue(label)),
-        (lex(keyword("return")), optional(expr(0)))
-            .map(|(_, expr)| Expr::Return(expr.map(Box::new))),
+        lex(keyword("continue"))
+            .with(optional(lex(ident_or_keyword())))
+            .map(Expr::Continue),
+        lex(keyword("return"))
+            .with(optional(expr(0)))
+            .map(|expr| Expr::Return(expr.map(Box::new))),
     ))
 }
 parser! {

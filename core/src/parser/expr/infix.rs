@@ -138,17 +138,19 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    let property = || (lex(char('.')), lex(ident())).map(|(_, name)| PartialAst::Property(name));
+    let property = || lex(char('.')).with(lex(ident())).map(PartialAst::Property);
     let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
     let property_index_slice =
         || choice((property(), attempt(index()), range().map(PartialAst::Slice)));
     let optional = || {
-        (lex(char('?')), property_index_slice()).map(|(_, infix)| match infix {
-            PartialAst::Property(name) => PartialAst::OptionalProperty(name),
-            PartialAst::Index(index) => PartialAst::OptionalIndex(index),
-            PartialAst::Slice(range) => PartialAst::OptionalSlice(range),
-            _ => unreachable!(),
-        })
+        lex(char('?'))
+            .with(property_index_slice())
+            .map(|infix| match infix {
+                PartialAst::Property(name) => PartialAst::OptionalProperty(name),
+                PartialAst::Index(index) => PartialAst::OptionalIndex(index),
+                PartialAst::Slice(range) => PartialAst::OptionalSlice(range),
+                _ => unreachable!(),
+            })
     };
     let nameless_arg = || {
         expr(0).and_then(|expr| {
@@ -169,25 +171,45 @@ where
         )
     };
     choice((
-        (attempt(lex(string("//"))), expr(7)).map(|(_, expr)| PartialAst::FloorDiv(expr)),
-        (attempt(lex(string("++"))), expr(6)).map(|(_, expr)| PartialAst::Concatenate(expr)),
-        (attempt(lex(string("=="))), expr(5)).map(|(_, expr)| PartialAst::Equal(expr)),
-        (attempt(lex(string("!="))), expr(5)).map(|(_, expr)| PartialAst::NotEqual(expr)),
-        (attempt(lex(string("<="))), expr(5)).map(|(_, expr)| PartialAst::LessEqual(expr)),
-        (attempt(lex(string(">="))), expr(5)).map(|(_, expr)| PartialAst::GreaterEqual(expr)),
-        (attempt(lex(string("&&"))), expr(4)).map(|(_, expr)| PartialAst::LazyAnd(expr)),
-        (attempt(lex(string("||"))), expr(3)).map(|(_, expr)| PartialAst::LazyOr(expr)),
-        (attempt(lex(string("??"))), expr(2)).map(|(_, expr)| PartialAst::NullOr(expr)),
-        (attempt(lex(string("<-"))), expr(0)).map(|(_, expr)| PartialAst::Assign(expr)),
-        (lex(char('|')), expr(3)).map(|(_, expr)| PartialAst::Or(expr)),
-        (lex(char('&')), expr(4)).map(|(_, expr)| PartialAst::And(expr)),
-        (lex(char('<')), expr(5)).map(|(_, expr)| PartialAst::Less(expr)),
-        (lex(char('>')), expr(5)).map(|(_, expr)| PartialAst::Greater(expr)),
-        (lex(char('+')), expr(6)).map(|(_, expr)| PartialAst::Add(expr)),
-        (lex(char('-')), expr(6)).map(|(_, expr)| PartialAst::Sub(expr)),
-        (lex(char('*')), expr(7)).map(|(_, expr)| PartialAst::Multiply(expr)),
-        (lex(char('/')), expr(7)).map(|(_, expr)| PartialAst::Div(expr)),
-        (lex(char('%')), expr(7)).map(|(_, expr)| PartialAst::Mod(expr)),
+        attempt(lex(string("//")))
+            .with(expr(7))
+            .map(PartialAst::FloorDiv),
+        attempt(lex(string("++")))
+            .with(expr(6))
+            .map(PartialAst::Concatenate),
+        attempt(lex(string("==")))
+            .with(expr(5))
+            .map(PartialAst::Equal),
+        attempt(lex(string("!=")))
+            .with(expr(5))
+            .map(PartialAst::NotEqual),
+        attempt(lex(string("<=")))
+            .with(expr(5))
+            .map(PartialAst::LessEqual),
+        attempt(lex(string(">=")))
+            .with(expr(5))
+            .map(PartialAst::GreaterEqual),
+        attempt(lex(string("&&")))
+            .with(expr(4))
+            .map(PartialAst::LazyAnd),
+        attempt(lex(string("||")))
+            .with(expr(3))
+            .map(PartialAst::LazyOr),
+        attempt(lex(string("??")))
+            .with(expr(2))
+            .map(PartialAst::NullOr),
+        attempt(lex(string("<-")))
+            .with(expr(0))
+            .map(PartialAst::Assign),
+        lex(char('|')).with(expr(3)).map(PartialAst::Or),
+        lex(char('&')).with(expr(4)).map(PartialAst::And),
+        lex(char('<')).with(expr(5)).map(PartialAst::Less),
+        lex(char('>')).with(expr(5)).map(PartialAst::Greater),
+        lex(char('+')).with(expr(6)).map(PartialAst::Add),
+        lex(char('-')).with(expr(6)).map(PartialAst::Sub),
+        lex(char('*')).with(expr(7)).map(PartialAst::Multiply),
+        lex(char('/')).with(expr(7)).map(PartialAst::Div),
+        lex(char('%')).with(expr(7)).map(PartialAst::Mod),
         property_index_slice(),
         optional(),
         attempt(record()).map(PartialAst::NamedArgCall),
