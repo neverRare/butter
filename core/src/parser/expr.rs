@@ -2,6 +2,7 @@ use crate::ast::expr::control_flow::Break;
 use crate::ast::expr::Expr;
 use crate::parser::expr::array::range;
 use crate::parser::expr::infix::infix;
+use crate::parser::expr::integer::based_integer;
 use crate::parser::expr::record::record;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::ident_or_keyword;
@@ -22,6 +23,7 @@ use combine::RangeStream;
 
 mod array;
 mod infix;
+mod integer;
 mod record;
 
 fn prefix_expr_<'a, I>() -> impl Parser<I, Output = Expr<'a>>
@@ -49,6 +51,7 @@ where
         attempt(lex(keyword("clone")))
             .with(expr(7))
             .map(|expr| Expr::Clone(Box::new(expr))),
+        lex(based_integer()).map(Expr::UInt),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
