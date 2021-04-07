@@ -93,12 +93,12 @@ where
             fields.extend(right);
             StructPattern {
                 fields,
-                rest: Some(Box::new(rest)),
+                rest: Box::new(rest),
             }
         }
         None => StructPattern {
             fields: left,
-            rest: None,
+            rest: Box::new(Pattern::Ignore),
         },
     })
 }
@@ -170,7 +170,7 @@ mod test {
                     "struct",
                     Pattern::Struct(StructPattern {
                         fields: IntoIter::new([("foo", Pattern::Var("foo"))]).collect(),
-                        rest: Some(Box::new(Pattern::Var("rest"))),
+                        rest: Box::new(Pattern::Var("rest")),
                     }),
                 ),
                 ("group", Pattern::Var("foo")),
@@ -188,7 +188,7 @@ mod test {
                 ),
             ])
             .collect(),
-            rest: None,
+            rest: Box::new(Pattern::Ignore),
         });
         assert_eq!(pattern().easy_parse(src), Ok((expected, "")));
     }

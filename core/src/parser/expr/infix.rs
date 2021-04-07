@@ -136,8 +136,26 @@ impl<'a> PartialAst<'a> {
         })
     }
 }
-
-fn full_infix_<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+fn call<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    // TODO: disallow variable but allow (variable) possibly with lookahead
+    let nameless_arg = || expr(0);
+    let nameless_args = || {
+        between(
+            lex(char('(')),
+            lex(char(')')),
+            sep_optional_end_by(nameless_arg, || lex(char(','))),
+        )
+    };
+    choice((
+        attempt(record()).map(PartialAst::NamedArgCall),
+        nameless_args().map(PartialAst::UnnamedArgCall),
+    ))
+}
+fn property_index_slice_optional<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -156,69 +174,66 @@ where
                 _ => unreachable!(),
             })
     };
-    let nameless_arg = || {
-        expr(0).and_then(|expr| {
-            if let Expr::Var(_) = expr {
-                Err(<StreamErrorFor<I>>::unexpected_static_message(
-                    "mixed named and unnamed argument",
-                ))
-            } else {
-                Ok(expr)
-            }
-        })
+    choice((property_index_slice(), optional()))
+}
+fn binary<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    macro_rules! gen_double_binary {
+        ($(($op:literal, $precedence:literal, $ast:ident)),* $(,)?) => {
+            choice([$(
+                attempt(lex(string($op)))
+                    .with(expr($precedence))
+                    .map(PartialAst::$ast as fn(_) -> _),
+            )*])
+        };
+    }
+    macro_rules! gen_single_binary {
+        ($(($op:literal, $precedence:literal, $ast:ident)),* $(,)?) => {
+            choice([$(
+                lex(char($op))
+                    .with(expr($precedence))
+                    .map(PartialAst::$ast as fn(_) -> _),
+            )*])
+        };
+    }
+    let double_binary = || {
+        gen_double_binary![
+            ("//", 7, FloorDiv),
+            ("++", 6, Concatenate),
+            ("==", 5, Equal),
+            ("!=", 5, NotEqual),
+            ("<=", 5, LessEqual),
+            (">=", 5, GreaterEqual),
+            ("&&", 4, LazyAnd),
+            ("||", 3, LazyOr),
+            ("??", 2, NullOr),
+            ("<-", 0, Assign),
+        ]
     };
-    let nameless_args = || {
-        between(
-            lex(char('(')),
-            lex(char(')')),
-            sep_optional_end_by(nameless_arg, || lex(char(','))),
-        )
+    let single_binary = || {
+        gen_single_binary![
+            ('*', 7, Multiply),
+            ('/', 7, Div),
+            ('%', 7, Mod),
+            ('+', 6, Add),
+            ('-', 6, Sub),
+            ('<', 5, Less),
+            ('>', 5, Greater),
+            ('&', 4, And),
+            ('|', 3, Or),
+        ]
     };
-    choice((
-        attempt(lex(string("//")))
-            .with(expr(7))
-            .map(PartialAst::FloorDiv),
-        attempt(lex(string("++")))
-            .with(expr(6))
-            .map(PartialAst::Concatenate),
-        attempt(lex(string("==")))
-            .with(expr(5))
-            .map(PartialAst::Equal),
-        attempt(lex(string("!=")))
-            .with(expr(5))
-            .map(PartialAst::NotEqual),
-        attempt(lex(string("<=")))
-            .with(expr(5))
-            .map(PartialAst::LessEqual),
-        attempt(lex(string(">=")))
-            .with(expr(5))
-            .map(PartialAst::GreaterEqual),
-        attempt(lex(string("&&")))
-            .with(expr(4))
-            .map(PartialAst::LazyAnd),
-        attempt(lex(string("||")))
-            .with(expr(3))
-            .map(PartialAst::LazyOr),
-        attempt(lex(string("??")))
-            .with(expr(2))
-            .map(PartialAst::NullOr),
-        attempt(lex(string("<-")))
-            .with(expr(0))
-            .map(PartialAst::Assign),
-        lex(char('|')).with(expr(3)).map(PartialAst::Or),
-        lex(char('&')).with(expr(4)).map(PartialAst::And),
-        lex(char('<')).with(expr(5)).map(PartialAst::Less),
-        lex(char('>')).with(expr(5)).map(PartialAst::Greater),
-        lex(char('+')).with(expr(6)).map(PartialAst::Add),
-        lex(char('-')).with(expr(6)).map(PartialAst::Sub),
-        lex(char('*')).with(expr(7)).map(PartialAst::Multiply),
-        lex(char('/')).with(expr(7)).map(PartialAst::Div),
-        lex(char('%')).with(expr(7)).map(PartialAst::Mod),
-        property_index_slice(),
-        optional(),
-        attempt(record()).map(PartialAst::NamedArgCall),
-        nameless_args().map(PartialAst::UnnamedArgCall),
-    ))
+    choice((double_binary(), single_binary()))
+}
+fn full_infix_<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((binary(), call(), property_index_slice_optional()))
 }
 parser! {
     fn full_infix['a, I]()(I) -> PartialAst<'a>

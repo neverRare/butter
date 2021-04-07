@@ -40,10 +40,8 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let field = || {
-        (lex(ident()), optional((lex(char('=')), expr(0)))).map(|(name, expr)| match expr {
-            Some((_, expr)) => (name, expr),
-            None => (name, Expr::Var(name)),
-        })
+        (lex(ident()), optional(lex(char('=')).with(expr(0))))
+            .map(|(name, expr)| (name, expr.unwrap_or(Expr::Var(name))))
     };
     let splat = || lex(char('*')).with(expr(0));
     choice((
@@ -51,14 +49,12 @@ where
         splat().map(FieldSplat::Splat),
     ))
 }
+// TODO: handle duplicate name
 pub fn record<'a, I>() -> impl Parser<I, Output = Struct<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let fields = || sep_optional_end_by(field_splat, || lex(char(',')));
-    between(lex(char('(')), lex(char(')')), fields()).map(|record| {
-        let StructExtend(record) = record;
-        record
-    })
+    between(lex(char('(')), lex(char(')')), fields()).map(|StructExtend(record)| record)
 }

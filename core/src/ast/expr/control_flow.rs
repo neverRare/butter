@@ -22,13 +22,7 @@ pub struct Fun<'a> {
 pub struct If<'a> {
     pub condition: Box<Expr<'a>>,
     pub body: Block<'a>,
-    pub else_part: Else<'a>,
-}
-#[derive(Debug, PartialEq, Clone)]
-pub enum Else<'a> {
-    None,
-    Else(Block<'a>),
-    ElseIf(Box<If<'a>>),
+    pub else_part: Option<Box<Expr<'a>>>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct For<'a> {

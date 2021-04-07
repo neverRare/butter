@@ -74,7 +74,6 @@ parser! {
         P: Parser<I, Output = &'a str>
     ] {
         num_parser
-            .skip(not_followed_by(alpha_num()))
             .and_then(|src: &str| {
                 match parse_u64(src, *base) {
                     Some(result) => Ok(result),
@@ -89,7 +88,7 @@ parser! {
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        let base_prefix = |lower, upper| (char('0'), char(lower).or(char(upper)));
+        let base_prefix = |lower, upper| (char('0'), choice([char(lower), char(upper)]));
         choice((
             attempt(base_prefix('x', 'X'))
                 .with(integer(integer_str_allow_underscore(16), 16)),
@@ -99,6 +98,7 @@ parser! {
                 .with(integer(integer_str_allow_underscore(2), 2)),
             integer(integer_str(10), 10),
         ))
+        .skip(not_followed_by(alpha_num()))
     }
 }
 #[cfg(test)]
