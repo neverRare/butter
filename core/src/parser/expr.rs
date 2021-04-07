@@ -22,6 +22,7 @@ use combine::Parser;
 use combine::RangeStream;
 
 mod array;
+mod float;
 mod infix;
 mod integer;
 mod record;
@@ -51,7 +52,6 @@ where
         attempt(lex(keyword("clone")))
             .with(expr(7))
             .map(|expr| Expr::Clone(Box::new(expr))),
-        lex(based_integer()).map(Expr::UInt),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
@@ -72,6 +72,8 @@ where
         lex(keyword("return"))
             .with(optional(expr(0)))
             .map(|expr| Expr::Return(expr.map(Box::new))),
+        lex(float::float()).map(Expr::Float),
+        lex(based_integer()).map(Expr::UInt),
     ))
 }
 parser! {

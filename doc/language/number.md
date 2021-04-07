@@ -19,7 +19,6 @@ Underscores `_` are optional and used as visual separator. There are few places 
 - In the start of the literal
 - Before the base modifier (`b`, `o`, or `x`)
 - After the decimal point
-- Between the `e` and the sign of the magnitude
 
 ## Arithmetic operations
 
