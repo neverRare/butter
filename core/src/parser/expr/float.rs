@@ -132,6 +132,11 @@ mod test {
     use combine::EasyParser;
 
     #[test]
+    fn not_float() {
+        let src = "01234";
+        assert!(float().easy_parse(src).is_err());
+    }
+    #[test]
     fn float_1() {
         let src = "01.2e3";
         let expected = 1.2e3;
