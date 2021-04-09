@@ -1,10 +1,7 @@
 use combine::attempt;
-use combine::choice;
 use combine::parser::char::space;
 use combine::parser::char::string;
 use combine::parser::range::take_while;
-use combine::sep_by;
-use combine::sep_end_by;
 use combine::skip_many;
 use combine::skip_many1;
 use combine::ParseError;
