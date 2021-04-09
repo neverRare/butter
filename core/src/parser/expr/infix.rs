@@ -13,7 +13,6 @@ use crate::parser::expr::record;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
-use crate::parser::sep_optional_end_by;
 use combine::any;
 use combine::attempt;
 use combine::between;
@@ -26,6 +25,7 @@ use combine::parser::char::char;
 use combine::parser::char::string;
 use combine::parser::range::recognize;
 use combine::satisfy;
+use combine::sep_end_by;
 use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
@@ -147,7 +147,7 @@ where
         between(
             lex(char('(')),
             lex(char(')')),
-            sep_optional_end_by(nameless_arg, || lex(char(','))),
+            sep_end_by(nameless_arg(), lex(char(','))),
         )
     };
     choice((

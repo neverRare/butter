@@ -4,10 +4,10 @@ use crate::ast::pattern::StructPattern;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
-use crate::parser::sep_optional_end_by;
 use combine::attempt;
 use combine::between;
 use combine::choice;
+use combine::many;
 use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
@@ -30,10 +30,10 @@ where
     RP: Parser<I>,
     C: Extend<EP::Output> + Default,
 {
-    let no_rest = move || sep_optional_end_by(element, || lex(char(',')));
+    let no_rest = move || sep_end_by(element(), lex(char(',')));
     let have_rest = move || {
         (
-            sep_end_by(element(), lex(char(','))),
+            many(element().skip(lex(char(',')))),
             (lex(char('*'))),
             rest(),
             optional((lex(char(',')), no_rest())),
@@ -73,13 +73,8 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    (lex(ident()), optional((lex(char('=')), pattern()))).map(|(name, pattern)| {
-        let pattern = match pattern {
-            Some((_, pattern)) => pattern,
-            None => Pattern::Var(name),
-        };
-        (name, pattern)
-    })
+    (lex(ident()), optional(lex(char('=')).with(pattern())))
+        .map(|(name, pattern)| (name, pattern.unwrap_or(Pattern::Var(name))))
 }
 fn record<'a, I>() -> impl Parser<I, Output = StructPattern<'a>>
 where

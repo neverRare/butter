@@ -3,11 +3,11 @@ use crate::parser::expr::expr;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
-use crate::parser::sep_optional_end_by;
 use combine::between;
 use combine::choice;
 use combine::optional;
 use combine::parser::char::char;
+use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -55,6 +55,6 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    let fields = || sep_optional_end_by(field_splat, || lex(char(',')));
+    let fields = || sep_end_by(field_splat(), lex(char(',')));
     between(lex(char('(')), lex(char(')')), fields()).map(|StructExtend(record)| record)
 }

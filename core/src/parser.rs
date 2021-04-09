@@ -15,23 +15,6 @@ mod expr;
 mod ident_keyword;
 mod pattern;
 
-// TODO: this is bad
-fn sep_optional_end_by<'a, I, EP, SP, C>(
-    element: fn() -> EP,
-    separator: fn() -> SP,
-) -> impl Parser<I, Output = C>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-    EP: Parser<I>,
-    SP: Parser<I>,
-    C: Extend<EP::Output> + Default,
-{
-    choice((
-        attempt(sep_end_by(element(), separator())),
-        sep_by(element(), separator()),
-    ))
-}
 fn comments<'a, I>() -> impl Parser<I, Output = ()>
 where
     I: RangeStream<Token = char, Range = &'a str>,
