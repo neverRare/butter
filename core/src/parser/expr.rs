@@ -4,6 +4,8 @@ use crate::parser::expr::array::range;
 use crate::parser::expr::infix::infix;
 use crate::parser::expr::integer::based_integer;
 use crate::parser::expr::record::record;
+use crate::parser::expr::string::char_literal;
+use crate::parser::expr::string::string_literal;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::ident_or_keyword;
 use crate::parser::ident_keyword::keyword;
@@ -26,6 +28,7 @@ mod float;
 mod infix;
 mod integer;
 mod record;
+mod string;
 
 fn prefix_expr_<'a, I>() -> impl Parser<I, Output = Expr<'a>>
 where
@@ -36,6 +39,8 @@ where
         range().map(Expr::ArrayRange),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
         record().map(Expr::Struct),
+        lex(char_literal()).map(Expr::Char),
+        lex(string_literal()).map(Expr::Str),
         lex(char('!'))
             .with(expr(7))
             .map(|expr| Expr::Not(Box::new(expr))),
