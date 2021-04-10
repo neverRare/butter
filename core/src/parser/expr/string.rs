@@ -31,7 +31,7 @@ where
             char('n').map(|_| b'\n'),
             char('r').map(|_| b'\r'),
             char('t').map(|_| b'\t'),
-            char('v').map(|_| b'\t'),
+            char('v').map(|_| 11),
             char('0').map(|_| 0),
         ))
     };
@@ -94,4 +94,16 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     between(char('"'), char('"'), many(char_inside('"'))).map(|StringLiteral(vec)| vec)
+}
+#[cfg(test)]
+mod test {
+    use crate::parser::expr::string_literal;
+    use combine::EasyParser;
+
+    #[test]
+    fn string() {
+        let src = r#""\x41Aßℝ💣\n""#;
+        let expected = "\x41Aßℝ💣\n".as_bytes().to_vec();
+        assert_eq!(string_literal().easy_parse(src), Ok((expected, "")));
+    }
 }
