@@ -52,7 +52,7 @@ where
     between(
         lex(char('{')),
         lex(char('}')),
-        many(statement(lex(char('}')).map(|_| ()))),
+        many(statement(char('}').map(|_| ()))),
     )
     .map(|statement_expr| {
         let StatementExpr { statement, expr } = statement_expr;
