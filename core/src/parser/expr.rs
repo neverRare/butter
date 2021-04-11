@@ -3,6 +3,7 @@ use crate::ast::expr::control_flow::Fun;
 use crate::ast::expr::Expr;
 use crate::parser::expr::array::array;
 use crate::parser::expr::array::range;
+use crate::parser::expr::control_flow::control_flow;
 use crate::parser::expr::fun::param_arrow;
 use crate::parser::expr::infix::infix;
 use crate::parser::expr::integer::based_integer;
@@ -27,6 +28,7 @@ use combine::Parser;
 use combine::RangeStream;
 
 mod array;
+mod control_flow;
 mod float;
 mod fun;
 mod infix;
@@ -68,6 +70,7 @@ where
         attempt(lex(keyword("clone")))
             .with(expr(7))
             .map(|expr| Expr::Clone(Box::new(expr))),
+        control_flow(),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
@@ -101,7 +104,6 @@ parser! {
         prefix_expr_()
     }
 }
-
 fn expr_<'a, I>(precedence: u8) -> impl Parser<I, Output = Expr<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,

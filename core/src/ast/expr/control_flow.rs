@@ -10,8 +10,8 @@ pub struct Break<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block<'a> {
-    pub statements: Vec<Statement<'a>>,
-    pub expr: Box<Expr<'a>>,
+    pub statement: Vec<Statement<'a>>,
+    pub expr: Option<Box<Expr<'a>>>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a> {
@@ -26,7 +26,7 @@ pub struct If<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct For<'a> {
-    pub unpack: Pattern<'a>,
+    pub pattern: Pattern<'a>,
     pub expr: Box<Expr<'a>>,
     pub body: Block<'a>,
 }
