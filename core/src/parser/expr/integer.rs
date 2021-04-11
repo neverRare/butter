@@ -49,22 +49,22 @@ macro_rules! gen_integer_parser {
 }
 gen_integer_parser!(parse_u64, u64);
 gen_integer_parser!(parse_i32, i32);
-pub fn integer_str<'a, I>(base: u64) -> impl Parser<I, Output = &'a str>
+pub fn integer_str<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     recognize((
-        satisfy(move |ch| parse_digit(ch, base as u8).is_some()),
-        take_while(move |ch| parse_digit(ch, base as u8).is_some() || ch == '_'),
+        satisfy(move |ch| parse_digit(ch, base).is_some()),
+        take_while(move |ch| parse_digit(ch, base).is_some() || ch == '_'),
     ))
 }
-pub fn integer_str_allow_underscore<'a, I>(base: u64) -> impl Parser<I, Output = &'a str>
+pub fn integer_str_allow_underscore<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    take_while1(move |ch| parse_digit(ch, base as u8).is_some() || ch == '_')
+    take_while1(move |ch| parse_digit(ch, base).is_some() || ch == '_')
 }
 parser! {
     fn integer['a, I, P](num_parser: P, base: u64)(I) -> u64
