@@ -1,3 +1,4 @@
+use crate::ast::expr::compound::Element;
 use crate::ast::expr::range::Bound;
 use crate::ast::expr::range::Range;
 use crate::parser::expr::expr;
@@ -6,6 +7,7 @@ use combine::between;
 use combine::choice;
 use combine::optional;
 use combine::parser::char::char;
+use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -43,4 +45,21 @@ where
         )
     };
     between(lex(char('[')), lex(char(']')), range())
+}
+pub fn array<'a, I>() -> impl Parser<I, Output = Vec<Element<'a>>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    let element = || {
+        choice((
+            lex(char('*')).with(expr(0)).map(Element::Splat),
+            expr(0).map(Element::Element),
+        ))
+    };
+    between(
+        lex(char('[')),
+        lex(char(']')),
+        sep_end_by(element(), lex(char(','))),
+    )
 }
