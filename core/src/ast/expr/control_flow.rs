@@ -15,7 +15,7 @@ pub struct Block<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a> {
-    pub params: HashMap<&'a str, Pattern<'a>>,
+    pub param: HashMap<&'a str, Pattern<'a>>,
     pub body: Box<Expr<'a>>,
 }
 #[derive(Debug, PartialEq, Clone)]

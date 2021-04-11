@@ -76,6 +76,17 @@ where
     (lex(ident()), optional(lex(char('=')).with(pattern())))
         .map(|(name, pattern)| (name, pattern.unwrap_or(Pattern::Var(name))))
 }
+pub fn parameter<'a, I>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a>>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    between(
+        lex(char('(')),
+        lex(char(')')),
+        sep_end_by(field(), lex(char(','))),
+    )
+}
 fn record<'a, I>() -> impl Parser<I, Output = StructPattern<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
@@ -88,12 +99,12 @@ where
             fields.extend(right);
             StructPattern {
                 fields,
-                rest: Box::new(rest),
+                rest: Some(Box::new(rest)),
             }
         }
         None => StructPattern {
             fields: left,
-            rest: Box::new(Pattern::Ignore),
+            rest: None,
         },
     })
 }
@@ -165,7 +176,7 @@ mod test {
                     "struct",
                     Pattern::Struct(StructPattern {
                         fields: IntoIter::new([("foo", Pattern::Var("foo"))]).collect(),
-                        rest: Box::new(Pattern::Var("rest")),
+                        rest: Some(Box::new(Pattern::Var("rest"))),
                     }),
                 ),
                 ("group", Pattern::Var("foo")),
@@ -183,7 +194,7 @@ mod test {
                 ),
             ])
             .collect(),
-            rest: Box::new(Pattern::Ignore),
+            rest: None,
         });
         assert_eq!(pattern().easy_parse(src), Ok((expected, "")));
     }

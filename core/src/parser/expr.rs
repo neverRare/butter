@@ -1,7 +1,9 @@
 use crate::ast::expr::control_flow::Break;
+use crate::ast::expr::control_flow::Fun;
 use crate::ast::expr::Expr;
 use crate::parser::expr::array::array;
 use crate::parser::expr::array::range;
+use crate::parser::expr::fun::param_arrow;
 use crate::parser::expr::infix::infix;
 use crate::parser::expr::integer::based_integer;
 use crate::parser::expr::record::record;
@@ -26,6 +28,7 @@ use combine::RangeStream;
 
 mod array;
 mod float;
+mod fun;
 mod infix;
 mod integer;
 mod record;
@@ -37,6 +40,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
+        (attempt(param_arrow()), expr(0)).map(|param, body| Expr::Fun(Fun { param, body })),
         attempt(range()).map(Expr::ArrayRange),
         array().map(Expr::Array),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),

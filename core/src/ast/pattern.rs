@@ -17,5 +17,5 @@ pub struct ArrayWithRest<'a> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct StructPattern<'a> {
     pub fields: HashMap<&'a str, Pattern<'a>>,
-    pub rest: Box<Pattern<'a>>,
+    pub rest: Option<Box<Pattern<'a>>>,
 }
