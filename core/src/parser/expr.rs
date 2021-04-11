@@ -40,7 +40,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
-        (attempt(param_arrow()), expr(0)).map(|param, body| Expr::Fun(Fun { param, body })),
+        (attempt(param_arrow()), expr(0)).map(|(param, body)| Expr::Fun(Fun { param, body })),
         attempt(range()).map(Expr::ArrayRange),
         array().map(Expr::Array),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
