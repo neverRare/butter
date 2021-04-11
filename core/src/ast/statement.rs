@@ -10,7 +10,7 @@ pub enum Statement<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Declare<'a> {
-    pub unpack: Pattern<'a>,
+    pub pattern: Pattern<'a>,
     pub expr: Box<Expr<'a>>,
 }
 #[derive(Debug, PartialEq, Clone)]

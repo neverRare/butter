@@ -28,7 +28,7 @@ use combine::Parser;
 use combine::RangeStream;
 
 mod array;
-mod control_flow;
+pub mod control_flow;
 mod float;
 mod fun;
 mod infix;

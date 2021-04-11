@@ -3,12 +3,16 @@ use crate::ast::expr::control_flow::For;
 use crate::ast::expr::control_flow::If;
 use crate::ast::expr::control_flow::While;
 use crate::ast::expr::Expr;
+use crate::ast::statement::Statement;
 use crate::parser::expr::expr;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
 use crate::parser::pattern::pattern;
+use crate::parser::statement::statement;
 use combine::attempt;
+use combine::between;
 use combine::choice;
+use combine::many;
 use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
@@ -16,15 +20,46 @@ use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
 
+#[derive(Default, Debug, Clone, PartialEq)]
+struct StatementExpr<'a> {
+    statement: Vec<Statement<'a>>,
+    expr: Option<Expr<'a>>,
+}
+impl<'a> Extend<(Statement<'a>, bool)> for StatementExpr<'a> {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = (Statement<'a>, bool)>,
+    {
+        for (statement, semicolon) in iter {
+            if semicolon {
+                self.statement.push(statement);
+            } else {
+                assert!(self.expr.is_none());
+                if let Statement::Expr(expr) = statement {
+                    self.expr = Some(expr);
+                } else {
+                    unreachable!();
+                }
+            }
+        }
+    }
+}
 fn block<'a, I>() -> impl Parser<I, Output = Block<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    // TODO: actual block parser
-    (lex(char('{')), lex(char('}'))).map(|_| Block {
-        statement: Vec::new(),
-        expr: None,
+    between(
+        lex(char('{')),
+        lex(char('}')),
+        many(statement(lex(char('}')).map(|_| ()))),
+    )
+    .map(|statement_expr| {
+        let StatementExpr { statement, expr } = statement_expr;
+        Block {
+            statement,
+            expr: expr.map(Box::new),
+        }
     })
 }
 fn if_<'a, I>() -> impl Parser<I, Output = If<'a>>
