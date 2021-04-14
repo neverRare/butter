@@ -8,7 +8,8 @@ use crate::parser::expr::expr;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
 use crate::parser::pattern::pattern;
-use crate::parser::statement::statement;
+use crate::parser::statement::statement_return;
+use crate::parser::statement::StatementReturn;
 use combine::attempt;
 use combine::between;
 use combine::choice;
@@ -25,21 +26,17 @@ struct StatementExpr<'a> {
     statement: Vec<Statement<'a>>,
     expr: Option<Expr<'a>>,
 }
-impl<'a> Extend<(Statement<'a>, bool)> for StatementExpr<'a> {
+impl<'a> Extend<StatementReturn<'a>> for StatementExpr<'a> {
     fn extend<T>(&mut self, iter: T)
     where
-        T: IntoIterator<Item = (Statement<'a>, bool)>,
+        T: IntoIterator<Item = StatementReturn<'a>>,
     {
-        for (statement, semicolon) in iter {
-            if semicolon {
-                self.statement.push(statement);
-            } else {
-                assert!(self.expr.is_none());
-                if let Statement::Expr(expr) = statement {
-                    self.expr = Some(expr);
-                } else {
-                    unreachable!();
-                }
+        for statement_return in iter {
+            self.statement
+                .extend(self.expr.take().into_iter().map(Statement::Expr));
+            match statement_return {
+                StatementReturn::Statement(statement) => self.statement.push(statement),
+                StatementReturn::Return(expr) => self.expr = Some(expr),
             }
         }
     }
@@ -52,7 +49,7 @@ where
     between(
         lex(char('{')),
         lex(char('}')),
-        many(statement(char('}').map(|_| ()))),
+        many(statement_return(char('}'))),
     )
     .map(|statement_expr| {
         let StatementExpr { statement, expr } = statement_expr;
