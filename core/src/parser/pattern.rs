@@ -34,17 +34,10 @@ where
     let have_rest = move || {
         (
             many(element().skip(lex(char(',')))),
-            (lex(char('*'))),
-            rest(),
-            optional((lex(char(',')), no_rest())),
+            (lex(char('*'))).with(rest()),
+            optional(lex(char(',')).with(no_rest()))
+                .map(|right| right.unwrap_or_else(Default::default)),
         )
-            .map(|(left, _, rest, right)| {
-                let right = match right {
-                    Some((_, right)) => right,
-                    None => Default::default(),
-                };
-                (left, rest, right)
-            })
     };
     let middle = move || {
         choice((
