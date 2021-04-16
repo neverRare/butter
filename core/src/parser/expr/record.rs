@@ -20,6 +20,9 @@ impl<'a> Extend<FieldSplat<'a>> for StructExtend<'a> {
         T: IntoIterator<Item = FieldSplat<'a>>,
     {
         let Self(record) = self;
+        let iter = iter.into_iter();
+        let (min_count, _) = iter.size_hint();
+        record.fields.reserve(min_count);
         for field in iter {
             match field {
                 FieldSplat::Field(name, expr) => {

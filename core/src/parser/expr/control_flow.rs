@@ -31,6 +31,9 @@ impl<'a> Extend<StatementReturn<'a>> for StatementExpr<'a> {
     where
         T: IntoIterator<Item = StatementReturn<'a>>,
     {
+        let iter = iter.into_iter();
+        let (min_count, _) = iter.size_hint();
+        self.statement.reserve(min_count);
         for statement_return in iter {
             self.statement
                 .extend(self.expr.take().into_iter().map(Statement::Expr));

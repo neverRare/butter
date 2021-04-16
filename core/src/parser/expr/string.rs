@@ -75,6 +75,9 @@ impl Extend<Char> for StringLiteral {
         T: IntoIterator<Item = Char>,
     {
         let Self(vec) = self;
+        let iter = iter.into_iter();
+        let (min_count, _) = iter.size_hint();
+        vec.reserve(min_count);
         for ch in iter {
             match ch {
                 Char::Byte(byte) => vec.push(byte),
