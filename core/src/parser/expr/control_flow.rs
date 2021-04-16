@@ -44,7 +44,7 @@ impl<'a> Extend<StatementReturn<'a>> for StatementExpr<'a> {
         }
     }
 }
-fn block<'a, I>() -> impl Parser<I, Output = Block<'a>>
+pub fn block<'a, I>() -> impl Parser<I, Output = Block<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
