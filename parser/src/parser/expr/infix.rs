@@ -17,14 +17,13 @@ use combine::any;
 use combine::attempt;
 use combine::between;
 use combine::choice;
-use combine::eof;
 use combine::error::StreamError;
 use combine::look_ahead;
+use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
 use combine::parser::char::string;
 use combine::parser::range::recognize;
-use combine::satisfy;
 use combine::sep_end_by;
 use combine::stream::StreamErrorFor;
 use combine::ParseError;
@@ -255,20 +254,24 @@ where
             "infix operator",
         )),
     };
+    // HACK: this avoids range operator, cannot use `not_followed_by` as it
+    // leads to cryptic error, smh combine crate
+    let not_range = || {
+        (optional(any()), optional(any())).and_then(|chs| match chs {
+            (Some('.'), Some('.'))
+            | (Some('.'), Some('<'))
+            | (Some('>'), Some('.'))
+            | (Some('>'), Some('<')) => Err(<StreamErrorFor<I>>::unexpected_static_message(
+                "range operator",
+            )),
+            _ => Ok(()),
+        })
+    };
     let single_operator = || recognize(any()).and_then(checker);
     let double_operator = || recognize((any(), any())).and_then(checker);
     let valid_operator = || attempt(double_operator()).or(single_operator());
     look_ahead(attempt(valid_operator()))
-        // HACK: this avoids range operator, cannot use `not_followed_by` as it
-        // leads to cryptic error, smh combine crate
-        .with(look_ahead(attempt((
-            satisfy(|ch: char| ch != '.' && ch != '>')
-                .map(|_| ())
-                .or(eof()),
-            satisfy(|ch: char| ch != '.' && ch != '<')
-                .map(|_| ())
-                .or(eof()),
-        ))))
+        .with(look_ahead(attempt(not_range())))
         .with(full_infix())
 }
 pub fn precedence_of(token: &str) -> Option<u8> {
