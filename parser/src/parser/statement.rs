@@ -64,7 +64,7 @@ where
             })
     };
     let place = || {
-        expr(1).and_then(|expr| match PlaceExpr::from_expr(expr) {
+        expr(7).and_then(|expr| match PlaceExpr::from_expr(expr) {
             Some(place) => Ok(place),
             None => Err(<StreamErrorFor<I>>::message_static_message(
                 "non place expression",
