@@ -1,5 +1,7 @@
 use crate::ast::expr::control_flow::Fun;
+use crate::ast::expr::operator::Assign;
 use crate::ast::expr::Expr;
+use crate::ast::expr::PlaceExpr;
 use crate::ast::statement::Declare;
 use crate::ast::statement::FunDeclare;
 use crate::ast::statement::Statement;
@@ -12,11 +14,14 @@ use crate::parser::pattern::parameter;
 use crate::parser::pattern::pattern;
 use combine::attempt;
 use combine::choice;
+use combine::error::StreamError;
 use combine::look_ahead;
 use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
 use combine::parser::char::string;
+use combine::sep_by1;
+use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -58,6 +63,38 @@ where
                 })
             })
     };
+    let parallel_assign = || {
+        (
+            attempt(sep_by1(expr(0), lex(char(','))).skip(lex(string("<-")))),
+            sep_by1(expr(0), lex(char(','))).skip(lex(char(';'))),
+        )
+            .and_then(|(place, expr)| {
+                let place: Vec<_> = place;
+                let expr: Vec<_> = expr;
+                if place.len() != expr.len() {
+                    return Err(<StreamErrorFor<I>>::unexpected_static_message(
+                        "mismatching count of place and value expressions",
+                    ));
+                }
+                let mut assign = Vec::with_capacity(place.len());
+                for (place, expr) in place.into_iter().zip(expr.into_iter()) {
+                    match PlaceExpr::from_expr(place) {
+                        Some(place) => assign.push(Assign {
+                            place: Box::new(place),
+                            expr: Box::new(expr),
+                        }),
+                        None => {
+                            return Err(<StreamErrorFor<I>>::unexpected_static_message(
+                                "non place expression",
+                            ))
+                        }
+                    }
+                }
+                Ok(StatementReturn::Statement(Statement::Expr(
+                    Expr::ParallelAssign(assign),
+                )))
+            })
+    };
     let declare = || {
         (attempt(pattern().skip(lex(char('=')))), expr(0))
             .skip(lex(char(';')))
@@ -88,6 +125,7 @@ where
         control_flow(),
         declare(),
         fun_declare().map(StatementReturn::Statement),
+        parallel_assign(),
         expr(),
     ))
 }
