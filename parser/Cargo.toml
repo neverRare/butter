@@ -1,5 +1,5 @@
 [package]
-name = "butter_core"
+name = "parser"
 version = "0.1.0"
 authors = ["neverRare"]
 edition = "2018"
