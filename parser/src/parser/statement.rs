@@ -63,33 +63,35 @@ where
                 })
             })
     };
+    let place = || {
+        expr(1).and_then(|expr| match PlaceExpr::from_expr(expr) {
+            Some(place) => Ok(place),
+            None => Err(<StreamErrorFor<I>>::message_static_message(
+                "non place expression",
+            )),
+        })
+    };
     let parallel_assign = || {
         (
-            attempt(sep_by1(expr(0), lex(char(','))).skip(lex(string("<-")))),
-            sep_by1(expr(0), lex(char(','))).skip(lex(char(';'))),
+            attempt(sep_by1(place(), lex(char(','))).skip(lex(string("<-")))),
+            sep_by1(expr(1), lex(char(','))).skip(lex(char(';'))),
         )
             .and_then(|(place, expr)| {
                 let place: Vec<_> = place;
                 let expr: Vec<_> = expr;
                 if place.len() != expr.len() {
-                    return Err(<StreamErrorFor<I>>::unexpected_static_message(
+                    return Err(<StreamErrorFor<I>>::message_static_message(
                         "mismatching count of place and value expressions",
                     ));
                 }
-                let mut assign = Vec::with_capacity(place.len());
-                for (place, expr) in place.into_iter().zip(expr.into_iter()) {
-                    match PlaceExpr::from_expr(place) {
-                        Some(place) => assign.push(Assign {
-                            place: Box::new(place),
-                            expr: Box::new(expr),
-                        }),
-                        None => {
-                            return Err(<StreamErrorFor<I>>::unexpected_static_message(
-                                "non place expression",
-                            ))
-                        }
-                    }
-                }
+                let assign = place
+                    .into_iter()
+                    .zip(expr.into_iter())
+                    .map(|(place, expr)| Assign {
+                        place: Box::new(place),
+                        expr: Box::new(expr),
+                    })
+                    .collect();
                 Ok(StatementReturn::Statement(Statement::Expr(
                     Expr::ParallelAssign(assign),
                 )))
