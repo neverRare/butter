@@ -2,6 +2,7 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
+use crate::parser::insignificants;
 use crate::statement::Statement;
 use combine::eof;
 use combine::many;
@@ -19,6 +20,6 @@ combine::parser! {
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        many(parser::statement::statement()).skip(eof())
+        insignificants().with(many(parser::statement::statement())).skip(eof())
     }
 }

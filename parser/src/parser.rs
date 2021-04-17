@@ -20,7 +20,7 @@ where
 {
     skip_many1((attempt(string("--")), take_while(|ch: char| ch != '\n')).expected("comment"))
 }
-fn insignificants<'a, I>() -> impl Parser<I, Output = ()>
+pub fn insignificants<'a, I>() -> impl Parser<I, Output = ()>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
