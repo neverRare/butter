@@ -1,6 +1,6 @@
-use crate::ast::expr::compound::Element;
-use crate::ast::expr::range::Bound;
-use crate::ast::expr::range::Range;
+use crate::expr::compound::Element;
+use crate::expr::range::Bound;
+use crate::expr::range::Range;
 use crate::parser::expr::expr;
 use crate::parser::lex;
 use combine::between;

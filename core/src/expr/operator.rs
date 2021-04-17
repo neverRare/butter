@@ -1,7 +1,7 @@
-use crate::ast::expr::range::Range;
-use crate::ast::expr::Expr;
-use crate::ast::expr::PlaceExpr;
-use crate::ast::expr::Struct;
+use crate::expr::range::Range;
+use crate::expr::Expr;
+use crate::expr::PlaceExpr;
+use crate::expr::Struct;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Binary<'a> {

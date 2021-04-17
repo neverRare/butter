@@ -1,6 +1,6 @@
-use crate::ast::expr::control_flow::Break;
-use crate::ast::expr::control_flow::Fun;
-use crate::ast::expr::Expr;
+use crate::expr::control_flow::Break;
+use crate::expr::control_flow::Fun;
+use crate::expr::Expr;
 use crate::parser::expr::array::array;
 use crate::parser::expr::array::range;
 use crate::parser::expr::control_flow::control_flow;
@@ -136,7 +136,7 @@ parser! {
 }
 #[cfg(test)]
 mod test {
-    use crate::ast::expr::operator::Binary;
+    use crate::expr::operator::Binary;
     use crate::parser::expr::expr;
     use crate::parser::expr::Expr;
     use combine::EasyParser;

@@ -1,4 +1,4 @@
-use crate::ast::expr::compound::Struct;
+use crate::expr::compound::Struct;
 use crate::parser::expr::expr;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;

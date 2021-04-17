@@ -1,7 +1,7 @@
-use crate::ast::pattern::Pattern;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
 use crate::parser::pattern::parameter;
+use crate::pattern::Pattern;
 use combine::choice;
 use combine::parser::char::string;
 use combine::ParseError;

@@ -1,6 +1,6 @@
-use crate::ast::expr::Expr;
-use crate::ast::pattern::Pattern;
-use crate::ast::statement::Statement;
+use crate::expr::Expr;
+use crate::pattern::Pattern;
+use crate::statement::Statement;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]

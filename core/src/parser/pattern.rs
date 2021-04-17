@@ -1,9 +1,9 @@
-use crate::ast::pattern::ArrayWithRest;
-use crate::ast::pattern::Pattern;
-use crate::ast::pattern::StructPattern;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
+use crate::pattern::ArrayWithRest;
+use crate::pattern::Pattern;
+use crate::pattern::StructPattern;
 use combine::attempt;
 use combine::between;
 use combine::choice;

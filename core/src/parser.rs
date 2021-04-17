@@ -11,7 +11,7 @@ use combine::RangeStream;
 mod expr;
 mod ident_keyword;
 mod pattern;
-mod statement;
+pub mod statement;
 
 fn comments<'a, I>() -> impl Parser<I, Output = ()>
 where

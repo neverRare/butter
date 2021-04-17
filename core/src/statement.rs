@@ -1,6 +1,6 @@
-use crate::ast::expr::control_flow::Fun;
-use crate::ast::expr::Expr;
-use crate::ast::pattern::Pattern;
+use crate::expr::control_flow::Fun;
+use crate::expr::Expr;
+use crate::pattern::Pattern;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement<'a> {

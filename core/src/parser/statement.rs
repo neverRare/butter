@@ -1,10 +1,7 @@
-use crate::ast::expr::control_flow::Fun;
-use crate::ast::expr::operator::Assign;
-use crate::ast::expr::Expr;
-use crate::ast::expr::PlaceExpr;
-use crate::ast::statement::Declare;
-use crate::ast::statement::FunDeclare;
-use crate::ast::statement::Statement;
+use crate::expr::control_flow::Fun;
+use crate::expr::operator::Assign;
+use crate::expr::Expr;
+use crate::expr::PlaceExpr;
 use crate::parser::expr::control_flow::block;
 use crate::parser::expr::control_flow::control_flow;
 use crate::parser::expr::expr;
@@ -12,6 +9,9 @@ use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
 use crate::parser::pattern::parameter;
 use crate::parser::pattern::pattern;
+use crate::statement::Declare;
+use crate::statement::FunDeclare;
+use crate::statement::Statement;
 use combine::attempt;
 use combine::choice;
 use combine::error::StreamError;
@@ -139,11 +139,10 @@ parser! {
         statement_return_(end_look_ahead)
     }
 }
-pub fn statement<'a, I, P>() -> impl Parser<I, Output = Statement<'a>>
+pub fn statement<'a, I>() -> impl Parser<I, Output = Statement<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    P: Parser<I>,
 {
     statement_return(char(';')).map(|statement_return| match statement_return {
         StatementReturn::Statement(statement) => statement,
