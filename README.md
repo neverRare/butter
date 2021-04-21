@@ -22,11 +22,6 @@ reverse(arr) => {
 
 Butter is designed to be
 
-- Friendly, for experienced and especially for beginners
-- Compiled to fast and memory-efficient binary
-
-Butter should have the following
-
-- Simplicity and consistency
-- Lack of visible low-level concepts
-- Speed and memory-efficiency of resulting software
+- Concise: The language constructs (aka the syntax) should be simple and free from unnecessary boilerplate.
+- Friendly: The language should be easily understandable and lacks visible low-level concepts. (Friendliness of error messages is a non-goal for now)
+- Efficient: Compiled programs should be fast and memory-efficient as much as possible.
