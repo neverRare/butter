@@ -1,4 +1,6 @@
+use crate::expr::compound::Element;
 use crate::parser::expr::integer::parse_digit;
+use crate::parser::expr::Expr;
 use combine::between;
 use combine::choice;
 use combine::error::StreamError;
@@ -11,7 +13,7 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use std::iter::repeat;
+use std::array;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Char {
@@ -48,16 +50,16 @@ where
     ))
 }
 parser! {
-    pub fn char_literal['a, I]()(I) -> u8
+    pub fn char_literal['a, I]()(I) -> u64
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
         between(char('\''), char('\''), char_inside('\'')).and_then(|ch| match ch {
-            Char::Byte(byte) => Ok(byte),
+            Char::Byte(byte) => Ok(byte as u64),
             Char::Char(ch) => {
                 if ch.len_utf8() == 1 {
-                    Ok(ch as u8)
+                    Ok(ch as u8 as u64)
                 } else {
                     Err(<StreamErrorFor<I>>::message_static_message(
                         "multiple character in char literal",
@@ -67,9 +69,9 @@ parser! {
         })
     }
 }
-#[derive(Default, Clone, PartialEq, Eq, Debug)]
-struct StringLiteral(Vec<u8>);
-impl Extend<Char> for StringLiteral {
+#[derive(Default, Clone, PartialEq, Debug)]
+struct StringLiteral<'a>(Vec<Element<'a>>);
+impl<'a> Extend<Char> for StringLiteral<'a> {
     fn extend<T>(&mut self, iter: T)
     where
         T: IntoIterator<Item = Char>,
@@ -80,18 +82,21 @@ impl Extend<Char> for StringLiteral {
         vec.reserve(min_count);
         for ch in iter {
             match ch {
-                Char::Byte(byte) => vec.push(byte),
+                Char::Byte(byte) => vec.push(Element::Element(Expr::UInt(byte as u64))),
                 Char::Char(ch) => {
-                    let len_before = vec.len();
-                    vec.extend(repeat(0).take(ch.len_utf8()));
-                    let end = &mut vec[len_before..];
-                    ch.encode_utf8(end);
+                    let mut arr = [0; 4];
+                    ch.encode_utf8(&mut arr);
+                    vec.extend(
+                        array::IntoIter::new(arr)
+                            .map(|byte| Element::Element(Expr::UInt(byte as u64)))
+                            .take(ch.len_utf8()),
+                    );
                 }
             }
         }
     }
 }
-pub fn string_literal<'a, I>() -> impl Parser<I, Output = Vec<u8>>
+pub fn string_literal<'a, I>() -> impl Parser<I, Output = Vec<Element<'a>>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -100,13 +105,19 @@ where
 }
 #[cfg(test)]
 mod test {
+    use crate::parser::expr::string::Element;
     use crate::parser::expr::string_literal;
+    use crate::parser::expr::Expr;
     use combine::EasyParser;
 
     #[test]
     fn string() {
         let src = r#""\x41Aßℝ💣\n""#;
-        let expected = "\x41Aßℝ💣\n".as_bytes().to_vec();
+        let expected = "\x41Aßℝ💣\n"
+            .as_bytes()
+            .iter()
+            .map(|byte| Element::Element(Expr::UInt(*byte as u64)))
+            .collect();
         assert_eq!(string_literal().easy_parse(src), Ok((expected, "")));
     }
 }

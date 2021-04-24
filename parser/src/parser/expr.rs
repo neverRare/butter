@@ -52,8 +52,8 @@ where
         array().map(Expr::Array),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
         record().map(Expr::Struct),
-        lex(char_literal()).map(Expr::Char),
-        lex(string_literal()).map(Expr::Str),
+        lex(char_literal()).map(Expr::UInt),
+        lex(string_literal()).map(Expr::Array),
         lex(char('!'))
             .with(expr(7))
             .map(|expr| Expr::Not(Box::new(expr))),

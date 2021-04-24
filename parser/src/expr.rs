@@ -26,8 +26,6 @@ pub enum Expr<'a> {
     Null,
 
     Var(&'a str),
-    Char(u8),
-    Str(Vec<u8>),
     UInt(u64),
     Float(f64),
 
