@@ -28,3 +28,7 @@ version = "0.1.0"
 dependencies = [
  "combine",
 ]
+
+[[package]]
+name = "type-system"
+version = "0.1.0"
