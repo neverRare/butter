@@ -53,13 +53,16 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    optional_rest('[', ']', pattern, pattern).map(|(left, rest_right)| match rest_right {
-        Some((rest, right)) => Pattern::ArrayWithRest(ArrayWithRest {
-            left,
-            rest: Box::new(rest),
-            right,
-        }),
-        None => Pattern::Array(left),
+    optional_rest('[', ']', pattern, pattern).map(|(left, rest_right)| {
+        let left: Vec<_> = left;
+        match rest_right {
+            Some((rest, right)) => Pattern::ArrayWithRest(ArrayWithRest {
+                left: left.into(),
+                rest: Box::new(rest),
+                right: right.into(),
+            }),
+            None => Pattern::Array(left.into()),
+        }
     })
 }
 fn field<'a, I>() -> impl Parser<I, Output = (&'a str, Pattern<'a>)>
@@ -71,7 +74,20 @@ where
         .map(|(name, pattern)| (name, pattern.unwrap_or(Pattern::Var(name))))
 }
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct ParamExtend<'a>(Param<'a>);
+pub struct ParamExtend<'a> {
+    order: Vec<&'a str>,
+    param: HashMap<&'a str, Pattern<'a>>,
+}
+impl<'a> ParamExtend<'a> {
+    fn into_param(self) -> Param<'a> {
+        let mut param = self.param;
+        param.shrink_to_fit();
+        Param {
+            order: self.order.into(),
+            param,
+        }
+    }
+}
 impl<'a> Extend<(&'a str, Pattern<'a>)> for ParamExtend<'a> {
     fn extend<T>(&mut self, iter: T)
     where
@@ -79,12 +95,11 @@ impl<'a> Extend<(&'a str, Pattern<'a>)> for ParamExtend<'a> {
     {
         let iter = iter.into_iter();
         let (min, _) = iter.size_hint();
-        let Self(param) = self;
-        param.order.reserve(min);
-        param.param.reserve(min);
+        self.order.reserve(min);
+        self.param.reserve(min);
         for (name, pattern) in iter {
-            param.order.push(name);
-            param.param.insert(name, pattern);
+            self.order.push(name);
+            self.param.insert(name, pattern);
         }
     }
 }
@@ -96,7 +111,7 @@ where
     between(
         lex(char('(')),
         lex(char(')')),
-        sep_end_by(field(), lex(char(','))).map(|ParamExtend(param)| param),
+        sep_end_by(field(), lex(char(','))).map(ParamExtend::into_param),
     )
 }
 fn record<'a, I>() -> impl Parser<I, Output = StructPattern<'a>>
@@ -154,16 +169,16 @@ mod test {
     #[test]
     fn parse_array() {
         let src = "[first, second]";
-        let expected = Pattern::Array(vec![Pattern::Var("first"), Pattern::Var("second")]);
+        let expected = Pattern::Array(vec![Pattern::Var("first"), Pattern::Var("second")].into());
         assert_eq!(pattern().easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn parse_array_with_rest() {
         let src = "[first, *rest, last]";
         let expected = Pattern::ArrayWithRest(ArrayWithRest {
-            left: vec![Pattern::Var("first")],
+            left: vec![Pattern::Var("first")].into(),
             rest: Box::new(Pattern::Var("rest")),
-            right: vec![Pattern::Var("last")],
+            right: vec![Pattern::Var("last")].into(),
         });
         assert_eq!(pattern().easy_parse(src), Ok((expected, "")));
     }
@@ -194,14 +209,14 @@ mod test {
                 ("group", Pattern::Var("foo")),
                 (
                     "array",
-                    Pattern::Array(vec![Pattern::Var("first"), Pattern::Var("second")]),
+                    Pattern::Array(vec![Pattern::Var("first"), Pattern::Var("second")].into()),
                 ),
                 (
                     "array_with_rest",
                     Pattern::ArrayWithRest(ArrayWithRest {
-                        left: vec![Pattern::Var("first")],
+                        left: vec![Pattern::Var("first")].into(),
                         rest: Box::new(Pattern::Var("rest")),
-                        right: vec![Pattern::Var("last")],
+                        right: vec![Pattern::Var("last")].into(),
                     }),
                 ),
             ])

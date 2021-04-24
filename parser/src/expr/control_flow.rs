@@ -10,7 +10,7 @@ pub struct Break<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block<'a> {
-    pub statement: Vec<Statement<'a>>,
+    pub statement: Box<[Statement<'a>]>,
     pub expr: Option<Box<Expr<'a>>>,
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -20,7 +20,7 @@ pub struct Fun<'a> {
 }
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Param<'a> {
-    pub order: Vec<&'a str>,
+    pub order: Box<[&'a str]>,
     pub param: HashMap<&'a str, Pattern<'a>>,
 }
 #[derive(Debug, PartialEq, Clone)]

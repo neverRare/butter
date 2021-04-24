@@ -57,7 +57,7 @@ where
     .map(|statement_expr| {
         let StatementExpr { statement, expr } = statement_expr;
         Block {
-            statement,
+            statement: statement.into(),
             expr: expr.map(Box::new),
         }
     })

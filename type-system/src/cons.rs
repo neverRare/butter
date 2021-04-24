@@ -22,7 +22,7 @@ pub(super) struct RecordCons<'a> {
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) enum SplatOrder<'a> {
-    Order(Vec<&'a str>),
+    Order(Box<[&'a str]>),
     Splat(Option<Box<Type<'a>>>),
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -65,7 +65,7 @@ impl<'a> Display for RecordCons<'a> {
                 }
             }
             SplatOrder::Order(order) => {
-                fmt_in_comma(fmt, order, |name, fmt| {
+                fmt_in_comma(fmt, order.iter(), |name, fmt| {
                     writeln!(fmt, "{} = {}", name, self.fields.get(name).unwrap())
                 })?;
             }

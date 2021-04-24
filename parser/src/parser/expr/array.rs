@@ -46,7 +46,7 @@ where
     };
     between(lex(char('[')), lex(char(']')), range())
 }
-pub fn array<'a, I>() -> impl Parser<I, Output = Vec<Element<'a>>>
+pub fn array<'a, I>() -> impl Parser<I, Output = Box<[Element<'a>]>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -62,4 +62,5 @@ where
         lex(char(']')),
         sep_end_by(element(), lex(char(','))),
     )
+    .map(<Vec<_>>::into)
 }

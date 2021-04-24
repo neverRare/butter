@@ -59,7 +59,7 @@ pub enum PartialAst<'a> {
     Slice(Range<'a>),
     OptionalSlice(Range<'a>),
     NamedArgCall(Struct<'a>),
-    UnnamedArgCall(Vec<Expr<'a>>),
+    UnnamedArgCall(Box<[Expr<'a>]>),
 }
 impl<'a> PartialAst<'a> {
     // None means <- is applied to non-place expression
@@ -148,6 +148,7 @@ where
             lex(char(')')),
             sep_end_by(nameless_arg(), lex(char(','))),
         )
+        .map(<Vec<_>>::into)
     };
     choice((
         attempt(record()).map(PartialAst::NamedArgCall),

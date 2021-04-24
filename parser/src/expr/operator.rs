@@ -31,5 +31,5 @@ pub struct NamedArgCall<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnnamedArgCall<'a> {
     pub expr: Box<Expr<'a>>,
-    pub args: Vec<Expr<'a>>,
+    pub args: Box<[Expr<'a>]>,
 }

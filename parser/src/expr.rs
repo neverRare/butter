@@ -59,9 +59,9 @@ pub enum Expr<'a> {
     NullOr(Binary<'a>),
 
     Assign(Assign<'a>),
-    ParallelAssign(Vec<Assign<'a>>),
+    ParallelAssign(Box<[Assign<'a>]>),
 
-    Array(Vec<Element<'a>>),
+    Array(Box<[Element<'a>]>),
     ArrayRange(Range<'a>),
     Struct(Struct<'a>),
 

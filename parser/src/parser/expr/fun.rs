@@ -8,6 +8,7 @@ use combine::parser::char::string;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use std::collections::HashMap;
 use std::iter::once;
 
 pub fn param_arrow<'a, I>() -> impl Parser<I, Output = Param<'a>>
@@ -20,8 +21,12 @@ where
         arrow().map(|_| Param::default()),
         lex(ident())
             .map(|ident| Param {
-                order: vec![ident],
-                param: once((ident, Pattern::Var(ident))).collect(),
+                order: vec![ident].into(),
+                param: {
+                    let mut map: HashMap<_, _> = once((ident, Pattern::Var(ident))).collect();
+                    map.shrink_to_fit();
+                    map
+                },
             })
             .skip(arrow()),
         parameter().skip(arrow()),

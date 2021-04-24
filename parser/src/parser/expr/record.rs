@@ -11,24 +11,37 @@ use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use std::collections::HashMap;
 
 #[derive(Default)]
-struct StructExtend<'a>(Struct<'a>);
+struct StructExtend<'a> {
+    splats: Vec<Expr<'a>>,
+    fields: HashMap<&'a str, Expr<'a>>,
+}
+impl<'a> StructExtend<'a> {
+    fn into_struct(self) -> Struct<'a> {
+        let mut fields = self.fields;
+        fields.shrink_to_fit();
+        Struct {
+            splats: self.splats.into(),
+            fields,
+        }
+    }
+}
 impl<'a> Extend<FieldSplat<'a>> for StructExtend<'a> {
     fn extend<T>(&mut self, iter: T)
     where
         T: IntoIterator<Item = FieldSplat<'a>>,
     {
-        let Self(record) = self;
         let iter = iter.into_iter();
         let (min_count, _) = iter.size_hint();
-        record.fields.reserve(min_count);
+        self.fields.reserve(min_count);
         for field in iter {
             match field {
                 FieldSplat::Field(name, expr) => {
-                    record.fields.insert(name, expr);
+                    self.fields.insert(name, expr);
                 }
-                FieldSplat::Splat(expr) => record.splats.push(expr),
+                FieldSplat::Splat(expr) => self.splats.push(expr),
             }
         }
     }
@@ -59,5 +72,5 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let fields = || sep_end_by(field_splat(), lex(char(',')));
-    between(lex(char('(')), lex(char(')')), fields()).map(|StructExtend(record)| record)
+    between(lex(char('(')), lex(char(')')), fields()).map(StructExtend::into_struct)
 }

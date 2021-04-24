@@ -96,12 +96,12 @@ impl<'a> Extend<Char> for StringLiteral<'a> {
         }
     }
 }
-pub fn string_literal<'a, I>() -> impl Parser<I, Output = Vec<Element<'a>>>
+pub fn string_literal<'a, I>() -> impl Parser<I, Output = Box<[Element<'a>]>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    between(char('"'), char('"'), many(char_inside('"'))).map(|StringLiteral(vec)| vec)
+    between(char('"'), char('"'), many(char_inside('"'))).map(|StringLiteral(vec)| vec.into())
 }
 #[cfg(test)]
 mod test {

@@ -8,6 +8,6 @@ pub enum Element<'a> {
 }
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Struct<'a> {
-    pub splats: Vec<Expr<'a>>,
+    pub splats: Box<[Expr<'a>]>,
     pub fields: HashMap<&'a str, Expr<'a>>,
 }
