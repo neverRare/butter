@@ -1,3 +1,4 @@
+use crate::expr::control_flow::Param;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
@@ -69,7 +70,25 @@ where
     (lex(ident()), optional(lex(char('=')).with(pattern())))
         .map(|(name, pattern)| (name, pattern.unwrap_or(Pattern::Var(name))))
 }
-pub fn parameter<'a, I>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a>>>
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct ParamExtend<'a>(Param<'a>);
+impl<'a> Extend<(&'a str, Pattern<'a>)> for ParamExtend<'a> {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = (&'a str, Pattern<'a>)>,
+    {
+        let iter = iter.into_iter();
+        let (min, _) = iter.size_hint();
+        let Self(param) = self;
+        param.order.reserve(min);
+        param.param.reserve(min);
+        for (name, pattern) in iter {
+            param.order.push(name);
+            param.param.insert(name, pattern);
+        }
+    }
+}
+pub fn parameter<'a, I>() -> impl Parser<I, Output = Param<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -77,7 +96,7 @@ where
     between(
         lex(char('(')),
         lex(char(')')),
-        sep_end_by(field(), lex(char(','))),
+        sep_end_by(field(), lex(char(','))).map(|ParamExtend(param)| param),
     )
 }
 fn record<'a, I>() -> impl Parser<I, Output = StructPattern<'a>>

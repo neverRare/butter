@@ -18,7 +18,12 @@ pub(super) enum Cons<'a> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct RecordCons<'a> {
     pub fields: HashMap<&'a str, Type<'a>>,
-    pub splat: Option<Box<Type<'a>>>,
+    pub splat_order: SplatOrder<'a>,
+}
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub(super) enum SplatOrder<'a> {
+    Order(Vec<&'a str>),
+    Splat(Option<Box<Type<'a>>>),
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct FunCons<'a> {
@@ -50,11 +55,20 @@ impl<'a> Display for FunCons<'a> {
 impl<'a> Display for RecordCons<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         write!(fmt, "(")?;
-        fmt_in_comma(fmt, &self.fields, |(name, ty), fmt| {
-            writeln!(fmt, "{} = {}", name, ty)
-        })?;
-        if let Some(splat) = &self.splat {
-            write!(fmt, ", *{}", splat)?;
+        match &self.splat_order {
+            SplatOrder::Splat(splat) => {
+                fmt_in_comma(fmt, &self.fields, |(name, ty), fmt| {
+                    writeln!(fmt, "{} = {}", name, ty)
+                })?;
+                if let Some(splat) = splat {
+                    write!(fmt, ", *{}", splat)?;
+                }
+            }
+            SplatOrder::Order(order) => {
+                fmt_in_comma(fmt, order, |name, fmt| {
+                    writeln!(fmt, "{} = {}", name, self.fields.get(name).unwrap())
+                })?;
+            }
         }
         write!(fmt, ")")?;
         Ok(())

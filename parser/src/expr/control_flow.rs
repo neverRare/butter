@@ -15,8 +15,13 @@ pub struct Block<'a> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a> {
-    pub param: HashMap<&'a str, Pattern<'a>>,
+    pub param: Param<'a>,
     pub body: Box<Expr<'a>>,
+}
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct Param<'a> {
+    pub order: Vec<&'a str>,
+    pub param: HashMap<&'a str, Pattern<'a>>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct If<'a> {
