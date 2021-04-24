@@ -136,7 +136,9 @@ parser! {
 }
 #[cfg(test)]
 mod test {
-    use crate::expr::operator::Binary;
+    use crate::expr::PlaceExpr;
+use crate::expr::operator::Assign;
+use crate::expr::operator::Binary;
     use crate::parser::expr::expr;
     use crate::parser::expr::Expr;
     use combine::EasyParser;
@@ -165,6 +167,18 @@ mod test {
                 right: Box::new(Expr::Var("bar")),
             })),
             right: Box::new(Expr::Var("baz")),
+        });
+        assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
+    }
+    #[test]
+    fn right_associative() {
+        let src = "foo <- bar <- baz";
+        let expected = Expr::Assign(Assign {
+            place: Box::new(PlaceExpr::Var("foo")),
+            expr: Box::new(Expr::Assign(Assign {
+                place: Box::new(PlaceExpr::Var("bar")),
+                expr: Box::new(Expr::Var("baz")),
+            })),
         });
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
     }
