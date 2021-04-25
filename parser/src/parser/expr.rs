@@ -182,4 +182,11 @@ mod test {
         let left = "+ bar";
         assert_eq!(expr(7).easy_parse(src), Ok((expected, left)));
     }
+    #[test]
+    fn ignore_range() {
+        let src = "foo..";
+        let expected = Expr::Var("foo");
+        let left = "..";
+        assert_eq!(expr(0).easy_parse(src), Ok((expected, left)));
+    }
 }

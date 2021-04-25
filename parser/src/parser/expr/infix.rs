@@ -18,6 +18,7 @@ use combine::between;
 use combine::choice;
 use combine::error::StreamError;
 use combine::many;
+use combine::not_followed_by;
 use combine::optional;
 use combine::parser::char::char;
 use combine::parser::char::string;
@@ -91,7 +92,15 @@ where
         )
         .map(<Vec<_>>::into)
     };
-    let property = || lex(char('.')).with(lex(ident())).map(PartialAst::Property);
+    let property = || {
+        lex(attempt(
+            char('.')
+                .skip(not_followed_by(char('<')))
+                .skip(not_followed_by(char('.'))),
+        ))
+        .with(lex(ident()))
+        .map(PartialAst::Property)
+    };
     let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
     let property_index_slice =
         || choice((property(), attempt(index()), range().map(PartialAst::Slice)));
@@ -166,7 +175,7 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    let double_op = || {
+    let double_ops = || {
         choice([
             attempt(string("//")),
             attempt(string("==")),
@@ -183,7 +192,7 @@ where
             attempt(string("><")),
         ])
     };
-    let single_op = || {
+    let single_ops = || {
         choice([
             char('.'),
             char('['),
@@ -205,8 +214,8 @@ where
         Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
             "infix operator with higher precedence",
         )),
-        _ => Err(<StreamErrorFor<I>>::unexpected_static_message(
-            "invalid expression operator",
+        None => Err(<StreamErrorFor<I>>::expected_static_message(
+            "expression operator",
         )),
     };
     macro_rules! op_matcher {
@@ -226,7 +235,7 @@ where
         };
     }
     lex(attempt(
-        choice((double_op(), recognize(single_op()))).and_then(precedence_checker),
+        choice((double_ops(), recognize(single_ops()))).and_then(precedence_checker),
     ))
     .map(op_matcher![
         ("+", Add),
