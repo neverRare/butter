@@ -13,12 +13,10 @@ use crate::parser::expr::record;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
-use combine::any;
 use combine::attempt;
 use combine::between;
 use combine::choice;
 use combine::error::StreamError;
-use combine::look_ahead;
 use combine::many;
 use combine::optional;
 use combine::parser::char::char;
@@ -148,6 +146,19 @@ where
         }
     })
 }
+pub fn precedence_of(token: &str) -> Option<u8> {
+    match token {
+        "." | "[" | "?" | "(" => Some(8),
+        "*" | "/" | "//" | "%" => Some(7),
+        "+" | "-" | "++" => Some(6),
+        "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(5),
+        "&&" | "&" => Some(4),
+        "||" | "|" => Some(3),
+        "??" => Some(2),
+        "<-" => Some(1),
+        _ => None,
+    }
+}
 pub fn infix_op<'a, I>(
     precedence: u8,
 ) -> impl Parser<I, Output = fn(Expr<'a>, Expr<'a>) -> Expr<'a>>
@@ -155,40 +166,49 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
+    let double_op = || {
+        choice([
+            attempt(string("//")),
+            attempt(string("==")),
+            attempt(string("!=")),
+            attempt(string("<=")),
+            attempt(string(">=")),
+            attempt(string("&&")),
+            attempt(string("||")),
+            attempt(string("??")),
+            attempt(string("<-")),
+            attempt(string("..")),
+            attempt(string(".<")),
+            attempt(string(">.")),
+            attempt(string("><")),
+        ])
+    };
+    let single_op = || {
+        choice([
+            char('.'),
+            char('['),
+            char('?'),
+            char('('),
+            char('*'),
+            char('/'),
+            char('%'),
+            char('+'),
+            char('-'),
+            char('<'),
+            char('>'),
+            char('&'),
+            char('|'),
+        ])
+    };
     let precedence_checker = move |token| match precedence_of(token) {
         Some(this_precedence) if this_precedence > precedence => Ok(token),
         Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
             "infix operator with higher precedence",
         )),
         _ => Err(<StreamErrorFor<I>>::unexpected_static_message(
-            "invalid operator",
+            "invalid expression operator",
         )),
     };
-    let valid_operator_checker = move |token| match precedence_of(token) {
-        Some(_) => Ok(token),
-        _ => Err(<StreamErrorFor<I>>::unexpected_static_message(
-            "invalid operator",
-        )),
-    };
-    // HACK: this avoids range operator, cannot use `not_followed_by` as it
-    // leads to cryptic error, smh combine crate
-    let not_range = || {
-        (optional(any()), optional(any())).and_then(|chs| match chs {
-            (Some('.'), Some('.'))
-            | (Some('.'), Some('<'))
-            | (Some('>'), Some('.'))
-            | (Some('>'), Some('<')) => Err(<StreamErrorFor<I>>::unexpected_static_message(
-                "range operator",
-            )),
-            _ => Ok(()),
-        })
-    };
-    let single_op = || {
-        look_ahead(not_range())
-            .with(recognize(any()))
-            .and_then(valid_operator_checker)
-    };
-    let double_op = || recognize((any(), any())).and_then(valid_operator_checker);
     macro_rules! op_matcher {
         ($(($str:pat, $name:ident $(,)?)),* $(,)?) => {
             |op| match op {
@@ -206,7 +226,7 @@ where
         };
     }
     lex(attempt(
-        choice((attempt(double_op()), attempt(single_op()))).and_then(precedence_checker),
+        choice((double_op(), recognize(single_op()))).and_then(precedence_checker),
     ))
     .map(op_matcher![
         ("+", Add),
@@ -228,17 +248,4 @@ where
         ("++", Concatenate),
         ("&&", LazyAnd),
     ])
-}
-pub fn precedence_of(token: &str) -> Option<u8> {
-    match token {
-        "." | "[" | "?" | "(" => Some(8),
-        "*" | "/" | "//" | "%" => Some(7),
-        "+" | "-" | "++" => Some(6),
-        "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(5),
-        "&&" | "&" => Some(4),
-        "||" | "|" => Some(3),
-        "??" => Some(2),
-        "<-" => Some(1),
-        _ => None,
-    }
 }
