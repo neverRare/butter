@@ -5,7 +5,9 @@ use crate::parser::expr::array::array;
 use crate::parser::expr::array::range;
 use crate::parser::expr::control_flow::control_flow;
 use crate::parser::expr::fun::param_arrow;
-use crate::parser::expr::infix::infix;
+use crate::parser::expr::infix::expr_0;
+use crate::parser::expr::infix::expr_7;
+use crate::parser::expr::infix::infix_op;
 use crate::parser::expr::integer::based_integer;
 use crate::parser::expr::record::record;
 use crate::parser::expr::string::char_literal;
@@ -16,13 +18,11 @@ use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
 use combine::attempt;
 use combine::between;
+use combine::chainl1;
 use combine::choice;
-use combine::error::StreamError;
-use combine::many;
 use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
-use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -109,21 +109,14 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    (prefix_expr(), many(infix(precedence))).and_then(|(prefix, infixes)| {
-        let mut prefix = prefix;
-        let infixes: Vec<_> = infixes;
-        for infix in infixes {
-            prefix = match infix.combine_from(prefix) {
-                Some(expr) => expr,
-                None => {
-                    return Err(<StreamErrorFor<I>>::unexpected_static_message(
-                        "non place expression",
-                    ))
-                }
-            };
-        }
-        Ok(prefix)
-    })
+    match precedence {
+        0 => expr_0().left().left(),
+        1..=6 => chainl1(expr(precedence + 1), infix_op(precedence))
+            .right()
+            .left(),
+        7 => expr_7().left().right(),
+        _ => prefix_expr().right().right(),
+    }
 }
 parser! {
     pub fn expr['a, I](precedence: u8)(I) -> Expr<'a>
@@ -136,9 +129,9 @@ parser! {
 }
 #[cfg(test)]
 mod test {
+    use crate::expr::operator::Assign;
+    use crate::expr::operator::Binary;
     use crate::expr::PlaceExpr;
-use crate::expr::operator::Assign;
-use crate::expr::operator::Binary;
     use crate::parser::expr::expr;
     use crate::parser::expr::Expr;
     use combine::EasyParser;

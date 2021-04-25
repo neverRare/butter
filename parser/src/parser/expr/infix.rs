@@ -19,8 +19,8 @@ use combine::between;
 use combine::choice;
 use combine::error::StreamError;
 use combine::look_ahead;
+use combine::many;
 use combine::optional;
-use combine::parser;
 use combine::parser::char::char;
 use combine::parser::char::string;
 use combine::parser::range::recognize;
@@ -31,27 +31,6 @@ use combine::Parser;
 use combine::RangeStream;
 
 pub enum PartialAst<'a> {
-    Add(Expr<'a>),
-    Sub(Expr<'a>),
-    Multiply(Expr<'a>),
-    Div(Expr<'a>),
-    FloorDiv(Expr<'a>),
-    Mod(Expr<'a>),
-    And(Expr<'a>),
-    Or(Expr<'a>),
-    LazyAnd(Expr<'a>),
-    LazyOr(Expr<'a>),
-    Equal(Expr<'a>),
-    NotEqual(Expr<'a>),
-    Greater(Expr<'a>),
-    GreaterEqual(Expr<'a>),
-    Less(Expr<'a>),
-    LessEqual(Expr<'a>),
-    Concatenate(Expr<'a>),
-    NullOr(Expr<'a>),
-
-    Assign(Expr<'a>),
-
     Property(&'a str),
     OptionalProperty(&'a str),
     Index(Expr<'a>),
@@ -62,51 +41,8 @@ pub enum PartialAst<'a> {
     UnnamedArgCall(Box<[Expr<'a>]>),
 }
 impl<'a> PartialAst<'a> {
-    // None means <- is applied to non-place expression
-    pub fn combine_from(self, left: Expr<'a>) -> Option<Expr<'a>> {
-        macro_rules! binary {
-            ($left:ident, $infix:ident, [$($ident:ident),* $(,)?] $(,)?) => {{
-                $(
-                    if let Self::$ident(right) = $infix {
-                        return Some(Expr::$ident(Binary {
-                            left: Box::new($left),
-                            right: Box::new(right),
-                        }))
-                    }
-                )*
-            };
-        }}
-        binary!(
-            left,
-            self,
-            [
-                Add,
-                Sub,
-                Multiply,
-                Div,
-                FloorDiv,
-                Mod,
-                And,
-                Or,
-                LazyAnd,
-                LazyOr,
-                Equal,
-                NotEqual,
-                Greater,
-                GreaterEqual,
-                Less,
-                LessEqual,
-                Concatenate,
-                NullOr,
-                Index,
-                OptionalIndex,
-            ],
-        );
-        Some(match self {
-            Self::Assign(right) => Expr::Assign(Assign {
-                place: Box::new(PlaceExpr::from_expr(left)?),
-                expr: Box::new(right),
-            }),
+    pub fn combine_from(self, left: Expr<'a>) -> Expr<'a> {
+        match self {
             Self::Property(name) => Expr::Property(Property {
                 expr: Box::new(left),
                 name,
@@ -114,6 +50,14 @@ impl<'a> PartialAst<'a> {
             Self::OptionalProperty(name) => Expr::OptionalProperty(Property {
                 expr: Box::new(left),
                 name,
+            }),
+            Self::Index(index) => Expr::Index(Binary {
+                left: Box::new(left),
+                right: Box::new(index),
+            }),
+            Self::OptionalIndex(index) => Expr::OptionalIndex(Binary {
+                left: Box::new(left),
+                right: Box::new(index),
             }),
             Self::Slice(range) => Expr::Slice(Slice {
                 expr: Box::new(left),
@@ -131,11 +75,10 @@ impl<'a> PartialAst<'a> {
                 expr: Box::new(left),
                 args,
             }),
-            _ => unreachable!(),
-        })
+        }
     }
 }
-fn call<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+fn infix_7<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -150,16 +93,6 @@ where
         )
         .map(<Vec<_>>::into)
     };
-    choice((
-        attempt(record()).map(PartialAst::NamedArgCall),
-        nameless_args().map(PartialAst::UnnamedArgCall),
-    ))
-}
-fn property_index_slice_optional<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-{
     let property = || lex(char('.')).with(lex(ident())).map(PartialAst::Property);
     let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
     let property_index_slice =
@@ -174,85 +107,67 @@ where
                 _ => unreachable!(),
             })
     };
-    choice((property_index_slice(), optional()))
+    choice((
+        attempt(record()).map(PartialAst::NamedArgCall),
+        nameless_args().map(PartialAst::UnnamedArgCall),
+        property_index_slice(),
+        optional(),
+    ))
 }
-fn binary<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+pub fn expr_7<'a, I>() -> impl Parser<I, Output = Expr<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    macro_rules! gen_double_binary {
-        ($(($op:literal, $precedence:literal, $ast:ident)),* $(,)?) => {
-            choice([$(
-                attempt(lex(string($op)))
-                    .with(expr($precedence))
-                    .map(PartialAst::$ast as fn(_) -> _),
-            )*])
-        };
-    }
-    macro_rules! gen_single_binary {
-        ($(($op:literal, $precedence:literal, $ast:ident)),* $(,)?) => {
-            choice([$(
-                lex(char($op))
-                    .with(expr($precedence))
-                    .map(PartialAst::$ast as fn(_) -> _),
-            )*])
-        };
-    }
-    let double_binary = || {
-        gen_double_binary![
-            ("//", 7, FloorDiv),
-            ("++", 6, Concatenate),
-            ("==", 5, Equal),
-            ("!=", 5, NotEqual),
-            ("<=", 5, LessEqual),
-            (">=", 5, GreaterEqual),
-            ("&&", 4, LazyAnd),
-            ("||", 3, LazyOr),
-            ("??", 2, NullOr),
-            ("<-", 0, Assign),
-        ]
-    };
-    let single_binary = || {
-        gen_single_binary![
-            ('*', 7, Multiply),
-            ('/', 7, Div),
-            ('%', 7, Mod),
-            ('+', 6, Add),
-            ('-', 6, Sub),
-            ('<', 5, Less),
-            ('>', 5, Greater),
-            ('&', 4, And),
-            ('|', 3, Or),
-        ]
-    };
-    choice((double_binary(), single_binary()))
+    (expr(8), many(infix_7())).map(|(prefix, infixes)| {
+        let infixes: Vec<_> = infixes;
+        let mut expr = prefix;
+        for infix in infixes {
+            expr = infix.combine_from(expr);
+        }
+        expr
+    })
 }
-fn full_infix_<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+pub fn expr_0<'a, I>() -> impl Parser<I, Output = Expr<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    choice((binary(), call(), property_index_slice_optional()))
+    (expr(1), optional(lex(attempt(string("<-"))).with(expr(0)))).and_then(|(place, expr)| {
+        match expr {
+            Some(expr) => match PlaceExpr::from_expr(place) {
+                Some(place) => Ok(Expr::Assign(Assign {
+                    place: Box::new(place),
+                    expr: Box::new(expr),
+                })),
+                None => Err(<StreamErrorFor<I>>::message_static_message(
+                    "non place expression",
+                )),
+            },
+            None => Ok(place),
+        }
+    })
 }
-parser! {
-    fn full_infix['a, I]()(I) -> PartialAst<'a>
-    where [
-        I: RangeStream<Token = char, Range = &'a str>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-    ] {
-        full_infix_()
-    }
-}
-pub fn infix<'a, I>(precedence: u8) -> impl Parser<I, Output = PartialAst<'a>>
+pub fn infix_op<'a, I>(
+    precedence: u8,
+) -> impl Parser<I, Output = fn(Expr<'a>, Expr<'a>) -> Expr<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    let checker = move |token| match precedence_of(token) {
+    let precedence_checker = move |token| match precedence_of(token) {
         Some(this_precedence) if this_precedence > precedence => Ok(token),
-        _ => Err(<StreamErrorFor<I>>::expected_static_message(
-            "infix operator",
+        Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
+            "infix operator with higher precedence",
+        )),
+        _ => Err(<StreamErrorFor<I>>::unexpected_static_message(
+            "invalid operator",
+        )),
+    };
+    let valid_operator_checker = move |token| match precedence_of(token) {
+        Some(_) => Ok(token),
+        _ => Err(<StreamErrorFor<I>>::unexpected_static_message(
+            "invalid operator",
         )),
     };
     // HACK: this avoids range operator, cannot use `not_followed_by` as it
@@ -268,12 +183,51 @@ where
             _ => Ok(()),
         })
     };
-    let single_operator = || recognize(any()).and_then(checker);
-    let double_operator = || recognize((any(), any())).and_then(checker);
-    let valid_operator = || attempt(double_operator()).or(single_operator());
-    look_ahead(attempt(valid_operator()))
-        .with(look_ahead(attempt(not_range())))
-        .with(full_infix())
+    let single_op = || {
+        look_ahead(not_range())
+            .with(recognize(any()))
+            .and_then(valid_operator_checker)
+    };
+    let double_op = || recognize((any(), any())).and_then(valid_operator_checker);
+    macro_rules! op_matcher {
+        ($(($str:pat, $name:ident $(,)?)),* $(,)?) => {
+            |op| match op {
+                $($str => {
+                    let fun: fn(_, _) -> _ = |left, right| {
+                        Expr::$name(Binary {
+                            left: Box::new(left),
+                            right: Box::new(right),
+                        })
+                    };
+                    fun
+                })*
+                _ => unreachable!(),
+            }
+        };
+    }
+    lex(attempt(
+        choice((attempt(double_op()), attempt(single_op()))).and_then(precedence_checker),
+    ))
+    .map(op_matcher![
+        ("+", Add),
+        ("-", Sub),
+        ("*", Multiply),
+        ("/", Div),
+        ("//", FloorDiv),
+        ("%", Mod),
+        ("&", And),
+        ("|", Or),
+        ("||", LazyOr),
+        ("??", NullOr),
+        ("==", Equal),
+        ("!=", NotEqual),
+        ("<", Less),
+        (">", Greater),
+        ("<=", LessEqual),
+        (">=", GreaterEqual),
+        ("++", Concatenate),
+        ("&&", LazyAnd),
+    ])
 }
 pub fn precedence_of(token: &str) -> Option<u8> {
     match token {
