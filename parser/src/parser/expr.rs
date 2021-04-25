@@ -7,7 +7,7 @@ use crate::parser::expr::control_flow::control_flow;
 use crate::parser::expr::fun::param_arrow;
 use crate::parser::expr::infix::expr_0;
 use crate::parser::expr::infix::expr_7;
-use crate::parser::expr::infix::infix_op;
+use crate::parser::expr::infix::infix_expr_op;
 use crate::parser::expr::integer::based_integer;
 use crate::parser::expr::record::record;
 use crate::parser::expr::string::char_literal;
@@ -111,7 +111,7 @@ where
 {
     match precedence {
         0 => expr_0().left().left(),
-        1..=6 => chainl1(expr(precedence + 1), infix_op(precedence))
+        1..=6 => chainl1(expr(precedence + 1), attempt(infix_expr_op(precedence)))
             .right()
             .left(),
         7 => expr_7().left().right(),

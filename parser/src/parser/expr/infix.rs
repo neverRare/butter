@@ -168,7 +168,7 @@ pub fn precedence_of(token: &str) -> Option<u8> {
         _ => None,
     }
 }
-pub fn infix_op<'a, I>(
+pub fn infix_expr_op<'a, I>(
     precedence: u8,
 ) -> impl Parser<I, Output = fn(Expr<'a>, Expr<'a>) -> Expr<'a>>
 where
@@ -219,7 +219,7 @@ where
         )),
     };
     macro_rules! op_matcher {
-        ($(($str:pat, $name:ident $(,)?)),* $(,)?) => {
+        ($($str:pat => $name:ident),* $(,)?) => {
             |op| match op {
                 $($str => {
                     let fun: fn(_, _) -> _ = |left, right| {
@@ -228,33 +228,34 @@ where
                             right: Box::new(right),
                         })
                     };
-                    fun
+                    Ok(fun)
                 })*
-                _ => unreachable!(),
+                _ => Err(<StreamErrorFor<I>>::expected_static_message(
+                    "infix expression operator",
+                )),
             }
         };
     }
-    lex(attempt(
-        choice((double_ops(), recognize(single_ops()))).and_then(precedence_checker),
-    ))
-    .map(op_matcher![
-        ("+", Add),
-        ("-", Sub),
-        ("*", Multiply),
-        ("/", Div),
-        ("//", FloorDiv),
-        ("%", Mod),
-        ("&", And),
-        ("|", Or),
-        ("||", LazyOr),
-        ("??", NullOr),
-        ("==", Equal),
-        ("!=", NotEqual),
-        ("<", Less),
-        (">", Greater),
-        ("<=", LessEqual),
-        (">=", GreaterEqual),
-        ("++", Concatenate),
-        ("&&", LazyAnd),
-    ])
+    lex(choice((double_ops(), recognize(single_ops()))))
+        .and_then(precedence_checker)
+        .and_then(op_matcher! {
+            "+" => Add,
+            "-" => Sub,
+            "*" => Multiply,
+            "/" => Div,
+            "//" => FloorDiv,
+            "%" => Mod,
+            "&" => And,
+            "|" => Or,
+            "||" => LazyOr,
+            "??" => NullOr,
+            "==" => Equal,
+            "!=" => NotEqual,
+            "<" => Less,
+            ">" => Greater,
+            "<=" => LessEqual,
+            ">=" => GreaterEqual,
+            "++" => Concatenate,
+            "&&" => LazyAnd,
+        })
 }
