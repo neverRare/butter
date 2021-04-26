@@ -1,6 +1,8 @@
 # Butter docs
 
-Butter is still in development. Some of the documentation could be outdated, some could be incomplete.
+## [Plan](./plan.md)
+
+Butter is still in development!
 
 ## Language
 
