@@ -1,49 +1,29 @@
 # Reference
 
-Referencing is performed to share data rather than moving nor cloning it. This is explained thoroughly at TODO link to borrow semantic.
+Referencing is performed to borrow data with `&` operator.
 
 ```butter
 foo = 10;
 bar = &foo;  -- just borrow the data from foo
 ```
 
-## Indirection and dereference
+## Dereference
 
-A reference is an indirection, it holds an address to a value. Access of the referencing value, also known as dereferencing, is always performed.
-
-```butter
-foo = 10;
-bar = &foo;
-bar <- 20;  -- since bar is a reference to foo, foo is assigned to 20
-```
-
-A reference can even hold multiple indirection. You'll need to use multiple `&` as Butter always perform dereference.
-
-```butter
-foo = 10;  -- original value
-bar = &foo;  -- bar is a reference to foo
-baz = &&bar;  -- baz is a reference to a reference to foo
-```
-
-You can change the address of the reference with `&` and `<-`.
+Reference is an indirection, it holds an address to a value. You can access the borrowed value by dereferencing via postfix `^` operator.
 
 ```butter
 foo = 10;
-bar = 20;
-baz = &foo; -- baz refers to foo
-&baz <- &bar; -- baz now refers to bar
+bar = &foo;  -- borrow foo
+baz = bar^;  -- access where bar refers to, which is foo
 ```
 
-## Clone
+## Mutable reference
 
-[Clone] deep-copies references. The resulting value will not be a reference and instead, a deep-copy of its underlying value.
-
-[Clone]: clone.md
+You can mutably borrow a value which lets you mutate the underlying referencing value with `&mut` operator. The variable where the value is borrowed and the variable that would hold the mutable reference (if there's any) must be marked as mutable.
 
 ```butter
-foo = 10;
-bar = &foo;
-baz = clone baz;  -- this will dereference and copies 10
-foo <- 20;
-std.assert(baz == 10);
+mut foo = 10;
+mut bar = &mut foo;
+bar^ <- 20;
+std.assert(foo == 10);
 ```

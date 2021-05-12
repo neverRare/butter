@@ -88,10 +88,10 @@ for fruit in ["apple", "banana", "cherry"] {
 `while` repeatedly executes the body while the condition is true.
 
 ```butter
-i = 0;
-while i < 10 {
+mut counter = 0;
+while counter < 10 {
     std.println("hello!");
-    i <- i + 1;
+    counter <- counter + 1;
 }
 ```
 
@@ -110,7 +110,7 @@ loop {
 The break expression is used to immediately exit loop statements.
 
 ```butter
-counter = 0;
+mut counter = 0;
 while counter < 6 {
     if counter == 3 {
         break;  -- immediately exit the loop despite not being counter < 6
@@ -123,7 +123,7 @@ std.assert(counter == 3);
 A break expression can be given an expression, this is only applicable to `loop`. It must be preceded by an equal sign `=` after the `break` keyword and the label if theres any. The loop expression will evaluate to the expression of whichever broke the loop.
 
 ```butter
-counter = 0;
+mut counter = 0;
 result = loop {
     counter += 1;
     if counter == 10 {
@@ -138,12 +138,12 @@ std.assert(result == 20);
 The continue expression will stop the current iteration then continues to next iteration.
 
 ```butter
-filtered_num = [];
+mut filtered_num = [];
 for num in [1..10] {
     if num % 2 == 0 {
         continue;
     }
-    filtered_num <- [*filtered_num, num];
+    filtered_num <- filtered_num ++ [num];
 }
 ```
 

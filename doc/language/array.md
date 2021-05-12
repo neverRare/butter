@@ -3,7 +3,7 @@
 An array is an ordered collection of other values.
 
 ```butter
-fruits = ["strawberry", "pineapple"];
+mut fruits = ["strawberry", "pineapple"];
 ```
 
 ## Splat and concat
@@ -35,9 +35,9 @@ range = [0.<3];
 range = [0, 1, 2];
 ```
 
-## Element access
+## Index
 
-You can access its elements via `[]`. This is also known as indexing.
+You can access its elements via `[]`.
 
 ```butter
 first_fruit = &fruits[0];

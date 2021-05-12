@@ -3,7 +3,6 @@
 ## Keyword reference
 
 - `break`
-- `clone`
 - `continue`
 - `else`
 - `false`
@@ -11,6 +10,7 @@
 - `if`
 - `in`
 - `loop`
+- `mut`
 - `null`
 - `return`
 - `true`
@@ -24,6 +24,7 @@
 | `==`        | Equal                       |
 | `!=`        | Not equal                   |
 | `.`         | Field access                |
+| `^`         | Dereference                 |
 | `..`        | Inclusive range             |
 | `.<`        | Inclusive-exclusive range   |
 | `>.`        | Exclusive-inclusive range   |
@@ -68,8 +69,8 @@
 
 Butter defines the following operator precedence from strongest to weakest.
 
-- `.` `?.` element access or slice `[...]` `?[...]` function call `(...)`
-- unary `+` `-` `!` `&` `clone`
+- `.` `?.` element access or slice `[...]` `?[...]` function call `(...)` `^`
+- unary `+` `-` `!` `&`
 - `*` `/` `//` `%`
 - `+` `-` `++`
 - `==` `!=` `<` `>` `<=` `>=`

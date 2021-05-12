@@ -3,13 +3,7 @@
 Function is a reusable expression that are executed on every call.
 
 ```butter
-reverse(arr) => {
-    reverse = [];
-    for elem in arr {
-        reverse <- [elem] ++ reverse;
-    }
-    reverse
-}
+say_hello(name) => "hello " ++ name ++ "!";
 ```
 
 ## Unnamed function
@@ -36,18 +30,22 @@ compose(f, g) => x => f(g(x));
 
 ## Body
 
-The body is evaluated on every call. Body can only contain single expression, so block is used for more complex body.
+The body is evaluated on every call. Body can only contain single expression, so [block] is used for more complex body.
+
+[block]: control_flow.md#block
 
 ## Return
 
-Functions with block as body can contain return expression, these immediately exits the function body and use its expression as the value of the function call.
+Return expressions immediately exits the function body and use its expression as the value of the function call.
+
+TODO: use other example
 
 ```butter
 reverse(arr) => {
     if arr.len >= 1 {
         return arr;
     }
-    reverse = [];
+    mut reverse = [];
     for elem in arr {
         reverse <- [elem] ++ reverse;
     }
@@ -81,16 +79,6 @@ report_niceness(any_arbitrary_name = "tomato salad");
 
 food = "tomato salad";
 report_niceness(food);  -- note that this is actually report_niceness(food = food)
-```
-
-Additionally, if you omitted an argument, it will be `null`, make sure the function can handle it.
-
-```butter
-say_hello(name) => {
-    name = name ?? "stranger";
-    std.println("Hello " ++ name);
-}
-say_hello();
 ```
 
 ## Scoping of named function
