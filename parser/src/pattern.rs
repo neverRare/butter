@@ -4,6 +4,7 @@ use std::collections::HashMap;
 pub enum Pattern<'a> {
     Ignore,
     Var(&'a str),
+    MutVar(&'a str),
     Struct(StructPattern<'a>),
     Array(Box<[Pattern<'a>]>),
     ArrayWithRest(ArrayWithRest<'a>),

@@ -58,8 +58,14 @@ where
             .with(expr(7))
             .map(|expr| Expr::Not(Box::new(expr))),
         lex(char('&'))
-            .with(expr(7))
-            .map(|expr| Expr::Ref(Box::new(expr))),
+            .with((optional(attempt(lex(keyword("mut")))), expr(7)))
+            .map(|(mutability, expr)| {
+                let boxed = Box::new(expr);
+                match mutability {
+                    Some(_) => Expr::MutRef(boxed),
+                    None => Expr::Ref(boxed),
+                }
+            }),
         lex(char('+'))
             .with(expr(7))
             .map(|expr| Expr::Plus(Box::new(expr))),
@@ -67,9 +73,6 @@ where
             .with(expr(7))
             .map(|expr| Expr::Minus(Box::new(expr))),
         attempt(lex(ident())).map(Expr::Var),
-        attempt(lex(keyword("clone")))
-            .with(expr(7))
-            .map(|expr| Expr::Clone(Box::new(expr))),
         control_flow(),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("null")).map(|_| Expr::Null),

@@ -38,6 +38,7 @@ pub enum PartialAst<'a> {
     OptionalSlice(Range<'a>),
     NamedArgCall(Struct<'a>),
     UnnamedArgCall(Box<[Expr<'a>]>),
+    Deref,
 }
 impl<'a> PartialAst<'a> {
     pub fn combine_from(self, left: Expr<'a>) -> Expr<'a> {
@@ -74,6 +75,7 @@ impl<'a> PartialAst<'a> {
                 expr: Box::new(left),
                 args,
             }),
+            Self::Deref => Expr::Deref(Box::new(left)),
         }
     }
 }
@@ -119,6 +121,7 @@ where
         nameless_args().map(PartialAst::UnnamedArgCall),
         property_index_slice(),
         optional(),
+        lex(char('^')).map(|_| PartialAst::Deref),
     ))
 }
 pub fn expr_7<'a, I>() -> impl Parser<I, Output = Expr<'a>>
@@ -157,7 +160,7 @@ where
 }
 pub fn precedence_of(token: &str) -> Option<u8> {
     match token {
-        "." | "[" | "?" | "(" => Some(8),
+        "." | "[" | "?" | "(" | "^" => Some(8),
         "*" | "/" | "//" | "%" => Some(7),
         "+" | "-" | "++" => Some(6),
         "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(5),
@@ -198,6 +201,7 @@ where
             char('['),
             char('?'),
             char('('),
+            char('^'),
             char('*'),
             char('/'),
             char('%'),

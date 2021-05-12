@@ -145,7 +145,12 @@ where
         attempt(between(lex(char('(')), lex(char(')')), pattern())),
         record().map(Pattern::Struct),
         attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
-        lex(ident()).map(Pattern::Var),
+        (optional(attempt(lex(keyword("mut")))), lex(ident())).map(|(mutability, ident)| {
+            match mutability {
+                Some(_) => Pattern::MutVar(ident),
+                None => Pattern::Var(ident),
+            }
+        }),
     ))
 }
 parser! {

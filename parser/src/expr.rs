@@ -36,8 +36,8 @@ pub enum Expr<'a> {
     Plus(Box<Expr<'a>>),
     Minus(Box<Expr<'a>>),
     Ref(Box<Expr<'a>>),
+    MutRef(Box<Expr<'a>>),
     Not(Box<Expr<'a>>),
-    Clone(Box<Expr<'a>>),
 
     Add(Binary<'a>),
     Sub(Binary<'a>),
@@ -73,6 +73,7 @@ pub enum Expr<'a> {
     OptionalSlice(Slice<'a>),
     NamedArgCall(NamedArgCall<'a>),
     UnnamedArgCall(UnnamedArgCall<'a>),
+    Deref(Box<Expr<'a>>),
 
     Block(Block<'a>),
     Fun(Fun<'a>),
