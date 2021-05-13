@@ -64,7 +64,7 @@ where
             })
     };
     let place = || {
-        expr(7).and_then(|expr| match PlaceExpr::from_expr(expr) {
+        expr(1).and_then(|expr| match PlaceExpr::from_expr(expr) {
             Some(place) => Ok(place),
             None => Err(<StreamErrorFor<I>>::message_static_message(
                 "non place expression",
@@ -72,39 +72,36 @@ where
         })
     };
     let parallel_assign = || {
-        (
-            attempt(sep_by1(place(), lex(char(','))).skip(lex(string("<-")))),
-            sep_by1(expr(1), lex(char(','))).skip(lex(char(';'))),
-        )
-            .and_then(|(place, expr)| {
-                let place: Vec<_> = place;
-                let expr: Vec<_> = expr;
-                if place.len() != expr.len() {
-                    return Err(<StreamErrorFor<I>>::message_static_message(
-                        "mismatching count of place and value expressions",
-                    ));
-                }
-                let assign = place
-                    .into_iter()
-                    .zip(expr.into_iter())
-                    .map(|(place, expr)| Assign {
-                        place: Box::new(place),
-                        expr: Box::new(expr),
-                    })
-                    .collect();
-                Ok(StatementReturn::Statement(Statement::Expr(
-                    Expr::ParallelAssign(assign),
-                )))
-            })
+        attempt((
+            sep_by1(place(), lex(char(','))).skip(lex(string("<-"))),
+            sep_by1(expr(1), lex(char(','))).skip(lex(char(';'))), // TODO: don't enforce semicolon
+        ))
+        .and_then(|(place, expr)| {
+            let place: Vec<_> = place;
+            let expr: Vec<_> = expr;
+            if place.len() != expr.len() {
+                return Err(<StreamErrorFor<I>>::message_static_message(
+                    "mismatching count of place and value expressions",
+                ));
+            }
+            let assign = place
+                .into_iter()
+                .zip(expr.into_iter())
+                .map(|(place, expr)| Assign {
+                    place: Box::new(place),
+                    expr: Box::new(expr),
+                })
+                .collect();
+            Ok(StatementReturn::Statement(Statement::Expr(
+                Expr::ParallelAssign(assign),
+            )))
+        })
     };
     let declare = || {
         (attempt(pattern().skip(lex(char('=')))), expr(0))
             .skip(lex(char(';')))
             .map(|(pattern, expr)| {
-                StatementReturn::Statement(Statement::Declare(Declare {
-                    pattern,
-                    expr: Box::new(expr),
-                }))
+                StatementReturn::Statement(Statement::Declare(Declare { pattern, expr }))
             })
     };
     let expr = || {
@@ -150,4 +147,55 @@ where
         StatementReturn::Statement(statement) => statement,
         StatementReturn::Return(expr) => Statement::Expr(expr),
     })
+}
+#[cfg(test)]
+mod test {
+    use crate::parser::statement::statement;
+    use crate::parser::statement::Assign;
+    use crate::parser::statement::Expr;
+    use crate::parser::statement::PlaceExpr;
+    use crate::pattern::Pattern;
+    use crate::statement::Declare;
+    use crate::Statement;
+    use combine::EasyParser;
+
+    #[test]
+    fn parallel_assign() {
+        let src = "foo, bar <- bar, foo;";
+        let expected = Statement::Expr(Expr::ParallelAssign(
+            vec![
+                Assign {
+                    place: Box::new(PlaceExpr::Var("foo")),
+                    expr: Box::new(Expr::Var("bar")),
+                },
+                Assign {
+                    place: Box::new(PlaceExpr::Var("bar")),
+                    expr: Box::new(Expr::Var("foo")),
+                },
+            ]
+            .into(),
+        ));
+        assert_eq!(statement().easy_parse(src), Ok((expected, "")));
+    }
+    #[test]
+    fn chain_assign() {
+        let src = "foo <- bar <- baz;";
+        let expected = Statement::Expr(Expr::Assign(Assign {
+            place: Box::new(PlaceExpr::Var("foo")),
+            expr: Box::new(Expr::Assign(Assign {
+                place: Box::new(PlaceExpr::Var("bar")),
+                expr: Box::new(Expr::Var("baz")),
+            })),
+        }));
+        assert_eq!(statement().easy_parse(src), Ok((expected, "")));
+    }
+    #[test]
+    fn var() {
+        let src = "foo = 10;";
+        let expected = Statement::Declare(Declare {
+            pattern: Pattern::Var("foo"),
+            expr: Expr::UInt(10),
+        });
+        assert_eq!(statement().easy_parse(src), Ok((expected, "")));
+    }
 }

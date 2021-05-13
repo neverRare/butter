@@ -11,7 +11,7 @@ pub enum Statement<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Declare<'a> {
     pub pattern: Pattern<'a>,
-    pub expr: Box<Expr<'a>>,
+    pub expr: Expr<'a>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunDeclare<'a> {
