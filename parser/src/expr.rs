@@ -85,17 +85,17 @@ pub enum Expr<'a> {
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlaceExpr<'a> {
     Var(&'a str),
-    Ref(Box<Expr<'a>>),
     Property(Property<'a>),
     Index(Binary<'a>),
+    Deref(Box<Expr<'a>>),
 }
 impl<'a> PlaceExpr<'a> {
     pub fn from_expr(expr: Expr<'a>) -> Option<Self> {
         Some(match expr {
             Expr::Var(var) => Self::Var(var),
-            Expr::Ref(expr) => Self::Ref(expr),
             Expr::Property(prop_expr) => Self::Property(prop_expr),
             Expr::Index(ind_expr) => Self::Index(ind_expr),
+            Expr::Deref(expr) => Self::Deref(expr),
             _ => return None,
         })
     }
