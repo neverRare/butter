@@ -8,7 +8,12 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use std::array::IntoIter as ArrayIntoIter;
 
+static KEYWORDS: [&str; 14] = [
+    "_", "break", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut", "return",
+    "true", "while",
+];
 fn rest(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'
 }
@@ -25,6 +30,7 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
+    debug_assert!(ArrayIntoIter::new(KEYWORDS).any(|it| keyword == it));
     string(keyword).skip(not_followed_by(satisfy(rest)))
 }
 pub fn ident<'a, I>() -> impl Parser<I, Output = &'a str>
@@ -32,12 +38,12 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    ident_or_keyword::<'a>().and_then(|ident| match ident {
-        "_" | "break" | "continue" | "else" | "false" | "for" | "if" | "in" | "loop" | "mut"
-        | "null" | "return" | "true" | "while" => {
+    ident_or_keyword::<'a>().and_then(|ident| {
+        if ArrayIntoIter::new(KEYWORDS).any(|it| ident == it) {
             Err(<StreamErrorFor<I>>::unexpected_static_message("keyword"))
+        } else {
+            Ok(ident)
         }
-        _ => Ok(ident),
     })
 }
 #[cfg(test)]

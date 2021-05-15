@@ -1,12 +1,12 @@
 use crate::expr::control_flow::Break;
 use crate::expr::control_flow::Fun;
+use crate::expr::operator::Tag;
 use crate::expr::Expr;
 use crate::parser::expr::array::array;
 use crate::parser::expr::array::range;
-use crate::parser::expr::control_flow::control_flow;
 use crate::parser::expr::fun::param_arrow;
 use crate::parser::expr::infix::expr_0;
-use crate::parser::expr::infix::expr_7;
+use crate::parser::expr::infix::expr_6;
 use crate::parser::expr::infix::infix_expr_op;
 use crate::parser::expr::integer::based_integer;
 use crate::parser::expr::record::record;
@@ -55,10 +55,10 @@ where
         lex(char_literal()).map(Expr::UInt),
         lex(string_literal()).map(Expr::Array),
         lex(char('!'))
-            .with(expr(7))
+            .with(expr(6))
             .map(|expr| Expr::Not(Box::new(expr))),
         lex(char('&'))
-            .with((optional(attempt(lex(keyword("mut")))), expr(7)))
+            .with((optional(attempt(lex(keyword("mut")))), expr(6)))
             .map(|(mutability, expr)| {
                 let boxed = Box::new(expr);
                 match mutability {
@@ -67,15 +67,22 @@ where
                 }
             }),
         lex(char('+'))
-            .with(expr(7))
+            .with(expr(6))
             .map(|expr| Expr::Plus(Box::new(expr))),
         lex(char('-'))
-            .with(expr(7))
+            .with(expr(6))
             .map(|expr| Expr::Minus(Box::new(expr))),
+        lex(char('@'))
+            .with((lex(ident()), optional(expr(6))))
+            .map(|(tag, expr)| {
+                Expr::Tag(Tag {
+                    tag,
+                    expr: expr.map(Box::new),
+                })
+            }),
         attempt(lex(ident())).map(Expr::Var),
-        control_flow(),
+        control_flow::control_flow(),
         lex(keyword("false")).map(|_| Expr::False),
-        lex(keyword("null")).map(|_| Expr::Null),
         lex(keyword("true")).map(|_| Expr::True),
         lex(keyword("break"))
             .with((
@@ -114,10 +121,10 @@ where
 {
     match precedence {
         0 => expr_0().left().left(),
-        1..=6 => chainl1(expr(precedence + 1), attempt(infix_expr_op(precedence)))
+        1..=5 => chainl1(expr(precedence + 1), attempt(infix_expr_op(precedence)))
             .right()
             .left(),
-        7 => expr_7().left().right(),
+        6 => expr_6().left().right(),
         _ => prefix_expr().right().right(),
     }
 }
@@ -183,7 +190,7 @@ mod test {
         let src = "foo + bar";
         let expected = Expr::Var("foo");
         let left = "+ bar";
-        assert_eq!(expr(7).easy_parse(src), Ok((expected, left)));
+        assert_eq!(expr(6).easy_parse(src), Ok((expected, left)));
     }
     #[test]
     fn ignore_range() {

@@ -40,3 +40,13 @@ pub struct While<'a> {
     pub condition: Box<Expr<'a>>,
     pub body: Block<'a>,
 }
+#[derive(Debug, PartialEq, Clone)]
+pub struct Match<'a> {
+    pub expr: Box<Expr<'a>>,
+    pub arm: Box<[MatchArm<'a>]>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct MatchArm<'a> {
+    pub pattern: Pattern<'a>,
+    pub expr: Box<Expr<'a>>,
+}

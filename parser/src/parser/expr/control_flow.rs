@@ -1,6 +1,8 @@
 use crate::expr::control_flow::Block;
 use crate::expr::control_flow::For;
 use crate::expr::control_flow::If;
+use crate::expr::control_flow::Match;
+use crate::expr::control_flow::MatchArm;
 use crate::expr::control_flow::While;
 use crate::expr::Expr;
 use crate::parser::expr::expr;
@@ -13,10 +15,12 @@ use crate::statement::Statement;
 use combine::attempt;
 use combine::between;
 use combine::choice;
+use combine::look_ahead;
 use combine::many;
 use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
+use combine::parser::char::string;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -122,7 +126,35 @@ where
 {
     attempt(lex(keyword("loop"))).with(block())
 }
-pub fn control_flow<'a, I>() -> impl Parser<I, Output = Expr<'a>>
+fn match_expression<'a, I>() -> impl Parser<I, Output = Match<'a>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    let arm_expr = || {
+        choice((
+            attempt(control_flow()).skip(optional(lex(char(',')))),
+            expr(0).skip(choice((
+                lex(char(',')).map(|_| ()),
+                look_ahead(char('}')).map(|_| ()),
+            ))),
+        ))
+    };
+    let arm = || {
+        (pattern().skip(lex(string("=>"))), arm_expr()).map(|(pattern, expr)| MatchArm {
+            pattern,
+            expr: Box::new(expr),
+        })
+    };
+    let body = || between(lex(char('{')), lex(char('}')), many(arm())).map(Vec::into);
+    attempt(lex(keyword("match")))
+        .with((expr(0), body()))
+        .map(|(expr, arm)| Match {
+            expr: Box::new(expr),
+            arm,
+        })
+}
+fn control_flow_<'a, I>() -> impl Parser<I, Output = Expr<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -133,5 +165,15 @@ where
         for_expression().map(Expr::For),
         while_expression().map(Expr::While),
         loop_expression().map(Expr::Loop),
+        match_expression().map(Expr::Match),
     ))
+}
+parser! {
+    pub fn control_flow['a, I]()(I) -> Expr<'a>
+    where [
+        I: RangeStream<Token = char, Range = &'a str>,
+        I::Error: ParseError<I::Token, I::Range, I::Position>,
+    ] {
+        control_flow_()
+    }
 }

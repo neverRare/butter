@@ -5,6 +5,7 @@ use crate::parser::lex;
 use crate::pattern::ArrayWithRest;
 use crate::pattern::Pattern;
 use crate::pattern::StructPattern;
+use crate::pattern::TaggedPattern;
 use combine::attempt;
 use combine::between;
 use combine::choice;
@@ -141,6 +142,14 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     choice((
+        lex(char('@'))
+            .with((lex(ident()), optional(pattern())))
+            .map(|(tag, pattern)| {
+                Pattern::Tag(TaggedPattern {
+                    tag,
+                    pattern: pattern.map(Box::new),
+                })
+            }),
         array(),
         attempt(between(lex(char('(')), lex(char(')')), pattern())),
         record().map(Pattern::Struct),

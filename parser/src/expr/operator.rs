@@ -33,3 +33,8 @@ pub struct UnnamedArgCall<'a> {
     pub expr: Box<Expr<'a>>,
     pub args: Box<[Expr<'a>]>,
 }
+#[derive(Debug, PartialEq, Clone)]
+pub struct Tag<'a> {
+    pub tag: &'a str,
+    pub expr: Option<Box<Expr<'a>>>,
+}

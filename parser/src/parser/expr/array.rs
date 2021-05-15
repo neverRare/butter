@@ -62,5 +62,5 @@ where
         lex(char(']')),
         sep_end_by(element(), lex(char(','))),
     )
-    .map(<Vec<_>>::into)
+    .map(Vec::into)
 }

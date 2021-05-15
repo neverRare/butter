@@ -31,11 +31,8 @@ use combine::RangeStream;
 
 pub enum PartialAst<'a> {
     Property(&'a str),
-    OptionalProperty(&'a str),
     Index(Expr<'a>),
-    OptionalIndex(Expr<'a>),
     Slice(Range<'a>),
-    OptionalSlice(Range<'a>),
     NamedArgCall(Struct<'a>),
     UnnamedArgCall(Box<[Expr<'a>]>),
     Deref,
@@ -47,23 +44,11 @@ impl<'a> PartialAst<'a> {
                 expr: Box::new(left),
                 name,
             }),
-            Self::OptionalProperty(name) => Expr::OptionalProperty(Property {
-                expr: Box::new(left),
-                name,
-            }),
             Self::Index(index) => Expr::Index(Binary {
                 left: Box::new(left),
                 right: Box::new(index),
             }),
-            Self::OptionalIndex(index) => Expr::OptionalIndex(Binary {
-                left: Box::new(left),
-                right: Box::new(index),
-            }),
             Self::Slice(range) => Expr::Slice(Slice {
-                expr: Box::new(left),
-                range,
-            }),
-            Self::OptionalSlice(range) => Expr::OptionalSlice(Slice {
                 expr: Box::new(left),
                 range,
             }),
@@ -79,7 +64,7 @@ impl<'a> PartialAst<'a> {
         }
     }
 }
-fn infix_7<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+fn infix_6<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -92,7 +77,7 @@ where
             lex(char(')')),
             sep_end_by(nameless_arg(), lex(char(','))),
         )
-        .map(<Vec<_>>::into)
+        .map(Vec::into)
     };
     let property = || {
         lex(attempt(
@@ -104,32 +89,21 @@ where
         .map(PartialAst::Property)
     };
     let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
-    let property_index_slice =
-        || choice((property(), attempt(index()), range().map(PartialAst::Slice)));
-    let optional = || {
-        lex(char('?'))
-            .with(property_index_slice())
-            .map(|infix| match infix {
-                PartialAst::Property(name) => PartialAst::OptionalProperty(name),
-                PartialAst::Index(index) => PartialAst::OptionalIndex(index),
-                PartialAst::Slice(range) => PartialAst::OptionalSlice(range),
-                _ => unreachable!(),
-            })
-    };
     choice((
         attempt(record()).map(PartialAst::NamedArgCall),
         nameless_args().map(PartialAst::UnnamedArgCall),
-        property_index_slice(),
-        optional(),
+        property(),
+        attempt(index()),
+        range().map(PartialAst::Slice),
         lex(char('^')).map(|_| PartialAst::Deref),
     ))
 }
-pub fn expr_7<'a, I>() -> impl Parser<I, Output = Expr<'a>>
+pub fn expr_6<'a, I>() -> impl Parser<I, Output = Expr<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    (expr(8), many(infix_7())).map(|(prefix, infixes)| {
+    (expr(7), many(infix_6())).map(|(prefix, infixes)| {
         let infixes: Vec<_> = infixes;
         let mut expr = prefix;
         for infix in infixes {
@@ -160,13 +134,12 @@ where
 }
 pub fn precedence_of(token: &str) -> Option<u8> {
     match token {
-        "." | "[" | "?" | "(" | "^" => Some(8),
-        "*" | "/" | "//" | "%" => Some(7),
-        "+" | "-" | "++" => Some(6),
-        "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(5),
-        "&&" | "&" => Some(4),
-        "||" | "|" => Some(3),
-        "??" => Some(2),
+        "." | "[" | "(" | "^" => Some(7),
+        "*" | "/" | "//" | "%" => Some(6),
+        "+" | "-" | "++" => Some(5),
+        "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(4),
+        "&&" | "&" => Some(3),
+        "||" | "|" => Some(2),
         "<-" => Some(1),
         _ => None,
     }
@@ -187,7 +160,6 @@ where
             attempt(string(">=")),
             attempt(string("&&")),
             attempt(string("||")),
-            attempt(string("??")),
             attempt(string("<-")),
             attempt(string("..")),
             attempt(string(".<")),
@@ -199,7 +171,6 @@ where
         choice([
             char('.'),
             char('['),
-            char('?'),
             char('('),
             char('^'),
             char('*'),
@@ -252,7 +223,6 @@ where
             "&" => And,
             "|" => Or,
             "||" => LazyOr,
-            "??" => NullOr,
             "==" => Equal,
             "!=" => NotEqual,
             "<" => Less,

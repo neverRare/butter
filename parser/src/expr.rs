@@ -5,12 +5,14 @@ use crate::expr::control_flow::Break;
 use crate::expr::control_flow::For;
 use crate::expr::control_flow::Fun;
 use crate::expr::control_flow::If;
+use crate::expr::control_flow::Match;
 use crate::expr::control_flow::While;
 use crate::expr::operator::Assign;
 use crate::expr::operator::Binary;
 use crate::expr::operator::NamedArgCall;
 use crate::expr::operator::Property;
 use crate::expr::operator::Slice;
+use crate::expr::operator::Tag;
 use crate::expr::operator::UnnamedArgCall;
 use crate::expr::range::Range;
 
@@ -23,7 +25,6 @@ pub mod range;
 pub enum Expr<'a> {
     True,
     False,
-    Null,
 
     Var(&'a str),
     UInt(u64),
@@ -38,6 +39,7 @@ pub enum Expr<'a> {
     Ref(Box<Expr<'a>>),
     MutRef(Box<Expr<'a>>),
     Not(Box<Expr<'a>>),
+    Tag(Tag<'a>),
 
     Add(Binary<'a>),
     Sub(Binary<'a>),
@@ -56,7 +58,6 @@ pub enum Expr<'a> {
     Less(Binary<'a>),
     LessEqual(Binary<'a>),
     Concatenate(Binary<'a>),
-    NullOr(Binary<'a>),
 
     Assign(Assign<'a>),
     ParallelAssign(Box<[Assign<'a>]>),
@@ -66,11 +67,8 @@ pub enum Expr<'a> {
     Struct(Struct<'a>),
 
     Property(Property<'a>),
-    OptionalProperty(Property<'a>),
     Index(Binary<'a>),
-    OptionalIndex(Binary<'a>),
     Slice(Slice<'a>),
-    OptionalSlice(Slice<'a>),
     NamedArgCall(NamedArgCall<'a>),
     UnnamedArgCall(UnnamedArgCall<'a>),
     Deref(Box<Expr<'a>>),
@@ -81,6 +79,7 @@ pub enum Expr<'a> {
     For(For<'a>),
     While(While<'a>),
     Loop(Block<'a>),
+    Match(Match<'a>),
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlaceExpr<'a> {
