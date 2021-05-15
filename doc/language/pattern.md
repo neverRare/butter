@@ -1,10 +1,24 @@
-# Unpacking
+# Pattern
 
-Unpacking syntax can be used in [variable declaration], [function parameter], and iteration variable in [`for`] loop. These are syntactic sugar to accessing field value or element and assigning it to a declared variable. Unpacking can be referred to as destructuring.
+Pattern can be used in [variable declaration], [function parameter], and iteration variable in [`for`] loop. These are used to match against the structure of the value and possibly bind a value to a variable.
 
 [variable declaration]: variable_and_assignment.md#declaration
 [function parameter]: function.md#parameters
 [`for`]: control_flow.md#for
+
+## Ignore
+
+TODO
+
+`_`
+
+## Variable
+
+TODO
+
+`var`
+
+`mut var`
 
 ## Array
 
@@ -65,20 +79,12 @@ car = (
 (price, *car) = car;
 ```
 
-## Nesting
+## Tagged value
 
-You can nest unpacking syntax.
+TODO
 
-```butter
-users = [
-    (
-        name = "someone",
-        email = "someone@example.com",
-    ),
-    (
-        name = "anyone",
-        email = "anyone@example.com",
-    ),
-];
-[(name, email), *_] = users;
-```
+`@tag more_pattern`
+
+## Refutability
+
+TODO

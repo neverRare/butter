@@ -9,19 +9,22 @@ Butter is still in development!
 A high level documentation of various operation in Butter. It describes its syntaxes through examples.
 
 - [Array](language/array.md)
+- [Block](language/block.md)
 - [Boolean](language/boolean.md)
-- [Clone](language/clone.md)
 - [Comment](language/comment.md)
 - [Control flow](language/control_flow.md)
 - [Function](language/function.md)
 - [Group](language/group.md)
-- [Null and optional](language/null_and_optional.md)
-- [Number](language/number.md)
+- [If](language/if.md)
+- [Loop](language/loop.md)
+- [Match](language/match.md)
 - [Miscellaneous](language/miscellaneous.md)
+- [Number](language/number.md)
+- [Pattern](language/pattern.md)
 - [Reference](language/reference.md)
 - [String and char](language/string_and_char.md)
 - [Struct](language/struct.md)
-- [Unpacking](language/unpacking.md)
+- [Tag](language/tag.md)
 - [Variable and assignment](language/variable_and_assignment.md)
 
 ## Type and Semantics

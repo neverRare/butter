@@ -7,44 +7,6 @@ map = #(10 = 20, 20 = 40);
 set = #[10, 20, 30];
 ```
 
-Sometimes called *hash*map and *hash*set ;). I still have no idea on manipulations however.
-
-## Tagged values
-
-```butter
--- no associated value
-@tag_name
-@tag_name()
-
--- single associated value
-@tag_name expr
-@tag_name(expr)
-
--- struct as associated value
-@tag_name(name1 = expr1, name2 = expr2)
-
--- array as associated value
-@tag_name[expr1, expr2]
-```
-
-This could be structurally typed like in TypeScript's fake discriminated union but with better syntax like in Rust. This could also replace the current null system.
-
-## Pattern and match
-
-```butter
--- matching tagged value
-map_option(val, mapper) => match val {
-    @some val => @some mapper(val),
-    @none => @none,
-};
-
--- matching array
-map_array(arr, mapper) => match arr {
-    [] => [],
-    [item, *rest] => [mapper(item)] ++ map_array(arr = rest, mapper),
-};
-```
-
 ## Type alias
 
 `<A>` here are type variables. Syntax' ugly at the moment, it'll change.
