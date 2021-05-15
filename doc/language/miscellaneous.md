@@ -10,8 +10,8 @@
 - `if`
 - `in`
 - `loop`
+- `match`
 - `mut`
-- `null`
 - `return`
 - `true`
 - `while`
@@ -47,8 +47,7 @@
 | `<=`        | Less than or equal          |
 | `<-`        | Assignment                  |
 | `=>`        | Function                    |
-| `?`         | Optional chain              |
-| `??`        | Null coalescing             |
+| `@`         | Tag                         |
 
 ## Delimiter reference
 
