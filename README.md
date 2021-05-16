@@ -27,3 +27,7 @@ Butter is designed to be
 - Efficient: Compiled programs should be fast and memory-efficient as much as possible.
 
 Butter is still in development, I have a [plan](./doc/plan.md) to make this possible, hopefully.
+
+## Road map
+
+[![Road map](./roadmap.png "click for more details")](https://github.com/neverRare/butter/projects/1)
