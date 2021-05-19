@@ -108,3 +108,17 @@ not(a) => match a {
 @true `and` @false;  -- @false
 `not` @true;  -- also @false
 ```
+
+## Chain operator
+
+```butter
+"hello world" |> std.print;
+```
+
+## Function Currying
+
+```butter
+add(a, b) => a + b;
+
+result = 40 |> add(?, 2);
+```
