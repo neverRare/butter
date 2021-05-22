@@ -8,6 +8,8 @@ pub enum Pattern<'a> {
     Array(Box<[Pattern<'a>]>),
     ArrayWithRest(ArrayWithRest<'a>),
     Tag(TaggedPattern<'a>),
+    Ref(Box<Pattern<'a>>),
+    RefMut(Box<Pattern<'a>>),
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Var<'a> {

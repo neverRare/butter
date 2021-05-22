@@ -159,6 +159,12 @@ where
                     pattern: pattern.map(Box::new),
                 })
             }),
+        lex(char('&'))
+            .with((optional(lex(keyword("mut"))), pattern()))
+            .map(|(mutability, pattern)| match mutability {
+                Some(_) => Pattern::RefMut(Box::new(pattern)),
+                None => Pattern::Ref(Box::new(pattern)),
+            }),
         array(),
         attempt(between(lex(char('(')), lex(char(')')), pattern())),
         record().map(Pattern::Struct),
