@@ -3,6 +3,7 @@ use crate::parser::ident_keyword::ident;
 use crate::parser::lex;
 use crate::parser::pattern::parameter;
 use crate::pattern::Pattern;
+use crate::pattern::Var;
 use combine::choice;
 use combine::parser::char::string;
 use combine::ParseError;
@@ -23,7 +24,15 @@ where
             .map(|ident| Param {
                 order: vec![ident].into(),
                 param: {
-                    let mut map: HashMap<_, _> = once((ident, Pattern::Var(ident))).collect();
+                    let mut map: HashMap<_, _> = once((
+                        ident,
+                        Pattern::Var(Var {
+                            ident,
+                            mutable: false,
+                            bind_to_ref: false,
+                        }),
+                    ))
+                    .collect();
                     map.shrink_to_fit();
                     map
                 },

@@ -155,6 +155,7 @@ mod test {
     use crate::parser::statement::Expr;
     use crate::parser::statement::PlaceExpr;
     use crate::pattern::Pattern;
+    use crate::pattern::Var;
     use crate::statement::Declare;
     use crate::Statement;
     use combine::EasyParser;
@@ -193,7 +194,11 @@ mod test {
     fn var() {
         let src = "foo = 10;";
         let expected = Statement::Declare(Declare {
-            pattern: Pattern::Var("foo"),
+            pattern: Pattern::Var(Var {
+                ident: "foo",
+                mutable: false,
+                bind_to_ref: false,
+            }),
             expr: Expr::UInt(10),
         });
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));

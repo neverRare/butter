@@ -12,6 +12,7 @@
 - `loop`
 - `match`
 - `mut`
+- `ref`
 - `return`
 - `true`
 - `while`

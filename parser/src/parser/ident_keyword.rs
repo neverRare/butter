@@ -10,9 +10,9 @@ use combine::Parser;
 use combine::RangeStream;
 use std::array::IntoIter as ArrayIntoIter;
 
-static KEYWORDS: [&str; 14] = [
-    "_", "break", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut", "return",
-    "true", "while",
+static KEYWORDS: [&str; 15] = [
+    "_", "break", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut", "ref",
+    "return", "true", "while",
 ];
 fn rest(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'

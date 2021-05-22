@@ -3,12 +3,17 @@ use std::collections::HashMap;
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Pattern<'a> {
     Ignore,
-    Var(&'a str),
-    MutVar(&'a str),
+    Var(Var<'a>),
     Struct(StructPattern<'a>),
     Array(Box<[Pattern<'a>]>),
     ArrayWithRest(ArrayWithRest<'a>),
     Tag(TaggedPattern<'a>),
+}
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct Var<'a> {
+    pub ident: &'a str,
+    pub mutable: bool,
+    pub bind_to_ref: bool,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ArrayWithRest<'a> {

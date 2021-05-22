@@ -14,11 +14,17 @@ TODO
 
 ## Variable
 
-TODO
+`mut` means it's mutable, `ref` means it's bound to reference
+
+TODO: better explanation
 
 `var`
 
 `mut var`
+
+`ref mut var`
+
+`ref var`
 
 ## Array
 
