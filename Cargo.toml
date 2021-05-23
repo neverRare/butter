@@ -2,4 +2,5 @@
 members = [
     "parser",
     "type-system",
+    "ir",
 ]

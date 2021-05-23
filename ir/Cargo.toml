@@ -1,0 +1,8 @@
+[package]
+name = "ir"
+version = "0.1.0"
+authors = ["neverRare"]
+edition = "2018"
+
+[dependencies]
+id-arena = "2.2.1"
