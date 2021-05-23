@@ -1,5 +1,6 @@
-use crate::fmt_in_comma;
+use crate::fmt_intersperse;
 use crate::Type;
+use crate::Var;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -7,32 +8,35 @@ use std::fmt::Result as FmtResult;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) enum Cons<'a> {
+    Unit,
     Num,
     Bool,
     Array(Box<Type<'a>>),
     Record(RecordCons<'a>),
     Fun(FunCons<'a>),
     Tuple(Box<[Type<'a>]>),
-    // Nullable(Box<Type<'a>>),
+    Union(Union<'a>),
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct RecordCons<'a> {
     pub fields: HashMap<&'a str, Type<'a>>,
-    pub splat_order: SplatOrder<'a>,
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub(super) enum SplatOrder<'a> {
-    Order(Box<[&'a str]>),
-    Splat(Option<Box<Type<'a>>>),
+    pub order: Option<Box<[&'a str]>>,
+    pub rest: Option<Var<'a>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct FunCons<'a> {
     pub param: Box<Type<'a>>,
     pub result: Box<Type<'a>>,
 }
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub(super) struct Union<'a> {
+    pub union: HashMap<&'a str, Type<'a>>,
+    pub rest: Option<Var<'a>>,
+}
 impl<'a> Display for Cons<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         match self {
+            Self::Unit => write!(fmt, "unit"),
             Self::Num => write!(fmt, "number"),
             Self::Bool => write!(fmt, "boolean"),
             Self::Array(ty) => write!(fmt, "[{}]", ty),
@@ -40,10 +44,11 @@ impl<'a> Display for Cons<'a> {
             Self::Fun(fun) => fun.fmt(fmt),
             Self::Tuple(tuple) => {
                 write!(fmt, "(")?;
-                fmt_in_comma(fmt, tuple.iter(), Type::fmt)?;
+                fmt_intersperse(fmt, tuple.iter(), ", ", Type::fmt)?;
                 write!(fmt, ")")?;
                 Ok(())
             }
+            Self::Union(union) => union.fmt(fmt),
         }
     }
 }
@@ -55,22 +60,34 @@ impl<'a> Display for FunCons<'a> {
 impl<'a> Display for RecordCons<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         write!(fmt, "(")?;
-        match &self.splat_order {
-            SplatOrder::Splat(splat) => {
-                fmt_in_comma(fmt, &self.fields, |(name, ty), fmt| {
+        match (&self.rest, &self.order) {
+            (rest, None) => {
+                fmt_intersperse(fmt, &self.fields, ", ", |(name, ty), fmt| {
                     writeln!(fmt, "{} = {}", name, ty)
                 })?;
-                if let Some(splat) = splat {
-                    write!(fmt, ", *{}", splat)?;
+                if let Some(rest) = rest {
+                    write!(fmt, ", *{}", rest)?;
                 }
             }
-            SplatOrder::Order(order) => {
-                fmt_in_comma(fmt, order.iter(), |name, fmt| {
+            (None, Some(order)) => {
+                fmt_intersperse(fmt, order.iter(), ", ", |name, fmt| {
                     writeln!(fmt, "{} = {}", name, self.fields.get(name).unwrap())
                 })?;
             }
+            _ => unimplemented!(),
         }
         write!(fmt, ")")?;
+        Ok(())
+    }
+}
+impl<'a> Display for Union<'a> {
+    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+        fmt_intersperse(fmt, self.union.iter(), " | ", |(tag, assoc), fmt| {
+            write!(fmt, "@{} {}", tag, assoc)
+        })?;
+        if let Some(rest) = &self.rest {
+            write!(fmt, " | {}", rest)?;
+        }
         Ok(())
     }
 }

@@ -52,15 +52,18 @@ impl<'a> Display for Type<'a> {
 impl<'a> Display for Scheme<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         write!(fmt, "<")?;
-        fmt_in_comma(fmt, &self.for_all, Var::fmt)?;
+        fmt_intersperse(fmt, &self.for_all, ", ", Var::fmt)?;
         write!(fmt, ">")?;
         self.ty.fmt(fmt)?;
         Ok(())
     }
 }
-fn fmt_in_comma<I>(
+// replace this with `Iterator::intersperse` after
+// https://github.com/rust-lang/rust/issues/79524 is resolved
+fn fmt_intersperse<I>(
     fmt: &mut Formatter,
     iter: I,
+    intersperse: &'static str,
     mut fmt_mapper: impl FnMut(I::Item, &mut Formatter) -> FmtResult,
 ) -> FmtResult
 where
@@ -70,7 +73,7 @@ where
     while let Some(item) = iter.next() {
         fmt_mapper(item, fmt)?;
         if iter.peek().is_some() {
-            write!(fmt, ", ")?;
+            intersperse.fmt(fmt)?;
         }
     }
     Ok(())
