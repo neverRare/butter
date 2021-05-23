@@ -60,21 +60,16 @@ impl<'a> Display for FunCons<'a> {
 impl<'a> Display for RecordCons<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         write!(fmt, "(")?;
-        match (&self.rest, &self.order) {
-            (rest, None) => {
-                fmt_intersperse(fmt, &self.fields, ", ", |(name, ty), fmt| {
-                    writeln!(fmt, "{} = {}", name, ty)
-                })?;
-                if let Some(rest) = rest {
-                    write!(fmt, ", *{}", rest)?;
-                }
-            }
-            (None, Some(order)) => {
-                fmt_intersperse(fmt, order.iter(), ", ", |name, fmt| {
-                    writeln!(fmt, "{} = {}", name, self.fields.get(name).unwrap())
-                })?;
-            }
-            _ => unimplemented!(),
+        match &self.order {
+            Some(order) => fmt_intersperse(fmt, order.iter(), ", ", |name, fmt| {
+                writeln!(fmt, "{} = {}", name, self.fields.get(name).unwrap())
+            })?,
+            None => fmt_intersperse(fmt, &self.fields, ", ", |(name, ty), fmt| {
+                writeln!(fmt, "{} = {}", name, ty)
+            })?,
+        }
+        if let Some(rest) = &self.rest {
+            write!(fmt, ", *{}", rest)?;
         }
         write!(fmt, ")")?;
         Ok(())
