@@ -3,6 +3,7 @@ use crate::HashSet;
 use crate::MutType;
 use crate::Subs;
 use crate::Type;
+use crate::Type1;
 use crate::Var;
 use std::array::IntoIter as ArrayIntoIter;
 use std::collections::HashMap;
@@ -23,30 +24,54 @@ pub(super) enum Cons<'a> {
     Union(Union<'a>),
 }
 impl<'a> Cons<'a> {
-    pub fn free_vars(&self) -> HashSet<Var<'a>> {
+    // FIXME: free_type_vars and free_mut_vars are quite repetitive, needs refactor
+    pub fn free_type_vars(&self) -> HashSet<Var<'a>> {
+        match self {
+            Self::Unit | Self::Num | Self::Bool => HashSet::new(),
+            Self::Ref(_, ty) | Self::Array(ty) => ty.free_type_vars(),
+            Self::Fun(fun) => ArrayIntoIter::new([&fun.param, &fun.result])
+                .map(AsRef::as_ref)
+                .flat_map(Type::free_type_vars)
+                .collect(),
+            Self::Record(record) => record
+                .fields
+                .values()
+                .flat_map(Type::free_type_vars)
+                .chain(record.rest.iter().copied())
+                .collect(),
+            Self::Tuple(tuple) => tuple.iter().flat_map(Type::free_type_vars).collect(),
+            Self::Union(union) => union
+                .union
+                .values()
+                .flat_map(Type::free_type_vars)
+                .chain(union.rest.iter().copied())
+                .collect(),
+        }
+    }
+    pub fn free_mut_vars(&self) -> HashSet<Var<'a>> {
         match self {
             Self::Unit | Self::Num | Self::Bool => HashSet::new(),
             Self::Ref(mutability, ty) => mutability
                 .free_vars()
                 .into_iter()
-                .chain(ty.free_vars().into_iter())
+                .chain(ty.free_mut_vars())
                 .collect(),
-            Self::Array(ty) => ty.free_vars(),
+            Self::Array(ty) => ty.free_type_vars(),
             Self::Fun(fun) => ArrayIntoIter::new([&fun.param, &fun.result])
                 .map(AsRef::as_ref)
-                .flat_map(Type::free_vars)
+                .flat_map(Type::free_mut_vars)
                 .collect(),
             Self::Record(record) => record
                 .fields
                 .values()
-                .flat_map(Type::free_vars)
+                .flat_map(Type::free_mut_vars)
                 .chain(record.rest.iter().copied())
                 .collect(),
-            Self::Tuple(tuple) => tuple.iter().flat_map(Type::free_vars).collect(),
+            Self::Tuple(tuple) => tuple.iter().flat_map(Type::free_mut_vars).collect(),
             Self::Union(union) => union
                 .union
                 .values()
-                .flat_map(Type::free_vars)
+                .flat_map(Type::free_mut_vars)
                 .chain(union.rest.iter().copied())
                 .collect(),
         }
@@ -56,7 +81,7 @@ impl<'a> Cons<'a> {
         match self {
             Self::Unit | Self::Num | Self::Bool => (),
             Self::Ref(mutability, ty) => {
-                mutability.substitute(&subs.mutability);
+                mutability.substitute(subs);
                 ty.substitute(subs);
             }
             Self::Array(ty) => ty.substitute(subs),
@@ -70,11 +95,11 @@ impl<'a> Cons<'a> {
                 }
                 if let Some(var) = &record.rest {
                     let var = *var;
-                    match subs.ty.get(&var) {
-                        Some(Type::Var(new_var)) => {
+                    match subs.get(&var) {
+                        Some(Type1::Type(Type::Var(new_var))) => {
                             record.rest = Some(*new_var);
                         }
-                        Some(Type::Cons(Self::Record(new_rest))) => {
+                        Some(Type1::Type(Type::Cons(Self::Record(new_rest)))) => {
                             let new_fields = &new_rest.fields;
                             record.fields.reserve(new_fields.len());
                             for (key, ty) in new_fields {
@@ -84,9 +109,13 @@ impl<'a> Cons<'a> {
                                     record.fields.insert(*key, ty.clone());
                                 }
                             }
+                            match (&mut record.order, &new_rest.order) {
+                                (Some(order), Some(rest)) => order.extend(rest),
+                                _ => record.order = None,
+                            }
                             record.rest = new_rest.rest;
                         }
-                        Some(_) => panic!("substituted record rest var as non-record type"),
+                        Some(_) => panic!("substituted non-record type to record rest"),
                         None => (),
                     }
                 }
@@ -102,11 +131,11 @@ impl<'a> Cons<'a> {
                 }
                 if let Some(var) = &union.rest {
                     let var = *var;
-                    match subs.ty.get(&var) {
-                        Some(Type::Var(new_var)) => {
+                    match subs.get(&var) {
+                        Some(Type1::Type(Type::Var(new_var))) => {
                             union.rest = Some(*new_var);
                         }
-                        Some(Type::Cons(Self::Union(new_rest))) => {
+                        Some(Type1::Type(Type::Cons(Self::Union(new_rest)))) => {
                             let new_fields = &new_rest.union;
                             union.union.reserve(new_fields.len());
                             for (tag, ty) in new_fields {
@@ -118,7 +147,7 @@ impl<'a> Cons<'a> {
                             }
                             union.rest = new_rest.rest;
                         }
-                        Some(_) => panic!("substituted union rest var as non-union type"),
+                        Some(_) => panic!("substituted non-union type to union rest"),
                         None => (),
                     }
                 }
@@ -129,7 +158,7 @@ impl<'a> Cons<'a> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct RecordCons<'a> {
     pub fields: HashMap<&'a str, Type<'a>>,
-    pub order: Option<Box<[&'a str]>>,
+    pub order: Option<Vec<&'a str>>,
     pub rest: Option<Var<'a>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
