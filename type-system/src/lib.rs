@@ -118,6 +118,18 @@ impl<'a> Type1<'a> {
             Self::MutType(_) => Kind::MutType,
         }
     }
+    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
+        match self {
+            Self::Type(ty) => ty.free_vars(),
+            Self::MutType(ty) => ty.free_vars(),
+        }
+    }
+    fn substitute(&mut self, subs: &Subs<'a>) {
+        match self {
+            Self::Type(ty) => ty.substitute(subs),
+            Self::MutType(ty) => ty.substitute(subs),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Scheme<'a> {
@@ -152,7 +164,16 @@ impl<'a> Scheme<'a> {
         let subs = self
             .for_all
             .into_iter()
-            .map(|var| (var.var, var.into()))
+            .map(|var| {
+                let new_var = var_state.new_named(var.var.name);
+                (
+                    var.var,
+                    match var.kind {
+                        Kind::Type => Type1::Type(Type::Var(new_var)),
+                        Kind::MutType => Type1::MutType(MutType::Var(new_var)),
+                    },
+                )
+            })
             .collect();
         let mut ty = self.ty;
         ty.substitute(&subs);
@@ -160,6 +181,12 @@ impl<'a> Scheme<'a> {
     }
 }
 type Subs<'a> = HashMap<Var<'a>, Type1<'a>>;
+fn compose<'a>(subs: &mut Subs<'a>, more_subs: Subs<'a>) {
+    for (_, ty) in subs.iter_mut() {
+        ty.substitute(&more_subs);
+    }
+    subs.extend(more_subs);
+}
 struct Env<'a>(HashMap<Var<'a>, Scheme<'a>>);
 impl<'a> Env<'a> {
     fn hashmap(&self) -> &HashMap<Var<'a>, Scheme<'a>> {
