@@ -6,6 +6,7 @@ use crate::MutType;
 use crate::Subs;
 use crate::Type;
 use crate::Type1;
+use crate::UnifyError;
 use crate::Var;
 use std::array::IntoIter as ArrayIntoIter;
 use std::collections::HashMap;
@@ -137,6 +138,9 @@ impl<'a> Cons<'a> {
                 }
             }
         }
+    }
+    pub fn unify_with(self, other: Self) -> Result<Subs<'a>, UnifyError> {
+        todo!()
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]

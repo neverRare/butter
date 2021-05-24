@@ -69,6 +69,23 @@ impl<'a> Type<'a> {
             Self::Cons(cons) => cons.substitute(subs),
         }
     }
+    fn unify_with(self, other: Self) -> Result<Subs<'a>, UnifyError> {
+        match (self, other) {
+            (Self::Cons(cons1), Self::Cons(cons2)) => cons1.unify_with(cons2),
+            (Self::Var(var), ty) | (ty, Self::Var(var)) => {
+                if ty == Self::Var(var) {
+                    Ok(HashMap::new())
+                } else if ty.free_vars().contains(&KindedVar {
+                    kind: Kind::Type,
+                    var,
+                }) {
+                    Err(UnifyError::InfiniteOccurrence)
+                } else {
+                    Ok(once((var, Type1::Type(ty))).collect())
+                }
+            }
+        }
+    }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum MutType<'a> {
@@ -95,6 +112,24 @@ impl<'a> MutType<'a> {
                     Type1::Type(_) => panic!("substituted type to mut type"),
                 }
             }
+        }
+    }
+    fn unify_with(self, other: Self) -> Result<Subs<'a>, UnifyError> {
+        match (self, other) {
+            (Self::Mut, Self::Mut) | (Self::Imm, Self::Imm) => Ok(HashMap::new()),
+            (Self::Var(var), ty) | (ty, Self::Var(var)) => {
+                if ty == Self::Var(var) {
+                    Ok(HashMap::new())
+                } else if ty.free_vars().contains(&KindedVar {
+                    kind: Kind::MutType,
+                    var,
+                }) {
+                    Err(UnifyError::InfiniteOccurrence)
+                } else {
+                    Ok(once((var, Type1::MutType(ty))).collect())
+                }
+            }
+            _ => Err(UnifyError::MismatchCons),
         }
     }
 }
@@ -220,6 +255,10 @@ impl<'a> Env<'a> {
             .collect();
         Scheme { for_all, ty }
     }
+}
+enum UnifyError {
+    MismatchCons,
+    InfiniteOccurrence,
 }
 impl<'a> Display for Var<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
