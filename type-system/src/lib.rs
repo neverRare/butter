@@ -56,20 +56,21 @@ impl<'a> Type<'a> {
             Self::Cons(cons) => cons.free_vars(),
         }
     }
-    fn substitute(&mut self, subs: &Subs<'a>) {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Var(var) => {
                 if let Some(ty) = subs.get(var) {
                     match ty {
                         Type1::Type(ty) => *self = ty.clone(),
-                        Type1::MutType(_) => panic!("substituted mut type to type"),
+                        Type1::MutType(_) => return Err(TypeError::MismatchKind),
                     }
                 }
             }
-            Self::Cons(cons) => cons.substitute(subs),
+            Self::Cons(cons) => cons.substitute(subs)?,
         }
+        Ok(())
     }
-    fn unify_with(self, other: Self) -> Result<Subs<'a>, UnifyError> {
+    fn unify_with(self, other: Self) -> Result<Subs<'a>, TypeError> {
         match (self, other) {
             (Self::Cons(cons1), Self::Cons(cons2)) => cons1.unify_with(cons2),
             (Self::Var(var), ty) | (ty, Self::Var(var)) => {
@@ -79,7 +80,7 @@ impl<'a> Type<'a> {
                     kind: Kind::Type,
                     var,
                 }) {
-                    Err(UnifyError::InfiniteOccurrence)
+                    Err(TypeError::InfiniteOccurrence)
                 } else {
                     Ok(once((var, Type1::Type(ty))).collect())
                 }
@@ -104,17 +105,18 @@ impl<'a> MutType<'a> {
             Self::Imm | Self::Mut => HashSet::new(),
         }
     }
-    fn substitute(&mut self, subs: &Subs<'a>) {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         if let Self::Var(var) = self {
             if let Some(ty) = subs.get(var) {
                 match ty {
                     Type1::MutType(mutability) => *self = *mutability,
-                    Type1::Type(_) => panic!("substituted type to mut type"),
+                    Type1::Type(_) => return Err(TypeError::MismatchKind),
                 }
             }
         }
+        Ok(())
     }
-    fn unify_with(self, other: Self) -> Result<Subs<'a>, UnifyError> {
+    fn unify_with(self, other: Self) -> Result<Subs<'a>, TypeError> {
         match (self, other) {
             (Self::Mut, Self::Mut) | (Self::Imm, Self::Imm) => Ok(HashMap::new()),
             (Self::Var(var), ty) | (ty, Self::Var(var)) => {
@@ -124,12 +126,12 @@ impl<'a> MutType<'a> {
                     kind: Kind::MutType,
                     var,
                 }) {
-                    Err(UnifyError::InfiniteOccurrence)
+                    Err(TypeError::InfiniteOccurrence)
                 } else {
                     Ok(once((var, Type1::MutType(ty))).collect())
                 }
             }
-            _ => Err(UnifyError::MismatchCons),
+            _ => Err(TypeError::MismatchCons),
         }
     }
 }
@@ -159,7 +161,7 @@ impl<'a> Type1<'a> {
             Self::MutType(ty) => ty.free_vars(),
         }
     }
-    fn substitute(&mut self, subs: &Subs<'a>) {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Type(ty) => ty.substitute(subs),
             Self::MutType(ty) => ty.substitute(subs),
@@ -179,7 +181,7 @@ impl<'a> Scheme<'a> {
             .filter(|var| !self.for_all.contains(var))
             .collect()
     }
-    fn substitute(&mut self, subs: &Subs<'a>) {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         let subs = subs
             .iter()
             .filter_map(|(var, ty)| {
@@ -193,9 +195,10 @@ impl<'a> Scheme<'a> {
                 }
             })
             .collect();
-        self.ty.substitute(&subs);
+        self.ty.substitute(&subs)?;
+        Ok(())
     }
-    fn instantiate(self, var_state: &mut VarState<'a>) -> Type<'a> {
+    fn instantiate(self, var_state: &mut VarState<'a>) -> Result<Type<'a>, TypeError> {
         let subs = self
             .for_all
             .into_iter()
@@ -211,16 +214,17 @@ impl<'a> Scheme<'a> {
             })
             .collect();
         let mut ty = self.ty;
-        ty.substitute(&subs);
-        ty
+        ty.substitute(&subs)?;
+        Ok(ty)
     }
 }
 type Subs<'a> = HashMap<Var<'a>, Type1<'a>>;
-fn compose<'a>(subs: &mut Subs<'a>, more_subs: Subs<'a>) {
+fn compose<'a>(subs: &mut Subs<'a>, more_subs: Subs<'a>) -> Result<(), TypeError> {
     for (_, ty) in subs.iter_mut() {
-        ty.substitute(&more_subs);
+        ty.substitute(&more_subs)?;
     }
     subs.extend(more_subs);
+    Ok(())
 }
 struct Env<'a>(HashMap<Var<'a>, Scheme<'a>>);
 impl<'a> Env<'a> {
@@ -241,10 +245,11 @@ impl<'a> Env<'a> {
             .flat_map(Scheme::free_vars)
             .collect()
     }
-    fn substitute(&mut self, subs: &Subs<'a>) {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         for (_, ty) in self.hashmap_mut() {
-            ty.substitute(subs);
+            ty.substitute(subs)?;
         }
+        Ok(())
     }
     fn generalize(&self, ty: Type<'a>) -> Scheme<'a> {
         let env_free_vars = self.free_vars();
@@ -256,9 +261,11 @@ impl<'a> Env<'a> {
         Scheme { for_all, ty }
     }
 }
-enum UnifyError {
+enum TypeError {
     MismatchCons,
+    MismatchKind,
     InfiniteOccurrence,
+    Overlap,
 }
 impl<'a> Display for Var<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {

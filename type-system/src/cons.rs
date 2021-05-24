@@ -6,7 +6,7 @@ use crate::MutType;
 use crate::Subs;
 use crate::Type;
 use crate::Type1;
-use crate::UnifyError;
+use crate::TypeError;
 use crate::Var;
 use std::array::IntoIter as ArrayIntoIter;
 use std::collections::HashMap;
@@ -61,22 +61,21 @@ impl<'a> Cons<'a> {
                 .collect(),
         }
     }
-    // NOTE: this contains panics, should they be handled as Result?
-    pub fn substitute(&mut self, subs: &Subs<'a>) {
+    pub fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Unit | Self::Num | Self::Bool => (),
             Self::Ref(mutability, ty) => {
-                mutability.substitute(subs);
-                ty.substitute(subs);
+                mutability.substitute(subs)?;
+                ty.substitute(subs)?;
             }
-            Self::Array(ty) => ty.substitute(subs),
+            Self::Array(ty) => ty.substitute(subs)?,
             Self::Fun(fun) => {
-                fun.param.substitute(subs);
-                fun.result.substitute(subs);
+                fun.param.substitute(subs)?;
+                fun.result.substitute(subs)?;
             }
             Self::Record(record) => {
                 for (_, ty) in &mut record.fields {
-                    ty.substitute(subs);
+                    ty.substitute(subs)?;
                 }
                 if let Some(var) = &record.rest {
                     let var = *var;
@@ -89,7 +88,7 @@ impl<'a> Cons<'a> {
                             record.fields.reserve(new_fields.len());
                             for (key, ty) in new_fields {
                                 if record.fields.contains_key(key) {
-                                    panic!("overlapping key {}", key);
+                                    return Err(TypeError::Overlap);
                                 } else {
                                     record.fields.insert(*key, ty.clone());
                                 }
@@ -100,19 +99,19 @@ impl<'a> Cons<'a> {
                             }
                             record.rest = new_rest.rest;
                         }
-                        Some(_) => panic!("substituted non-record type to record rest"),
+                        Some(_) => return Err(TypeError::MismatchCons),
                         None => (),
                     }
                 }
             }
             Self::Tuple(tuple) => {
                 for ty in &mut tuple[..] {
-                    ty.substitute(subs);
+                    ty.substitute(subs)?;
                 }
             }
             Self::Union(union) => {
                 for (_, ty) in &mut union.union {
-                    ty.substitute(subs);
+                    ty.substitute(subs)?;
                 }
                 if let Some(var) = &union.rest {
                     let var = *var;
@@ -125,21 +124,22 @@ impl<'a> Cons<'a> {
                             union.union.reserve(new_fields.len());
                             for (tag, ty) in new_fields {
                                 if union.union.contains_key(tag) {
-                                    panic!("overlapping tag {}", tag);
+                                    return Err(TypeError::Overlap);
                                 } else {
                                     union.union.insert(*tag, ty.clone());
                                 }
                             }
                             union.rest = new_rest.rest;
                         }
-                        Some(_) => panic!("substituted non-union type to union rest"),
+                        Some(_) => return Err(TypeError::MismatchCons),
                         None => (),
                     }
                 }
             }
         }
+        Ok(())
     }
-    pub fn unify_with(self, other: Self) -> Result<Subs<'a>, UnifyError> {
+    pub fn unify_with(self, other: Self) -> Result<Subs<'a>, TypeError> {
         todo!()
     }
 }
