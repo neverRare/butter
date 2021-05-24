@@ -1,5 +1,7 @@
 use crate::fmt_intersperse;
 use crate::HashSet;
+use crate::Kind;
+use crate::KindedVar;
 use crate::MutType;
 use crate::Subs;
 use crate::Type;
@@ -24,55 +26,37 @@ pub(super) enum Cons<'a> {
     Union(Union<'a>),
 }
 impl<'a> Cons<'a> {
-    // FIXME: free_type_vars and free_mut_vars are quite repetitive, needs refactor
-    pub fn free_type_vars(&self) -> HashSet<Var<'a>> {
+    pub fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
             Self::Unit | Self::Num | Self::Bool => HashSet::new(),
-            Self::Ref(_, ty) | Self::Array(ty) => ty.free_type_vars(),
+            Self::Ref(mutability, ty) => {
+                ArrayIntoIter::new([mutability.free_vars(), ty.free_vars()])
+                    .flatten()
+                    .collect()
+            }
+            Self::Array(ty) => ty.free_vars(),
             Self::Fun(fun) => ArrayIntoIter::new([&fun.param, &fun.result])
                 .map(AsRef::as_ref)
-                .flat_map(Type::free_type_vars)
+                .flat_map(Type::free_vars)
                 .collect(),
             Self::Record(record) => record
                 .fields
                 .values()
-                .flat_map(Type::free_type_vars)
-                .chain(record.rest.iter().copied())
+                .flat_map(Type::free_vars)
+                .chain(record.rest.iter().map(|var| KindedVar {
+                    kind: Kind::Type,
+                    var: *var,
+                }))
                 .collect(),
-            Self::Tuple(tuple) => tuple.iter().flat_map(Type::free_type_vars).collect(),
+            Self::Tuple(tuple) => tuple.iter().flat_map(Type::free_vars).collect(),
             Self::Union(union) => union
                 .union
                 .values()
-                .flat_map(Type::free_type_vars)
-                .chain(union.rest.iter().copied())
-                .collect(),
-        }
-    }
-    pub fn free_mut_vars(&self) -> HashSet<Var<'a>> {
-        match self {
-            Self::Unit | Self::Num | Self::Bool => HashSet::new(),
-            Self::Ref(mutability, ty) => mutability
-                .free_vars()
-                .into_iter()
-                .chain(ty.free_mut_vars())
-                .collect(),
-            Self::Array(ty) => ty.free_type_vars(),
-            Self::Fun(fun) => ArrayIntoIter::new([&fun.param, &fun.result])
-                .map(AsRef::as_ref)
-                .flat_map(Type::free_mut_vars)
-                .collect(),
-            Self::Record(record) => record
-                .fields
-                .values()
-                .flat_map(Type::free_mut_vars)
-                .chain(record.rest.iter().copied())
-                .collect(),
-            Self::Tuple(tuple) => tuple.iter().flat_map(Type::free_mut_vars).collect(),
-            Self::Union(union) => union
-                .union
-                .values()
-                .flat_map(Type::free_mut_vars)
-                .chain(union.rest.iter().copied())
+                .flat_map(Type::free_vars)
+                .chain(union.rest.iter().map(|var| KindedVar {
+                    kind: Kind::Type,
+                    var: *var,
+                }))
                 .collect(),
         }
     }

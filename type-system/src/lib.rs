@@ -30,22 +30,30 @@ impl<'a> VarState<'a> {
         Var { name, id }
     }
 }
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+enum Kind {
+    Type,
+    MutType,
+}
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+struct KindedVar<'a> {
+    kind: Kind,
+    var: Var<'a>,
+}
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum Type<'a> {
     Var(Var<'a>),
     Cons(Cons<'a>),
 }
 impl<'a> Type<'a> {
-    fn free_type_vars(&self) -> HashSet<Var<'a>> {
+    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
-            Self::Var(var) => once(*var).collect(),
-            Self::Cons(cons) => cons.free_type_vars(),
-        }
-    }
-    fn free_mut_vars(&self) -> HashSet<Var<'a>> {
-        match self {
-            Self::Var(var) => HashSet::new(),
-            Self::Cons(cons) => cons.free_mut_vars(),
+            Self::Var(var) => once(KindedVar {
+                kind: Kind::Type,
+                var: *var,
+            })
+            .collect(),
+            Self::Cons(cons) => cons.free_vars(),
         }
     }
     fn substitute(&mut self, subs: &Subs<'a>) {
@@ -69,9 +77,13 @@ enum MutType<'a> {
     Mut,
 }
 impl<'a> MutType<'a> {
-    fn free_vars(&self) -> HashSet<Var<'a>> {
+    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
-            Self::Var(var) => once(*var).collect(),
+            Self::Var(var) => once(KindedVar {
+                kind: Kind::MutType,
+                var: *var,
+            })
+            .collect(),
             Self::Imm | Self::Mut => HashSet::new(),
         }
     }
@@ -91,32 +103,43 @@ enum Type1<'a> {
     Type(Type<'a>),
     MutType(MutType<'a>),
 }
+impl<'a> From<KindedVar<'a>> for Type1<'a> {
+    fn from(var: KindedVar<'a>) -> Self {
+        match var.kind {
+            Kind::Type => Self::Type(Type::Var(var.var)),
+            Kind::MutType => Self::MutType(MutType::Var(var.var)),
+        }
+    }
+}
+impl<'a> Type1<'a> {
+    fn kind(&self) -> Kind {
+        match self {
+            Self::Type(_) => Kind::Type,
+            Self::MutType(_) => Kind::MutType,
+        }
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Scheme<'a> {
-    for_all_ty: HashSet<Var<'a>>,
-    for_all_mut: HashSet<Var<'a>>,
+    for_all: HashSet<KindedVar<'a>>,
     ty: Type<'a>,
 }
 impl<'a> Scheme<'a> {
-    fn free_type_vars(&self) -> HashSet<Var<'a>> {
+    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         self.ty
-            .free_type_vars()
+            .free_vars()
             .into_iter()
-            .filter(|var| !self.for_all_ty.contains(var))
-            .collect()
-    }
-    fn free_mut_vars(&self) -> HashSet<Var<'a>> {
-        self.ty
-            .free_mut_vars()
-            .into_iter()
-            .filter(|var| !self.for_all_mut.contains(var))
+            .filter(|var| !self.for_all.contains(var))
             .collect()
     }
     fn substitute(&mut self, subs: &Subs<'a>) {
         let subs = subs
             .iter()
             .filter_map(|(var, ty)| {
-                if self.for_all_ty.contains(var) || self.for_all_mut.contains(var) {
+                if self.for_all.contains(&KindedVar {
+                    kind: ty.kind(),
+                    var: *var,
+                }) {
                     None
                 } else {
                     Some((*var, ty.clone()))
@@ -126,18 +149,11 @@ impl<'a> Scheme<'a> {
         self.ty.substitute(&subs);
     }
     fn instantiate(self, var_state: &mut VarState<'a>) -> Type<'a> {
-        let mut subs = HashMap::with_capacity(self.for_all_ty.len() + self.for_all_mut.len());
-        subs.extend(
-            self.for_all_ty
-                .into_iter()
-                .map(|var| (var, Type1::Type(Type::Var(var_state.new_named(var.name))))),
-        );
-        subs.extend(self.for_all_mut.into_iter().map(|var| {
-            (
-                var,
-                Type1::MutType(MutType::Var(var_state.new_named(var.name))),
-            )
-        }));
+        let subs = self
+            .for_all
+            .into_iter()
+            .map(|var| (var.var, var.into()))
+            .collect();
         let mut ty = self.ty;
         ty.substitute(&subs);
         ty
@@ -157,16 +173,10 @@ impl<'a> Env<'a> {
     fn remove(&mut self, var: Var<'a>) {
         self.hashmap_mut().remove(&var);
     }
-    fn free_type_vars(&self) -> HashSet<Var<'a>> {
+    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         self.hashmap()
             .values()
-            .flat_map(Scheme::free_type_vars)
-            .collect()
-    }
-    fn free_mut_vars(&self) -> HashSet<Var<'a>> {
-        self.hashmap()
-            .values()
-            .flat_map(Scheme::free_mut_vars)
+            .flat_map(Scheme::free_vars)
             .collect()
     }
     fn substitute(&mut self, subs: &Subs<'a>) {
@@ -175,28 +185,23 @@ impl<'a> Env<'a> {
         }
     }
     fn generalize(&self, ty: Type<'a>) -> Scheme<'a> {
-        let env_free_type_vars = self.free_type_vars();
-        let env_free_mut_vars = self.free_mut_vars();
-        let for_all_ty = ty
-            .free_type_vars()
+        let env_free_vars = self.free_vars();
+        let for_all = ty
+            .free_vars()
             .into_iter()
-            .filter(|var| !env_free_type_vars.contains(var))
+            .filter(|var| !env_free_vars.contains(var))
             .collect();
-        let for_all_mut = ty
-            .free_mut_vars()
-            .into_iter()
-            .filter(|var| !env_free_mut_vars.contains(var))
-            .collect();
-        Scheme {
-            for_all_ty,
-            for_all_mut,
-            ty,
-        }
+        Scheme { for_all, ty }
     }
 }
 impl<'a> Display for Var<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         write!(fmt, "{}#{}", self.name, self.id)
+    }
+}
+impl<'a> Display for KindedVar<'a> {
+    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+        self.var.fmt(fmt)
     }
 }
 impl<'a> Display for Type<'a> {
@@ -219,12 +224,7 @@ impl<'a> Display for MutType<'a> {
 impl<'a> Display for Scheme<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         write!(fmt, "<")?;
-        fmt_intersperse(
-            fmt,
-            self.for_all_ty.iter().chain(self.for_all_mut.iter()),
-            ", ",
-            Var::fmt,
-        )?;
+        fmt_intersperse(fmt, &self.for_all, ", ", KindedVar::fmt)?;
         write!(fmt, ">")?;
         self.ty.fmt(fmt)?;
         Ok(())
