@@ -1,5 +1,6 @@
 use crate::fmt_intersperse;
 use crate::HashSet;
+use crate::MutType;
 use crate::Subs;
 use crate::Type;
 use crate::Var;
@@ -14,8 +15,7 @@ pub(super) enum Cons<'a> {
     Unit,
     Num,
     Bool,
-    Ref(Box<Type<'a>>),
-    RefMut(Box<Type<'a>>),
+    Ref(MutType<'a>, Box<Type<'a>>),
     Array(Box<Type<'a>>),
     Record(RecordCons<'a>),
     Fun(FunCons<'a>),
@@ -26,7 +26,12 @@ impl<'a> Cons<'a> {
     pub fn free_vars(&self) -> HashSet<Var<'a>> {
         match self {
             Self::Unit | Self::Num | Self::Bool => HashSet::new(),
-            Self::Ref(ty) | Self::RefMut(ty) | Self::Array(ty) => ty.free_vars(),
+            Self::Ref(mutability, ty) => mutability
+                .free_vars()
+                .into_iter()
+                .chain(ty.free_vars().into_iter())
+                .collect(),
+            Self::Array(ty) => ty.free_vars(),
             Self::Fun(fun) => ArrayIntoIter::new([&fun.param, &fun.result])
                 .map(AsRef::as_ref)
                 .flat_map(Type::free_vars)
@@ -50,7 +55,11 @@ impl<'a> Cons<'a> {
     pub fn substitute(&mut self, subs: &Subs<'a>) {
         match self {
             Self::Unit | Self::Num | Self::Bool => (),
-            Self::Ref(ty) | Self::RefMut(ty) | Self::Array(ty) => ty.substitute(subs),
+            Self::Ref(mutability, ty) => {
+                mutability.substitute(&subs.mutability);
+                ty.substitute(subs);
+            }
+            Self::Array(ty) => ty.substitute(subs),
             Self::Fun(fun) => {
                 fun.param.substitute(subs);
                 fun.result.substitute(subs);
@@ -61,7 +70,7 @@ impl<'a> Cons<'a> {
                 }
                 if let Some(var) = &record.rest {
                     let var = *var;
-                    match subs.get(&var) {
+                    match subs.ty.get(&var) {
                         Some(Type::Var(new_var)) => {
                             record.rest = Some(*new_var);
                         }
@@ -93,7 +102,7 @@ impl<'a> Cons<'a> {
                 }
                 if let Some(var) = &union.rest {
                     let var = *var;
-                    match subs.get(&var) {
+                    match subs.ty.get(&var) {
                         Some(Type::Var(new_var)) => {
                             union.rest = Some(*new_var);
                         }
@@ -139,8 +148,7 @@ impl<'a> Display for Cons<'a> {
             Self::Unit => write!(fmt, "unit"),
             Self::Num => write!(fmt, "number"),
             Self::Bool => write!(fmt, "boolean"),
-            Self::Ref(ty) => write!(fmt, "&{}", ty),
-            Self::RefMut(ty) => write!(fmt, "&mut {}", ty),
+            Self::Ref(mutability, ty) => write!(fmt, "&{} {}", mutability, ty),
             Self::Array(ty) => write!(fmt, "[{}]", ty),
             Self::Record(record) => record.fmt(fmt),
             Self::Fun(fun) => fun.fmt(fmt),

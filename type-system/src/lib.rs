@@ -28,11 +28,32 @@ impl<'a> Type<'a> {
     fn substitute(&mut self, subs: &Subs<'a>) {
         match self {
             Self::Var(var) => {
-                if let Some(ty) = subs.get(var) {
+                if let Some(ty) = subs.ty.get(var) {
                     *self = ty.clone()
                 }
             }
             Self::Cons(cons) => cons.substitute(subs),
+        }
+    }
+}
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum MutType<'a> {
+    Var(Var<'a>),
+    Imm,
+    Mut,
+}
+impl<'a> MutType<'a> {
+    fn free_vars(&self) -> HashSet<Var<'a>> {
+        match self {
+            Self::Var(var) => once(*var).collect(),
+            Self::Imm | Self::Mut => HashSet::new(),
+        }
+    }
+    fn substitute(&mut self, subs: &HashMap<Var<'a>, Self>) {
+        if let Self::Var(var) = self {
+            if let Some(mutability) = subs.get(var) {
+                *self = *mutability;
+            }
         }
     }
 }
@@ -50,20 +71,24 @@ impl<'a> Scheme<'a> {
             .collect()
     }
     fn substitute(&mut self, subs: &Subs<'a>) {
-        let subs = subs
-            .iter()
-            .filter_map(|(var, ty)| {
-                if self.for_all.contains(var) {
-                    None
-                } else {
-                    Some((*var, ty.clone()))
-                }
-            })
-            .collect();
-        self.ty.substitute(&subs)
+        let mut subs = subs.clone();
+        subs.filter_off(&self.for_all);
+        self.ty.substitute(&subs);
     }
 }
-type Subs<'a> = HashMap<Var<'a>, Type<'a>>;
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct Subs<'a> {
+    ty: HashMap<Var<'a>, Type<'a>>,
+    mutability: HashMap<Var<'a>, MutType<'a>>,
+}
+impl<'a> Subs<'a> {
+    fn filter_off(&mut self, vars: &HashSet<Var<'a>>) {
+        for var in vars {
+            self.ty.remove(var);
+            self.mutability.remove(var);
+        }
+    }
+}
 struct Env<'a>(HashMap<Var<'a>, Scheme<'a>>);
 impl<'a> Env<'a> {
     fn hashmap(&self) -> &HashMap<Var<'a>, Scheme<'a>> {
@@ -108,6 +133,15 @@ impl<'a> Display for Type<'a> {
         match &self {
             Type::Var(var) => var.fmt(fmt),
             Type::Cons(cons) => cons.fmt(fmt),
+        }
+    }
+}
+impl<'a> Display for MutType<'a> {
+    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+        match &self {
+            Self::Var(var) => var.fmt(fmt),
+            Self::Imm => write!(fmt, "imm"),
+            Self::Mut => write!(fmt, "mut"),
         }
     }
 }
