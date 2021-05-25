@@ -8,11 +8,13 @@ use crate::Type;
 use crate::Type1;
 use crate::TypeError;
 use crate::Var;
+use crate::VarState;
 use std::array::IntoIter as ArrayIntoIter;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
+use std::hash::Hash;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) enum Cons<'a> {
@@ -22,8 +24,8 @@ pub(super) enum Cons<'a> {
     Ref(MutType<'a>, Box<Type<'a>>),
     Array(Box<Type<'a>>),
     Record(RecordCons<'a>),
-    Fun(FunCons<'a>),
-    Tuple(Box<[Type<'a>]>),
+    Fun(Box<Type<'a>>, Box<Type<'a>>),
+    // Tuple(Box<[Type<'a>]>),
     Union(Union<'a>),
 }
 impl<'a> Cons<'a> {
@@ -36,10 +38,12 @@ impl<'a> Cons<'a> {
                     .collect()
             }
             Self::Array(ty) => ty.free_vars(),
-            Self::Fun(fun) => ArrayIntoIter::new([&fun.param, &fun.result])
+            Self::Fun(param, ret) => ArrayIntoIter::new([param, ret])
                 .map(AsRef::as_ref)
                 .flat_map(Type::free_vars)
                 .collect(),
+            // FIXME: the following match arms are mostly copy-pasted
+            // needs refactor
             Self::Record(record) => record
                 .fields
                 .values()
@@ -49,7 +53,6 @@ impl<'a> Cons<'a> {
                     var: *var,
                 }))
                 .collect(),
-            Self::Tuple(tuple) => tuple.iter().flat_map(Type::free_vars).collect(),
             Self::Union(union) => union
                 .union
                 .values()
@@ -69,19 +72,21 @@ impl<'a> Cons<'a> {
                 ty.substitute(subs)?;
             }
             Self::Array(ty) => ty.substitute(subs)?,
-            Self::Fun(fun) => {
-                fun.param.substitute(subs)?;
-                fun.result.substitute(subs)?;
+            Self::Fun(param, ret) => {
+                param.substitute(subs)?;
+                ret.substitute(subs)?;
             }
+            // FIXME: the following match arms are mostly copy-pasted
+            // needs refactor
             Self::Record(record) => {
                 for (_, ty) in &mut record.fields {
                     ty.substitute(subs)?;
                 }
                 if let Some(var) = &record.rest {
                     let var = *var;
-                    match subs.get(&var) {
+                    match subs.get(var) {
                         Some(Type1::Type(Type::Var(new_var))) => {
-                            record.rest = Some(*new_var);
+                            record.rest = Some(new_var);
                         }
                         Some(Type1::Type(Type::Cons(Self::Record(new_rest)))) => {
                             let new_fields = &new_rest.fields;
@@ -93,20 +98,11 @@ impl<'a> Cons<'a> {
                                     record.fields.insert(*key, ty.clone());
                                 }
                             }
-                            match (&mut record.order, &new_rest.order) {
-                                (Some(order), Some(rest)) => order.extend(rest),
-                                _ => record.order = None,
-                            }
                             record.rest = new_rest.rest;
                         }
                         Some(_) => return Err(TypeError::MismatchCons),
                         None => (),
                     }
-                }
-            }
-            Self::Tuple(tuple) => {
-                for ty in &mut tuple[..] {
-                    ty.substitute(subs)?;
                 }
             }
             Self::Union(union) => {
@@ -115,9 +111,9 @@ impl<'a> Cons<'a> {
                 }
                 if let Some(var) = &union.rest {
                     let var = *var;
-                    match subs.get(&var) {
+                    match subs.get(var) {
                         Some(Type1::Type(Type::Var(new_var))) => {
-                            union.rest = Some(*new_var);
+                            union.rest = Some(new_var);
                         }
                         Some(Type1::Type(Type::Cons(Self::Union(new_rest)))) => {
                             let new_fields = &new_rest.union;
@@ -139,25 +135,145 @@ impl<'a> Cons<'a> {
         }
         Ok(())
     }
-    pub fn unify_with(self, other: Self) -> Result<Subs<'a>, TypeError> {
-        todo!()
+    pub fn unify_with(
+        self,
+        other: Self,
+        var_state: &mut VarState<'a>,
+    ) -> Result<Subs<'a>, TypeError> {
+        let mut subs = Subs::new();
+        match (self, other) {
+            (Self::Unit, Self::Unit) | (Self::Bool, Self::Bool) | (Self::Num, Self::Num) => (),
+            (Self::Ref(mut1, ty1), Self::Ref(mut2, ty2)) => {
+                subs.compose_with(mut1.unify_with(mut2)?)?;
+                subs.compose_with(ty1.unify_with(*ty2, var_state)?)?;
+            }
+            (Self::Array(ty1), Self::Array(ty2)) => {
+                subs.compose_with(ty1.unify_with(*ty2, var_state)?)?
+            }
+            (Self::Fun(param1, ret1), Self::Fun(param2, ret2)) => {
+                subs.compose_with(param1.unify_with(*param2, var_state)?)?;
+                subs.compose_with(ret1.unify_with(*ret2, var_state)?)?;
+            }
+            // FIXME: the following match arms are mostly copy-pasted
+            // needs refactor
+            (Self::Record(rec1), Self::Record(rec2)) => {
+                let mut map1 = rec1.fields;
+                let mut map2 = rec2.fields;
+                for (_, (ty1, ty2)) in intersection(&mut map1, &mut map2) {
+                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                }
+                match (rec1.rest, map1, rec2.rest, map2) {
+                    (Some(rest1), map1, Some(rest2), map2) => {
+                        let new_var = var_state.new_var();
+                        subs.insert(
+                            rest1,
+                            Type1::Type(Type::Cons(Cons::Record(RecordCons {
+                                fields: map2,
+                                rest: Some(new_var),
+                            }))),
+                        );
+                        subs.insert(
+                            rest2,
+                            Type1::Type(Type::Cons(Cons::Record(RecordCons {
+                                fields: map1,
+                                rest: Some(new_var),
+                            }))),
+                        );
+                    }
+                    (Some(rest1), map1, None, map2) | (None, map2, Some(rest1), map1) => {
+                        if map1.len() != 0 {
+                            return Err(TypeError::MismatchArity);
+                        }
+                        subs.insert(
+                            rest1,
+                            Type1::Type(Type::Cons(Cons::Record(RecordCons {
+                                fields: map2,
+                                rest: None,
+                            }))),
+                        );
+                    }
+                    (None, map1, None, map2) => {
+                        if map1.len() != 0 || map2.len() != 0 {
+                            return Err(TypeError::MismatchArity);
+                        }
+                    }
+                }
+            }
+            (Self::Union(union1), Self::Union(union2)) => {
+                let mut map1 = union1.union;
+                let mut map2 = union2.union;
+                for (_, (ty1, ty2)) in intersection(&mut map1, &mut map2) {
+                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                }
+                match (union1.rest, map1, union2.rest, map2) {
+                    (Some(rest1), map1, Some(rest2), map2) => {
+                        let new_var = var_state.new_var();
+                        subs.insert(
+                            rest1,
+                            Type1::Type(Type::Cons(Cons::Union(Union {
+                                union: map2,
+                                rest: Some(new_var),
+                            }))),
+                        );
+                        subs.insert(
+                            rest2,
+                            Type1::Type(Type::Cons(Cons::Union(Union {
+                                union: map1,
+                                rest: Some(new_var),
+                            }))),
+                        );
+                    }
+                    (Some(rest1), map1, None, map2) | (None, map2, Some(rest1), map1) => {
+                        if map1.len() != 0 {
+                            return Err(TypeError::MismatchArity);
+                        }
+                        subs.insert(
+                            rest1,
+                            Type1::Type(Type::Cons(Cons::Union(Union {
+                                union: map2,
+                                rest: None,
+                            }))),
+                        );
+                    }
+                    (None, map1, None, map2) => {
+                        if map1.len() != 0 || map2.len() != 0 {
+                            return Err(TypeError::MismatchArity);
+                        }
+                    }
+                }
+            }
+            _ => return Err(TypeError::MismatchCons),
+        }
+        Ok(subs)
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct RecordCons<'a> {
     pub fields: HashMap<&'a str, Type<'a>>,
-    pub order: Option<Vec<&'a str>>,
     pub rest: Option<Var<'a>>,
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub(super) struct FunCons<'a> {
-    pub param: Box<Type<'a>>,
-    pub result: Box<Type<'a>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct Union<'a> {
     pub union: HashMap<&'a str, Type<'a>>,
     pub rest: Option<Var<'a>>,
+}
+fn intersection<K, A, B>(a: &mut HashMap<K, A>, b: &mut HashMap<K, B>) -> HashMap<K, (A, B)>
+where
+    K: Hash + Eq + Clone,
+{
+    // TODO: avoid allocation, return an iterator instead of `HashMap`, and
+    // remove the `Clone` requirement for `K`
+    a.keys()
+        .filter(|key| b.contains_key(key))
+        .cloned()
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|key| {
+            let a = a.remove(&key).unwrap();
+            let b = b.remove(&key).unwrap();
+            (key, (a, b))
+        })
+        .collect()
 }
 impl<'a> Display for Cons<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
@@ -168,33 +284,17 @@ impl<'a> Display for Cons<'a> {
             Self::Ref(mutability, ty) => write!(fmt, "&{} {}", mutability, ty),
             Self::Array(ty) => write!(fmt, "[{}]", ty),
             Self::Record(record) => record.fmt(fmt),
-            Self::Fun(fun) => fun.fmt(fmt),
-            Self::Tuple(tuple) => {
-                write!(fmt, "(")?;
-                fmt_intersperse(fmt, tuple.iter(), ", ", Type::fmt)?;
-                write!(fmt, ")")?;
-                Ok(())
-            }
+            Self::Fun(param, ret) => write!(fmt, "{} => {}", param, ret),
             Self::Union(union) => union.fmt(fmt),
         }
-    }
-}
-impl<'a> Display for FunCons<'a> {
-    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
-        write!(fmt, "{} => {}", self.param, self.result)
     }
 }
 impl<'a> Display for RecordCons<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         write!(fmt, "(")?;
-        match &self.order {
-            Some(order) => fmt_intersperse(fmt, order.iter(), ", ", |name, fmt| {
-                writeln!(fmt, "{} = {}", name, self.fields.get(name).unwrap())
-            })?,
-            None => fmt_intersperse(fmt, &self.fields, ", ", |(name, ty), fmt| {
-                writeln!(fmt, "{} = {}", name, ty)
-            })?,
-        }
+        fmt_intersperse(fmt, &self.fields, ", ", |(name, ty), fmt| {
+            writeln!(fmt, "{} = {}", name, ty)
+        })?;
         if let Some(rest) = &self.rest {
             write!(fmt, ", *{}", rest)?;
         }
