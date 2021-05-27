@@ -2,9 +2,9 @@
 
 [Documents](doc/README.md)
 
-Butter aims to be a concise and friendly language for building efficient software.
+A tasty language for building efficient software.
 
-**Note:** Still work in progress.
+**Note:** Still work in progress and pretty much experimental.
 
 ## A small taste
 
@@ -18,15 +18,30 @@ reverse(mut arr) => {
 }
 ```
 
-## Design principle
+## Goals and planned features
 
-Butter is designed to be
+The goals for Butter is to be:
 
-- Concise: The language constructs (aka the syntax) should be simple and free from unnecessary boilerplate.
-- Friendly: The language should be easily understandable and lacks visible low-level concepts. (Friendliness of error messages is a non-goal for now)
+- Concise: The language constructs (aka the syntax) should be simple and have a feel of scripting language.
+- High-level: The language should be easily understandable and lacks visible low-level concepts.
 - Efficient: Compiled programs should be fast and memory-efficient as much as possible.
 
-Butter is still in development, I have a [plan](./doc/plan.md) to make this possible, hopefully.
+For now, Butter is designed to be as simple as possible while being quite useful. Some features such as modules, traits, concurrency, parallelism and good compiler messages are not a priority for now.
+
+Here are the prioritized features in no particular order:
+
+- Structural typing
+- Explicit or inferred mutability
+- An extension of Hindley-Milner type system, this includes row-polymorphism
+- Refinement types
+- Ownership systems with partial automatic reference counting
+- Reference types with strict no mutable aliasing rule
+- Lifetime analysis
+- Low-level representation inference &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
+
+These features ensures the goals and at the same time harms it, there should be a good balance.
+
+After these features are sufficiently implemented. Other useful missing features shall be implemented as well.
 
 ## Road map
 
