@@ -30,7 +30,6 @@ Pretty straight-forward. The right hand side of division, floor division, and mo
 - Division `A / B`
 - Floor Division `A // B`
 - Modulo `A % B`
-- Unary plus `+A`
 - Unary minus `-B`
 
 Modulo internally uses floor division, the result will have the same sign as the right expression.

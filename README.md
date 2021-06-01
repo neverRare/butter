@@ -11,9 +11,11 @@ A tasty language for building efficient software.
 ```butter
 -- reverses an array in place
 reverse(mut arr) => {
-    for i in [0.< arr^.len // 2] {
-        opposite = arr^.len - i - 1;
-        arr^[i], arr^[opposite] <- arr^[opposite], arr^[i];
+    len = arr^.len;
+    for i in [0.< len // 2] {
+        mut elem = &arr^[i];
+        mut opposite = &arr^[len - i - 1];
+        elem^, opposite^ <- >opposite^, >elem^;
     }
 }
 ```
@@ -26,7 +28,7 @@ The goals for Butter is to be:
 - High-level: The language should be easily understandable and lacks visible low-level concepts.
 - Efficient: Compiled programs should be fast and memory-efficient as much as possible.
 
-For now, Butter is designed to be as simple as possible while being quite useful. Some features such as modules, traits, concurrency, parallelism and good compiler messages are not a priority for now.
+For now, Butter is designed to be as simple as possible while being quite useful. Some features such as modules, traits, concurrency/parallelism, comprehensive standard library, and good compiler messages are not a priority for now.
 
 Here are the prioritized features in no particular order:
 

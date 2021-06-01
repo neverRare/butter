@@ -118,3 +118,7 @@ std.assert(foo == 11);
 
 increment(num) => num <- num + 1;
 ```
+
+## Capturing
+
+TODO

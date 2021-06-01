@@ -1,6 +1,6 @@
 # Array
 
-An array is an ordered collection of other values.
+An array is an ordered collection of values with the same type.
 
 ```butter
 mut fruits = ["strawberry", "pineapple"];
@@ -11,13 +11,13 @@ mut fruits = ["strawberry", "pineapple"];
 You can splat arrays, this flattens and combines array to elements or another splatted arrays.
 
 ```butter
-fruits <- [*fruits, "banana"];
+fruits <- [*>fruits, "banana"];
 ```
 
 Additionally, you can concatenate, this joins two or more arrays into a single one.
 
 ```butter
-fruits <- fruits ++ ["banana"];
+fruits <- >fruits ++ ["banana"];
 ```
 
 Splatting and concatenation can serve similar purposes, the 2 examples above does similar task.

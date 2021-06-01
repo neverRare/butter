@@ -8,27 +8,63 @@ Pattern can be used in [variable declaration], [function parameter], and iterati
 
 ## Ignore
 
-TODO
+You can discards the value regardless of its type or structure with `_`.
 
-`_`
+```butter
+_ = 10;
+```
 
 ## Variable
 
-`mut` means it's mutable, `ref` means it's bound to reference
+You can bind a value in a variable.
 
-TODO: better explanation
+```butter
+num = 10;
+```
 
-`var`
+You can mark it as mutable.
 
-`mut var`
+```butter
+mut num = 10;
+num <- 20;
+```
 
-`ref mut var`
+You can bind it to a reference.
 
-`ref var`
+```butter
+ref num = 10;
+-- num is a reference to 10
+```
+
+You can do both
+
+```butter
+ref mut num = 10;
+num^ <- 20;
+```
+
+Variables can shadow previously declared variable with the same name, either on the same or on upper scope.
+
+```butter
+foo = 10;
+{
+    foo = false;
+    std.assert(foo == false);
+}
+std.assert(foo == 10);
+foo = 20;
+std.assert(foo == 20);
+foo = foo == 20;
+std.assert(foo == true);
+```
+
+## Void
+
+This pattern matches against `void`, nothing special.
 
 ## Array
 
-[Array] unpacking have similar syntax to array declaration, but they are used on left hand side of declaration, and it does the exact opposite of array declaration.
+[Array] pattern matches against the length and each element of the array.
 
 [Array]: array.md
 
@@ -38,15 +74,7 @@ arr = ["hello", "world"];
 std.println(first ++ " " ++ second);
 ```
 
-If you wish to ignore some element, use `_`.
-
-```butter
-arr = ["hello", "world"];
-[first, _] = arr;
-std.println(first ++ " awesome world");
-```
-
-You can unpack from its start or its end then unpack the rest as an another array. There can only be at most one rest syntax in array unpacking. This is the counterpart of splat.
+You can match against its start or its end then match against the rest as an another array. There can only be at most one rest pattern.
 
 ```butter
 [first, *rest] = arr;
@@ -54,7 +82,7 @@ You can unpack from its start or its end then unpack the rest as an another arra
 
 ## Struct
 
-You can unpack a [struct] via `()`. These assigns field value to a variable with the same name. If you wish to use another variable name, you can use `=`.
+[struct] pattern matches against struct. You may use a shortcut syntax where `var` or `ref var` is written instead of `var = var` or `var = ref var` respectively.
 
 [struct]: struct.md
 
@@ -66,15 +94,7 @@ user = (
 (name = username, email) = user;
 ```
 
-If you wish to ignore some fields, either don't write it or rename it to `_`.
-
-```butter
-(email,) = user;
--- or
-(name = _, email) = user;
-```
-
-You can partially unpack fields and unpack the rest to another struct. There can be only at most one rest syntax in struct unpacking.
+You can partially match against fields and match against the rest as another struct. There can be only at most one rest pattern.
 
 ```butter
 car = (
@@ -85,20 +105,39 @@ car = (
 (price, *car) = car;
 ```
 
-## Tagged value
+## Tagged pattern
 
-TODO
+Tagged pattern matches against the tag and the associated value of a value.
 
-`@tag more_pattern`
+```butter
+num = @some 10;
+@some num = num;
+std.assert(num == 10);
+```
 
 ## Reference
 
 TODO
 
-`& more_pattern`
-
-`&mut more_pattern`
+`&more_pattern`
 
 ## Refutability
 
-TODO
+TODO: explain the word refutability
+
+These are the patterns that are irrefutable unless they contain refutable pattern.
+
+- Ignore
+- Variable
+- Struct
+- Reference
+
+For tagged pattern, it is refutable according to its tag. Such pattern will only match to values with the same tag.
+
+For array, it is refutable according to its length. `[first, second]` only matches to array with length of 2. For array pattern with rest, it will only match arrays with length greater than or equal to the number of non-rest element patterns. For example, `[first, second, *rest]` will only match to arrays with length greater than or equal to 2.
+
+One exception is if the array only contains rest pattern, it would be irrefutable. However, this isn't really useful as `[*rest]` is just similar to `rest`.
+
+TODO: explain its uses
+
+TODO: explain the cases where a single refutable pattern is already exhaustive enough

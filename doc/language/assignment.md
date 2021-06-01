@@ -1,42 +1,6 @@
-# Variable
+# Assignment
 
-Variable holds a value.
-
-## Declaration
-
-Variables are declared via `=`.
-
-```butter
-foo = 10;
-bar = false;
-```
-
-Variables can shadow previously declared variable with the same name, either on the same or on upper scope.
-
-```butter
-foo = 10;
-{
-    foo = false;
-    std.assert(foo == false);
-}
-std.assert(foo == 10);
-foo = 20;
-std.assert(foo == 20);
-foo = foo == 20;
-std.assert(foo == true);
-```
-
-## Mutable variable
-
-Variables are immutable by default. You can opt to mutable variable by prefixing it with `mut`.
-
-```butter
-mut foo = 10;
-```
-
-## Assignment
-
-Assignment is a way (and the only way) to mutate such values with `<-` operator.
+Assignment is a way (and the only way) to mutate values with `<-` operator.
 
 ```butter
 mut foo = 10;
@@ -69,7 +33,7 @@ Reassign the referencing value.
 
 ```butter
 mut foo = 10;
-mut bar = &mut foo;
+mut bar = &foo;
 bar^ <- 20;
 ```
 

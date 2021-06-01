@@ -9,32 +9,34 @@ set = #[10, 20, 30];
 
 ## Type alias
 
-`<A>` here are type variables. Syntax' ugly at the moment, it'll change.
+`'a` here are type variables.
 
 ```butter
-Option :: <A> => @some(<A>) | @none;
+alias Option('a) = @some 'a | @none;
 ```
 
-## Item type annotation
+## Type annotation
+
+For functions
 
 ```butter
-:: (val = Option(<A>), mapper = <A> => <B>) => Option(<B>);
-map_option(val, mapper) => match val {
-    @some(val) => @some(mapper(val)),
-    @none => @none,
-};
-
-:: (val = [<A>; <L>], mapper = <A> => <B>) => [<B>; <L>];
-map_array(arr, mapper) => match arr {
-    [] => [],
-    [item, *rest] => [mapper(item)] ++ map_array(arr = rest, mapper),
-};
+map_option(val: Option('a), mapper: 'a => 'b) => : Option('b):
+    match val {
+        @some(val) => @some(mapper(val)),
+        @none => @none,
+    };
 ```
 
-## Value type annotation
+For variables
 
 ```butter
-foo = [] as [Num; 0];
+foo: [Num] = [];
+```
+
+For expressions
+
+```butter
+foo = []: [Num];
 ```
 
 ## Left to right var declaration
@@ -121,4 +123,43 @@ not(a) => match a {
 add(a, b) => a + b;
 
 result = 40 |> add(?, 2);
+```
+
+## Uninitialized value
+
+```butter
+foo = undef;
+foo <- 10;
+```
+
+## Interiorly mutable reference
+
+```butter
+&cell 10
+```
+
+Should be behind a reference to make it clear that the content is never implicitly copied.
+
+## Never
+
+It should never be reachable, it is guaranteed by refinement type (or not).
+
+```butter
+-- this could be in std
+expect(condition) => if condition {} else { never };
+
+prime_factor(num) => {
+    expect(num % 1 == 0);
+    expect(num >= 1);
+    if num == 1 {
+        []
+    } else {
+        for i in [2..num] {
+            if num % i == 0 {
+                return [i] ++ prime_factor(num / i);
+            }
+        }
+        never
+    }
+}
 ```

@@ -3,18 +3,21 @@
 ## Keyword reference
 
 - `break`
+- `clone`
 - `continue`
 - `else`
 - `false`
 - `for`
 - `if`
 - `in`
+- `len`
 - `loop`
 - `match`
 - `mut`
 - `ref`
 - `return`
 - `true`
+- `void`
 - `while`
 
 ## Punctuation reference
@@ -30,7 +33,7 @@
 | `.<`        | Inclusive-exclusive range   |
 | `>.`        | Exclusive-inclusive range   |
 | `><`        | Exclusive range             |
-| `+`         | Unary Plus, Addition        |
+| `+`         | Addition                    |
 | `++`        | Concatenation               |
 | `-`         | Subtraction                 |
 | `*`         | Multiplication, Splat, Rest |
@@ -42,7 +45,7 @@
 | `||`        | Lazy OR                     |
 | `&`         | AND, reference              |
 | `&&`        | Lazy AND, Double reference  |
-| `>`         | Greater than                |
+| `>`         | Greater than, Move          |
 | `<`         | Less than                   |
 | `>=`        | Greater than or equal       |
 | `<=`        | Less than or equal          |
