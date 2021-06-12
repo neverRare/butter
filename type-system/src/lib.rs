@@ -79,12 +79,12 @@ impl<'a> Type<'a> {
                 subs.compose_with(cons1.unify_with(cons2, var_state)?)?
             }
             (Self::Var(var), ty) | (ty, Self::Var(var)) => {
-                if ty != Self::Var(var)
-                    && ty.free_vars().contains(&KindedVar {
-                        kind: Kind::Type,
-                        var,
-                    })
-                {
+                if ty == Self::Var(var) {
+                    // do nothing
+                } else if ty.free_vars().contains(&KindedVar {
+                    kind: Kind::Type,
+                    var,
+                }) {
                     return Err(TypeError::InfiniteOccurrence);
                 } else {
                     subs.insert(var, Type1::Type(ty))
@@ -127,12 +127,12 @@ impl<'a> MutType<'a> {
         match (self, other) {
             (Self::Mut, Self::Mut) | (Self::Imm, Self::Imm) => (),
             (Self::Var(var), ty) | (ty, Self::Var(var)) => {
-                if ty != Self::Var(var)
-                    && ty.free_vars().contains(&KindedVar {
-                        kind: Kind::MutType,
-                        var,
-                    })
-                {
+                if ty == Self::Var(var) {
+                    // do nothing
+                } else if ty.free_vars().contains(&KindedVar {
+                    kind: Kind::MutType,
+                    var,
+                }) {
                     return Err(TypeError::InfiniteOccurrence);
                 } else {
                     subs.insert(var, Type1::MutType(ty))
