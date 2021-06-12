@@ -20,7 +20,7 @@ alias Option('a) = @some 'a | @none;
 For functions
 
 ```butter
-map_option(val: Option('a), mapper: 'a => 'b) => : Option('b):
+map_option(val: Option('a), mapper: 'a => 'b) -> Option('b) =>
     match val {
         @some(val) => @some(mapper(val)),
         @none => @none,
@@ -96,6 +96,12 @@ Importing from modules could be the same as declaration.
 pi = math.pi;
 ```
 
+## Visibility system
+
+```butter
+pub greet(name) => "hello " ++ name ++ "!";
+```
+
 ## Function as operator
 
 ```butter
@@ -132,13 +138,13 @@ foo = undef;
 foo <- 10;
 ```
 
-## Interiorly mutable reference
+## Shareable mutable container
+
+An escape hatch for ownership and no mutable alias rule.
 
 ```butter
-&cell 10
+cell 10
 ```
-
-Should be behind a reference to make it clear that the content is never implicitly copied.
 
 ## Never
 
@@ -163,3 +169,51 @@ prime_factor(num) => {
     }
 }
 ```
+
+## If match, while match
+
+Similar to `if let` and `while let` on rust.
+
+## Match else
+
+Useful for unwrapping.
+
+```butter
+@some val = val else { std.abort() };
+```
+
+## Polymorphism with tag and field name
+
+```butter
+map_tagged(val, tag = @$tag, fn) =>
+    match val {
+        @$tag val => @$tag fn(val),
+        val => val,
+    };
+```
+
+## Traits
+
+```butter
+trait Eq('val) {
+    equal(a: &'val, b: &'val) -> Bool;
+}
+given Eq('val)
+impl Eq(['val]) {
+    equal(a, b) => {
+        if a^.len != b^.len { return false; }
+        for i in [0.< a^.len] {
+            if a^[i] != b^[i] { return false; }
+        }
+        true
+    }
+}
+```
+
+## New nominal type
+
+```butter
+newtype Point(a: Num, b: Num);
+```
+
+They won't have trait implementation by default and each field can have its own visibility (for structural struct, every field is public).
