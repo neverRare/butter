@@ -12,8 +12,6 @@ bar = >foo;  -- move the value 10 to bar
 
 Places are value or part of the value that can be assigned into. These are variables, properties, indices, and dereferences.
 
-TODO: there can be anonymous places, should it be mentioned?
-
 NOTE: I think this better fits to appendix or glossary
 
 ## Initialization, deinitialization, and reinitialization

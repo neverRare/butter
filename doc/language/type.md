@@ -17,9 +17,3 @@ Butter is able to infer these and check if type mismatch happens.
 mut foo = 10;  -- foo is inferred as number
 foo <- false;  -- type error here, boolean value can't be assigned on it
 ```
-
----
-
-NOTE: should we explain the overview of type inference?
-
-TODO: explain polymorphism with type var

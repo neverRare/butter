@@ -12,4 +12,4 @@ TODO: example
 
 ---
 
-TODO: more example
+TODO: more explanation
