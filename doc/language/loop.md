@@ -51,14 +51,14 @@ while counter < 6 {
 std.assert(counter == 3);
 ```
 
-A break expression can be given an expression, this is only applicable to `loop`. It must be preceded by an equal sign `=` after the `break` keyword and the label if theres any. The loop expression will evaluate to the expression of whichever broke the loop.
+A break expression can be given an expression, this is only applicable to `loop`. The loop expression will evaluate to the expression of whichever broke the loop.
 
 ```butter
 mut counter = 0;
 result = loop {
     counter += 1;
     if counter == 10 {
-        break = counter * 2;  -- exit the loop and `result` will be counter * 2
+        break counter * 2;  -- exit the loop and `result` will be counter * 2
     }
 };
 std.assert(result == 20);
@@ -77,17 +77,3 @@ for num in [1..10] {
     filtered_num <- filtered_num ++ [num];
 }
 ```
-
-## Label
-
-Break and continue is normally associated with the innermost loop containing the expression.
-
-If you wish to associate higher loop, you can use labels. Labels are used to disambiguate nested loops. You can use the following as label.
-
-- Keyword of the loop (`for`, `while`, or `loop`)
-- Variable declaration with `loop` as value (the `var` in `var = loop { ... }`)
-- Iteration variable of `for` loop (the `i` in `for i in ... { ... }`)
-
-There are cases where above is not enough, Butter doesn't currently have a system for those.
-
-TODO #8 example
