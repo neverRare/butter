@@ -1,10 +1,10 @@
 # ![Butter](butter_text_only.svg)
 
-[Documents](doc/README.md)
+[Documents](doc/README.md) | [Contributing Guidelines](CONTRIBUTING.md)
 
 A tasty language for building efficient software.
 
-**Note:** Still work in progress and pretty much experimental.
+**Note:** Still work in progress and pretty much experimental. [Contribution](CONTRIBUTING.md) is welcome.
 
 ## A small taste
 
