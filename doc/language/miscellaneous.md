@@ -2,6 +2,8 @@
 
 ## Keyword reference
 
+These are keywords with special meaning, it cannot be used as variable name, function name, field name, nor tag name.
+
 - `break`
 - `clone`
 - `continue`
@@ -10,7 +12,6 @@
 - `for`
 - `if`
 - `in`
-- `len`
 - `loop`
 - `match`
 - `mut`
@@ -19,6 +20,12 @@
 - `true`
 - `void`
 - `while`
+
+## Contextual keyword reference
+
+These are keywords that only have special meaning in some context.
+
+- `len` &ndash; only a keyword when used as field name.
 
 ## Punctuation reference
 
