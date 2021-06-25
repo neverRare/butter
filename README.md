@@ -4,7 +4,7 @@
 
 A tasty language for building efficient software.
 
-**Note:** Still work in progress and pretty much experimental. [Contribution](CONTRIBUTING.md) is welcome.
+**Note:** Still work in progress and pretty much experimental. [Contributions](CONTRIBUTING.md) are welcome.
 
 ## A small taste
 
