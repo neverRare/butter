@@ -80,11 +80,11 @@ You can match against its start or its end then match against the rest as an ano
 [first, *rest] = arr;
 ```
 
-## Struct
+## Record
 
-[struct] pattern matches against struct. You may use a shortcut syntax where `var` or `ref var` is written instead of `var = var` or `var = ref var` respectively.
+[record] pattern matches against record. You may use a shortcut syntax where `var` or `ref var` is written instead of `var = var` or `var = ref var` respectively.
 
-[struct]: struct.md
+[record]: record.md
 
 ```butter
 user = (
@@ -94,7 +94,7 @@ user = (
 (name = username, email) = user;
 ```
 
-You can partially match against fields and match against the rest as another struct. There can be only at most one rest pattern.
+You can partially match against fields and match against the rest as another record. There can be only at most one rest pattern.
 
 ```butter
 car = (
@@ -129,7 +129,7 @@ These are the patterns that are irrefutable unless they contain refutable patter
 
 - Ignore
 - Variable
-- Struct
+- Record
 - Reference
 
 For tagged pattern, it is refutable according to its tag. Such pattern will only match to values with the same tag.

@@ -16,9 +16,9 @@ compose(f, g) => (x) => f(g(x));
 
 ## Parameters
 
-The parameter have the same syntax as [struct unpacking], except it cannot have rest syntax.
+The parameter have the same syntax as [record unpacking], except it cannot have rest syntax.
 
-[struct unpacking]: unpacking.md#struct
+[record unpacking]: unpacking.md#record
 
 Unnamed functions can have simplified parameter syntax when it have at most 1 parameter: the parentheses can be omitted. Unnamed functions with 1 parameter would look like `param => body` and those with no parameter would simply be `=> body`.
 
@@ -55,7 +55,7 @@ reverse(arr) => {
 
 ## Calling
 
-Calling executes the body of a function. The arguments have similar syntax to struct initialization.
+Calling executes the body of a function. The arguments have similar syntax to record initialization.
 
 ```butter
 report_favorite(name, favorite) => {

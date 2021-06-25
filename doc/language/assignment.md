@@ -7,9 +7,9 @@ mut foo = 10;
 foo <- 20;
 ```
 
-Reassign a value of field of a [struct].
+Reassign a value of field of a [record].
 
-[struct]: struct.md
+[record]: record.md
 
 ```butter
 mut foo = (

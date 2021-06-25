@@ -64,7 +64,7 @@ These are keywords that only have special meaning in some context.
 
 | Delimiter | Purpose                             |
 | --------- | ----------------------------------- |
-| `(...)`   | Group, Struct,  Parameter, Argument |
+| `(...)`   | Group, Record,  Parameter, Argument |
 | `[...]`   | Array, Index, Slice                 |
 | `{...}`   | Block, Control-flow body            |
 

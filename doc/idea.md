@@ -73,7 +73,7 @@ no_doubles = [n : n in numbers : n % 2 == 0];
 
 ## Module system
 
-Structs could double as namespace.
+Records could double as namespace.
 
 ```butter
 math = (
@@ -84,7 +84,7 @@ math = (
 );
 ```
 
-Maybe a struct something like rust's module.
+Maybe a record something like rust's module.
 
 ```butter
 math = mod math;
@@ -216,4 +216,4 @@ impl Eq(['val]) {
 newtype Point(a: Num, b: Num);
 ```
 
-They won't have trait implementation by default and each field can have its own visibility (for structural struct, every field is public).
+They won't have trait implementation by default and each field can have its own visibility (for structural record, every field is public).
