@@ -1,5 +1,24 @@
 # Ideas
 
+## Multiline comment
+
+```butter
+-/
+    multiline
+    comment
+/-
+```
+
+It won't be nestable.
+
+## Ignore codeblock
+
+```butter
+{--
+    std.print("this code is ignored, nothing would be printed");
+}
+```
+
 ## Map and Set
 
 ```butter
@@ -20,7 +39,7 @@ alias Option('a) = @some 'a | @none;
 For functions
 
 ```butter
-map_option(val: Option('a), mapper: 'a => 'b) -> Option('b) =>
+map_option(val: Option('a), mapper: 'a -> 'b) -> Option('b) =>
     match val {
         @some(val) => @some(mapper(val)),
         @none => @none,
