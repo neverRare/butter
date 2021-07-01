@@ -23,6 +23,7 @@ A high level documentation of syntax and semantics of Butter.
 - [Move and initialization](language/move_and_initialization.md)
 - [Number](language/number.md)
 - [Pattern](language/pattern.md)
+- [Place and value](language/place_and_value.md)
 - [Record](language/record.md)
 - [Reference](language/reference.md)
 - [Share](language/share.md)
@@ -36,7 +37,7 @@ TODO: this is quite tiring to update, use mdbook or other document framework
 
 ## Standard library
 
-TODO
+This section is still empty.
 
 ## [Ideas](idea.md)
 

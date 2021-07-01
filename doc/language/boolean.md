@@ -16,6 +16,6 @@ foo = true;
 - NXOR `A == B`
 - XOR `A != B`
 
-Lazy operators performs short-circuit. It will not evaluate the right expression when the left expression is already sufficient as the value. For lazy AND, if the left expression is false, it is immediately false. For lazy OR, it is false.
+Lazy operators performs short-circuit. It will not evaluate the right expression when the left expression is already sufficient as the value. For lazy AND, if the left expression is false, it is immediately false. For lazy OR, it is true.
 
 Note that NXOR and XOR are just equality operator.

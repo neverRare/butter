@@ -8,13 +8,7 @@ bar = >foo;  -- move the value 10 to bar
 -- now, foo can't be used here
 ```
 
-## Place
-
-Places are value or part of the value that can be assigned into. These are variables, properties, indices, and dereferences.
-
-NOTE: I think this better fits to appendix or glossary
-
-## Initialization, deinitialization, and reinitialization
+## Initialization
 
 A place is initialized when a value is present in it. It is deinitialized when the value is moved to different place as shown previously. It can be reinitialized with assignment
 

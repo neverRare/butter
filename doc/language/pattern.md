@@ -6,9 +6,25 @@ Pattern can be used in [variable declaration], [function parameter], and iterati
 [function parameter]: function.md#parameters
 [`for`]: control_flow.md#for
 
+## Literal
+
+You can match against either boolean literal or numeric literal.
+
+TODO: example
+
+## Equal
+
+TODO
+
+```butter
+=val
+```
+
 ## Ignore
 
 You can discards the value regardless of its type or structure with `_`.
+
+TODO: better example
 
 ```butter
 _ = 10;

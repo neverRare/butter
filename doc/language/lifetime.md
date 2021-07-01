@@ -1,15 +1,19 @@
 # Lifetime
 
-Lifetime are region of the code, this is used to determine the lifetime of places, prevent use of deinitialized places and prevent introduction of mutable alias.
+Lifetime are region of the code at which a value is present on a certain place. In other words, when a place is [initialized].
 
-Butter is able just infer these.
+[initialized]: move_and_initialization.md#initialization
 
-## Scope
+## Move and Assignment
 
-Blocks and other statements that provides scope provides limit on lifetime.
+Lifetimes may refer to borken regions of codes. This happens when a value is [moved] from a place. TODO: explain reinitialization.
 
-TODO: example
+[moved]: move_and_initialization.md#
 
----
+TODO example
 
-TODO: more explanation
+## End of Scope
+
+Places never lives forever. This happens at the end of the scope where a variable is available.
+
+TODO example

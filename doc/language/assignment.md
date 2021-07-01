@@ -1,6 +1,6 @@
 # Assignment
 
-Assignment is a way (and the only way) to mutate values with `<-` operator.
+Assignment replaces a value within a place.
 
 ```butter
 mut foo = 10;
