@@ -1,5 +1,29 @@
 # Ideas
 
+## Equal to pattern
+
+Also known as pin pattern or pin operator.
+
+```butter
+match foo {
+    == bar => std.println("it's equal to bar!"),
+}
+```
+
+## Control flow label
+
+This clashes with [type annotation](#type-annotation). There should not be dedicated syntax for label anyway, it must be syntactically salted.
+
+```butter
+outer: while true {
+    for i in arr {
+        if i == 2 {
+            break outer;
+        }
+    }
+}
+```
+
 ## Multiline comment
 
 ```butter

@@ -12,14 +12,6 @@ You can match against either boolean literal or numeric literal.
 
 TODO: example
 
-## Equal
-
-TODO
-
-```butter
-=val
-```
-
 ## Ignore
 
 You can discards the value regardless of its type or structure with `_`.
