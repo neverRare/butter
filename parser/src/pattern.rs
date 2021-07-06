@@ -2,6 +2,10 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Pattern<'a> {
+    True,
+    False,
+    UInt(u64),
+    Int(i64),
     Ignore,
     Var(Var<'a>),
     Struct(StructPattern<'a>),

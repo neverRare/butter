@@ -1,7 +1,6 @@
 use crate::expr::compound::Element;
 use crate::expr::compound::Struct;
 use crate::expr::control_flow::Block;
-use crate::expr::control_flow::Break;
 use crate::expr::control_flow::For;
 use crate::expr::control_flow::Fun;
 use crate::expr::control_flow::If;
@@ -30,11 +29,10 @@ pub enum Expr<'a> {
     UInt(u64),
     Float(f64),
 
-    Break(Break<'a>),
-    Continue(Option<&'a str>),
+    Break(Option<Box<Expr<'a>>>),
+    Continue,
     Return(Option<Box<Expr<'a>>>),
 
-    Plus(Box<Expr<'a>>),
     Minus(Box<Expr<'a>>),
     Ref(Box<Expr<'a>>),
     MutRef(Box<Expr<'a>>),

@@ -4,11 +4,6 @@ use crate::statement::Statement;
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Break<'a> {
-    pub label: Option<&'a str>,
-    pub expr: Option<Box<Expr<'a>>>,
-}
-#[derive(Debug, PartialEq, Clone)]
 pub struct Block<'a> {
     pub statement: Box<[Statement<'a>]>,
     pub expr: Option<Box<Expr<'a>>>,

@@ -28,7 +28,7 @@ pub fn parse_digit(ch: char, base: u8) -> Option<u8> {
         None
     }
 }
-macro_rules! gen_integer_parser {
+macro_rules! gen_integer_decoder {
     ($ident:ident, $type:ty) => {
         pub fn $ident(src: &str, base: $type) -> Option<$type> {
             let mut result: $type = 0;
@@ -47,8 +47,9 @@ macro_rules! gen_integer_parser {
         }
     };
 }
-gen_integer_parser!(parse_u64, u64);
-gen_integer_parser!(parse_i32, i32);
+gen_integer_decoder!(parse_u64, u64);
+gen_integer_decoder!(parse_i64, i64);
+gen_integer_decoder!(parse_i32, i32);
 pub fn integer_str<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
 where
     I: RangeStream<Token = char, Range = &'a str>,
@@ -66,68 +67,74 @@ where
 {
     take_while1(move |ch| parse_digit(ch, base).is_some() || ch == '_')
 }
-parser! {
-    fn integer['a, I, P](num_parser: P, base: u64)(I) -> u64
-    where [
-        I: RangeStream<Token = char, Range = &'a str>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-        P: Parser<I, Output = &'a str>
-    ] {
-        num_parser
-            .and_then(|src: &str| {
-                match parse_u64(src, *base) {
-                    Some(result) => Ok(result),
-                    None => Err(<StreamErrorFor<I>>::message_static_message("integer overflow"))
+macro_rules! gen_integer_parser {
+    ($ident:ident, $parser:expr, $type:ty) => {
+        parser! {
+            pub fn $ident['a, I]()(I) -> $type
+            where [
+                I: RangeStream<Token = char, Range = &'a str>,
+                I::Error: ParseError<I::Token, I::Range, I::Position>,
+            ] {
+                parser! {
+                    fn integer['a, I, P](num_parser: P, base: $type)(I) -> $type
+                    where [
+                        I: RangeStream<Token = char, Range = &'a str>,
+                        I::Error: ParseError<I::Token, I::Range, I::Position>,
+                        P: Parser<I, Output = &'a str>
+                    ] {
+                        num_parser
+                            .and_then(|src: &str| {
+                                match $parser(src, *base) {
+                                    Some(result) => Ok(result),
+                                    None => Err(<StreamErrorFor<I>>::message_static_message("integer overflow")),
+                                }
+                            })
+                    }
                 }
-            })
-    }
+                let base_prefix = |lower, upper| (char('0'), choice([char(lower), char(upper)]));
+                choice((
+                    attempt(base_prefix('x', 'X'))
+                        .with(integer(integer_str_allow_underscore(16), 16)),
+                    attempt(base_prefix('o', 'O'))
+                        .with(integer(integer_str_allow_underscore(8), 8)),
+                    attempt(base_prefix('b', 'B'))
+                        .with(integer(integer_str_allow_underscore(2), 2)),
+                    integer(integer_str(10), 10),
+                ))
+                .skip(not_followed_by(alpha_num()))
+            }
+        }
+    };
 }
-parser! {
-    pub fn based_integer['a, I]()(I) -> u64
-    where [
-        I: RangeStream<Token = char, Range = &'a str>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-    ] {
-        let base_prefix = |lower, upper| (char('0'), choice([char(lower), char(upper)]));
-        choice((
-            attempt(base_prefix('x', 'X'))
-                .with(integer(integer_str_allow_underscore(16), 16)),
-            attempt(base_prefix('o', 'O'))
-                .with(integer(integer_str_allow_underscore(8), 8)),
-            attempt(base_prefix('b', 'B'))
-                .with(integer(integer_str_allow_underscore(2), 2)),
-            integer(integer_str(10), 10),
-        ))
-        .skip(not_followed_by(alpha_num()))
-    }
-}
+gen_integer_parser!(integer_u64, parse_u64, u64);
+gen_integer_parser!(integer_i64, parse_i64, i64);
 #[cfg(test)]
 mod test {
-    use crate::parser::expr::based_integer;
+    use crate::parser::expr::integer_u64;
     use combine::EasyParser;
 
     #[test]
     fn decimal() {
         let src = "123";
         let expected = 123;
-        assert_eq!(based_integer().easy_parse(src), Ok((expected, "")));
+        assert_eq!(integer_u64().easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn hex() {
         let src = "0x_12e";
         let expected = 0x12e;
-        assert_eq!(based_integer().easy_parse(src), Ok((expected, "")));
+        assert_eq!(integer_u64().easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn oct() {
         let src = "0o_127";
         let expected = 0o127;
-        assert_eq!(based_integer().easy_parse(src), Ok((expected, "")));
+        assert_eq!(integer_u64().easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn bin() {
         let src = "0b_11110000";
         let expected = 0b11110000;
-        assert_eq!(based_integer().easy_parse(src), Ok((expected, "")));
+        assert_eq!(integer_u64().easy_parse(src), Ok((expected, "")));
     }
 }

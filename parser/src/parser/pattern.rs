@@ -1,4 +1,6 @@
 use crate::expr::control_flow::Param;
+use crate::parser::expr::integer::integer_i64;
+use crate::parser::expr::integer::integer_u64;
 use crate::parser::ident_keyword::ident;
 use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
@@ -165,10 +167,17 @@ where
                 Some(_) => Pattern::RefMut(Box::new(pattern)),
                 None => Pattern::Ref(Box::new(pattern)),
             }),
+        // TODO: this may not be able to parse i64::MIN
+        lex(char('-'))
+            .with(integer_i64())
+            .map(|num| Pattern::Int(-num)),
+        integer_u64().map(Pattern::UInt),
         array(),
         attempt(between(lex(char('(')), lex(char(')')), pattern())),
         record().map(Pattern::Struct),
         attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
+        attempt(lex(keyword("true"))).map(|_| Pattern::True),
+        attempt(lex(keyword("false"))).map(|_| Pattern::False),
         (
             optional(attempt(lex(keyword("ref")))),
             optional(attempt(lex(keyword("mut")))),
