@@ -39,7 +39,7 @@ Here are the prioritized features in no particular order:
 - Ownership systems with partial automatic reference counting
 - Reference types with strict no mutable aliasing rule
 - Lifetime analysis
-- Low-level representation inference &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
+- Low-level representation heuristics &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
 
 These features ensures the goals and at the same time harms it, there should be a good balance.
 
