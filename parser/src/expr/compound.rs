@@ -7,7 +7,7 @@ pub enum Element<'a> {
     Splat(Expr<'a>),
 }
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct Struct<'a> {
+pub struct Record<'a> {
     pub splats: Box<[Expr<'a>]>,
     pub fields: HashMap<&'a str, Expr<'a>>,
 }

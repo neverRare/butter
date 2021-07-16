@@ -8,7 +8,7 @@ pub enum Pattern<'a> {
     Int(i64),
     Ignore,
     Var(Var<'a>),
-    Struct(StructPattern<'a>),
+    Record(RecordPattern<'a>),
     Array(Box<[Pattern<'a>]>),
     ArrayWithRest(ArrayWithRest<'a>),
     Tag(TaggedPattern<'a>),
@@ -28,7 +28,7 @@ pub struct ArrayWithRest<'a> {
     pub right: Box<[Pattern<'a>]>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct StructPattern<'a> {
+pub struct RecordPattern<'a> {
     pub fields: HashMap<&'a str, Pattern<'a>>,
     pub rest: Option<Box<Pattern<'a>>>,
 }

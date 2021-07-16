@@ -49,7 +49,7 @@ where
         attempt(range()).map(Expr::ArrayRange),
         array().map(Expr::Array),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
-        record().map(Expr::Struct),
+        record().map(Expr::Record),
         lex(char_literal()).map(Expr::UInt),
         lex(string_literal()).map(Expr::Array),
         lex(char('!'))
@@ -79,6 +79,7 @@ where
         control_flow::control_flow(),
         lex(keyword("false")).map(|_| Expr::False),
         lex(keyword("true")).map(|_| Expr::True),
+        lex(keyword("void")).map(|_| Expr::Void),
         lex(keyword("break"))
             .with(optional(expr(0)))
             .map(|expr| Expr::Break(expr.map(Box::new))),

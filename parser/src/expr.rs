@@ -1,5 +1,5 @@
 use crate::expr::compound::Element;
-use crate::expr::compound::Struct;
+use crate::expr::compound::Record;
 use crate::expr::control_flow::Block;
 use crate::expr::control_flow::For;
 use crate::expr::control_flow::Fun;
@@ -24,6 +24,7 @@ pub mod range;
 pub enum Expr<'a> {
     True,
     False,
+    Void,
 
     Var(&'a str),
     UInt(u64),
@@ -62,7 +63,7 @@ pub enum Expr<'a> {
 
     Array(Box<[Element<'a>]>),
     ArrayRange(Range<'a>),
-    Struct(Struct<'a>),
+    Record(Record<'a>),
 
     Property(Property<'a>),
     Index(Binary<'a>),
@@ -70,6 +71,7 @@ pub enum Expr<'a> {
     NamedArgCall(NamedArgCall<'a>),
     UnnamedArgCall(UnnamedArgCall<'a>),
     Deref(Box<Expr<'a>>),
+    Len(Box<Expr<'a>>),
 
     Block(Block<'a>),
     Fun(Fun<'a>),

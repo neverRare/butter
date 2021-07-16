@@ -6,7 +6,7 @@ use crate::parser::ident_keyword::keyword;
 use crate::parser::lex;
 use crate::pattern::ArrayWithRest;
 use crate::pattern::Pattern;
-use crate::pattern::StructPattern;
+use crate::pattern::RecordPattern;
 use crate::pattern::TaggedPattern;
 use crate::pattern::Var;
 use combine::attempt;
@@ -126,7 +126,7 @@ where
         sep_end_by(field(), lex(char(','))).map(ParamExtend::into_param),
     )
 }
-fn record<'a, I>() -> impl Parser<I, Output = StructPattern<'a>>
+fn record<'a, I>() -> impl Parser<I, Output = RecordPattern<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -136,12 +136,12 @@ where
         Some((rest, right)) => {
             let mut fields: HashMap<_, _> = left;
             fields.extend(right);
-            StructPattern {
+            RecordPattern {
                 fields,
                 rest: Some(Box::new(rest)),
             }
         }
-        None => StructPattern {
+        None => RecordPattern {
             fields: left,
             rest: None,
         },
@@ -174,7 +174,7 @@ where
         integer_u64().map(Pattern::UInt),
         array(),
         attempt(between(lex(char('(')), lex(char(')')), pattern())),
-        record().map(Pattern::Struct),
+        record().map(Pattern::Record),
         attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
         attempt(lex(keyword("true"))).map(|_| Pattern::True),
         attempt(lex(keyword("false"))).map(|_| Pattern::False),
@@ -206,7 +206,7 @@ parser! {
 //     use crate::parser::pattern::pattern;
 //     use crate::parser::pattern::ArrayWithRest;
 //     use crate::parser::pattern::Pattern;
-//     use crate::parser::pattern::StructPattern;
+//     use crate::parser::pattern::RecordPattern;
 //     use combine::EasyParser;
 //     use std::array::IntoIter;
 
@@ -238,14 +238,14 @@ parser! {
 //     array = [first, second],
 //     array_with_rest = [first, *rest, last],
 // )";
-//         let expected = Pattern::Struct(StructPattern {
+//         let expected = Pattern::Record(RecordPattern {
 //             fields: IntoIter::new([
 //                 ("shortcut", Pattern::Var("shortcut")),
 //                 ("var", Pattern::Var("foo")),
 //                 ("ignore", Pattern::Ignore),
 //                 (
 //                     "struct",
-//                     Pattern::Struct(StructPattern {
+//                     Pattern::Record(RecordPattern {
 //                         fields: IntoIter::new([("foo", Pattern::Var("foo"))]).collect(),
 //                         rest: Some(Box::new(Pattern::Var("rest"))),
 //                     }),

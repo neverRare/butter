@@ -1,4 +1,4 @@
-use crate::expr::compound::Struct;
+use crate::expr::compound::Record;
 use crate::expr::operator::Assign;
 use crate::expr::operator::Binary;
 use crate::expr::operator::NamedArgCall;
@@ -33,9 +33,10 @@ pub enum PartialAst<'a> {
     Property(&'a str),
     Index(Expr<'a>),
     Slice(Range<'a>),
-    NamedArgCall(Struct<'a>),
+    NamedArgCall(Record<'a>),
     UnnamedArgCall(Box<[Expr<'a>]>),
     Deref,
+    Len,
 }
 impl<'a> PartialAst<'a> {
     pub fn combine_from(self, left: Expr<'a>) -> Expr<'a> {
@@ -61,6 +62,7 @@ impl<'a> PartialAst<'a> {
                 args,
             }),
             Self::Deref => Expr::Deref(Box::new(left)),
+            Self::Len => Expr::Len(Box::new(left)),
         }
     }
 }
@@ -79,20 +81,26 @@ where
         )
         .map(Vec::into)
     };
-    let property = || {
+    let property_or_len = || {
         lex(attempt(
             char('.')
                 .skip(not_followed_by(char('<')))
                 .skip(not_followed_by(char('.'))),
         ))
         .with(lex(ident()))
-        .map(PartialAst::Property)
+        .map(|prop| {
+            if prop == "len" {
+                PartialAst::Len
+            } else {
+                PartialAst::Property(prop)
+            }
+        })
     };
     let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
     choice((
         attempt(record()).map(PartialAst::NamedArgCall),
         nameless_args().map(PartialAst::UnnamedArgCall),
-        property(),
+        property_or_len(),
         attempt(index()),
         range().map(PartialAst::Slice),
         lex(char('^')).map(|_| PartialAst::Deref),

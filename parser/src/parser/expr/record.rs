@@ -1,4 +1,4 @@
-use crate::expr::compound::Struct;
+use crate::expr::compound::Record;
 use crate::parser::expr::expr;
 use crate::parser::expr::Expr;
 use crate::parser::ident_keyword::ident;
@@ -14,21 +14,21 @@ use combine::RangeStream;
 use std::collections::HashMap;
 
 #[derive(Default)]
-struct StructExtend<'a> {
+struct RecordExtend<'a> {
     splats: Vec<Expr<'a>>,
     fields: HashMap<&'a str, Expr<'a>>,
 }
-impl<'a> StructExtend<'a> {
-    fn into_struct(self) -> Struct<'a> {
+impl<'a> RecordExtend<'a> {
+    fn into_struct(self) -> Record<'a> {
         let mut fields = self.fields;
         fields.shrink_to_fit();
-        Struct {
+        Record {
             splats: self.splats.into(),
             fields,
         }
     }
 }
-impl<'a> Extend<FieldSplat<'a>> for StructExtend<'a> {
+impl<'a> Extend<FieldSplat<'a>> for RecordExtend<'a> {
     fn extend<T>(&mut self, iter: T)
     where
         T: IntoIterator<Item = FieldSplat<'a>>,
@@ -66,11 +66,11 @@ where
     ))
 }
 // TODO: handle duplicate name
-pub fn record<'a, I>() -> impl Parser<I, Output = Struct<'a>>
+pub fn record<'a, I>() -> impl Parser<I, Output = Record<'a>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let fields = || sep_end_by(field_splat(), lex(char(',')));
-    between(lex(char('(')), lex(char(')')), fields()).map(StructExtend::into_struct)
+    between(lex(char('(')), lex(char(')')), fields()).map(RecordExtend::into_struct)
 }
