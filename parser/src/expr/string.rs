@@ -1,6 +1,5 @@
-use crate::expr::compound::Element;
-use crate::parser::expr::integer::parse_digit;
-use crate::parser::expr::Expr;
+use crate::expr::integer::parse_digit;
+use crate::expr::Expr;
 use combine::between;
 use combine::choice;
 use combine::error::StreamError;
@@ -13,6 +12,7 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use hir::expr::compound::Element;
 use std::array;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -70,7 +70,7 @@ parser! {
     }
 }
 #[derive(Default, Clone, PartialEq, Debug)]
-struct StringLiteral<'a>(Vec<Element<'a>>);
+struct StringLiteral<'a>(Vec<Element<'a, ()>>);
 impl<'a> Extend<Char> for StringLiteral<'a> {
     fn extend<T>(&mut self, iter: T)
     where
@@ -96,7 +96,7 @@ impl<'a> Extend<Char> for StringLiteral<'a> {
         }
     }
 }
-pub fn string_literal<'a, I>() -> impl Parser<I, Output = Box<[Element<'a>]>>
+pub fn string_literal<'a, I>() -> impl Parser<I, Output = Box<[Element<'a, ()>]>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -105,9 +105,9 @@ where
 }
 #[cfg(test)]
 mod test {
-    use crate::parser::expr::string::Element;
-    use crate::parser::expr::string_literal;
-    use crate::parser::expr::Expr;
+    use crate::expr::string::Element;
+    use crate::expr::string_literal;
+    use crate::expr::Expr;
     use combine::EasyParser;
 
     #[test]

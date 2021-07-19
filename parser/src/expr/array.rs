@@ -1,8 +1,5 @@
-use crate::expr::compound::Element;
-use crate::expr::range::Bound;
-use crate::expr::range::Range;
-use crate::parser::expr::expr;
-use crate::parser::lex;
+use crate::expr::expr;
+use crate::lex;
 use combine::between;
 use combine::choice;
 use combine::optional;
@@ -11,6 +8,9 @@ use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use hir::expr::compound::Element;
+use hir::expr::range::Bound;
+use hir::expr::range::Range;
 
 pub fn range_operator<'a, I>() -> impl Parser<I, Output = (bool, bool)>
 where
@@ -22,7 +22,7 @@ where
         choice((char('.').map(|_| true), (char('<').map(|_| false)))),
     )
 }
-pub fn range<'a, I>() -> impl Parser<I, Output = Range<'a>>
+pub fn range<'a, I>() -> impl Parser<I, Output = Range<'a, ()>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -46,7 +46,7 @@ where
     };
     between(lex(char('[')), lex(char(']')), range())
 }
-pub fn array<'a, I>() -> impl Parser<I, Output = Box<[Element<'a>]>>
+pub fn array<'a, I>() -> impl Parser<I, Output = Box<[Element<'a, ()>]>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

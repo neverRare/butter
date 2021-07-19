@@ -110,7 +110,7 @@ gen_integer_parser!(integer_u64, parse_u64, u64);
 gen_integer_parser!(integer_i64, parse_i64, i64);
 #[cfg(test)]
 mod test {
-    use crate::parser::expr::integer_u64;
+    use crate::expr::integer_u64;
     use combine::EasyParser;
 
     #[test]

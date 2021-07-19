@@ -1,18 +1,9 @@
-use crate::expr::compound::Record;
-use crate::expr::operator::Assign;
-use crate::expr::operator::Binary;
-use crate::expr::operator::NamedArgCall;
-use crate::expr::operator::Property;
-use crate::expr::operator::Slice;
-use crate::expr::operator::UnnamedArgCall;
-use crate::expr::range::Range;
-use crate::expr::PlaceExpr;
-use crate::parser::expr::array::range;
-use crate::parser::expr::expr;
-use crate::parser::expr::record;
-use crate::parser::expr::Expr;
-use crate::parser::ident_keyword::ident;
-use crate::parser::lex;
+use crate::expr::array::range;
+use crate::expr::expr;
+use crate::expr::record;
+use crate::expr::Expr;
+use crate::ident_keyword::ident;
+use crate::lex;
 use combine::attempt;
 use combine::between;
 use combine::choice;
@@ -28,18 +19,27 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use hir::expr::compound::Record;
+use hir::expr::operator::Assign;
+use hir::expr::operator::Binary;
+use hir::expr::operator::NamedArgCall;
+use hir::expr::operator::Property;
+use hir::expr::operator::Slice;
+use hir::expr::operator::UnnamedArgCall;
+use hir::expr::range::Range;
+use hir::expr::PlaceExpr;
 
 pub enum PartialAst<'a> {
     Property(&'a str),
-    Index(Expr<'a>),
-    Slice(Range<'a>),
-    NamedArgCall(Record<'a>),
-    UnnamedArgCall(Box<[Expr<'a>]>),
+    Index(Expr<'a, ()>),
+    Slice(Range<'a, ()>),
+    NamedArgCall(Record<'a, ()>),
+    UnnamedArgCall(Box<[Expr<'a, ()>]>),
     Deref,
     Len,
 }
 impl<'a> PartialAst<'a> {
-    pub fn combine_from(self, left: Expr<'a>) -> Expr<'a> {
+    pub fn combine_from(self, left: Expr<'a, ()>) -> Expr<'a, ()> {
         match self {
             Self::Property(name) => Expr::Property(Property {
                 expr: Box::new(left),
@@ -106,7 +106,7 @@ where
         lex(char('^')).map(|_| PartialAst::Deref),
     ))
 }
-pub fn expr_6<'a, I>() -> impl Parser<I, Output = Expr<'a>>
+pub fn expr_6<'a, I>() -> impl Parser<I, Output = Expr<'a, ()>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -120,7 +120,7 @@ where
         expr
     })
 }
-pub fn expr_0<'a, I>() -> impl Parser<I, Output = Expr<'a>>
+pub fn expr_0<'a, I>() -> impl Parser<I, Output = Expr<'a, ()>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -154,7 +154,7 @@ pub fn precedence_of(token: &str) -> Option<u8> {
 }
 pub fn infix_expr_op<'a, I>(
     precedence: u8,
-) -> impl Parser<I, Output = fn(Expr<'a>, Expr<'a>) -> Expr<'a>>
+) -> impl Parser<I, Output = fn(Expr<'a, ()>, Expr<'a, ()>) -> Expr<'a, ()>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

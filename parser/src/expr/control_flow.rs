@@ -1,47 +1,179 @@
-use crate::expr::Expr;
-use crate::pattern::Pattern;
-use crate::statement::Statement;
-use std::collections::HashMap;
+use crate::expr::expr;
+use crate::ident_keyword::keyword;
+use crate::lex;
+use crate::pattern::pattern;
+use crate::statement::statement_return;
+use crate::statement::StatementReturn;
+use combine::attempt;
+use combine::between;
+use combine::choice;
+use combine::look_ahead;
+use combine::many;
+use combine::optional;
+use combine::parser;
+use combine::parser::char::char;
+use combine::parser::char::string;
+use combine::ParseError;
+use combine::Parser;
+use combine::RangeStream;
+use hir::expr::control_flow::Block;
+use hir::expr::control_flow::For;
+use hir::expr::control_flow::If;
+use hir::expr::control_flow::Match;
+use hir::expr::control_flow::MatchArm;
+use hir::expr::control_flow::While;
+use hir::expr::Expr;
+use hir::statement::Statement;
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Block<'a> {
-    pub statement: Box<[Statement<'a>]>,
-    pub expr: Option<Box<Expr<'a>>>,
+#[derive(Default, Debug, Clone, PartialEq)]
+struct StatementExpr<'a> {
+    statement: Vec<Statement<'a, ()>>,
+    expr: Option<Expr<'a, ()>>,
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct Fun<'a> {
-    pub param: Param<'a>,
-    pub body: Box<Expr<'a>>,
+impl<'a> Extend<StatementReturn<'a>> for StatementExpr<'a> {
+    fn extend<T>(&mut self, iter: T)
+    where
+        T: IntoIterator<Item = StatementReturn<'a>>,
+    {
+        let iter = iter.into_iter();
+        let (min_count, _) = iter.size_hint();
+        self.statement.reserve(min_count);
+        for statement_return in iter {
+            self.statement
+                .extend(self.expr.take().into_iter().map(Statement::Expr));
+            match statement_return {
+                StatementReturn::Statement(statement) => self.statement.push(statement),
+                StatementReturn::Return(expr) => self.expr = Some(expr),
+            }
+        }
+    }
 }
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct Param<'a> {
-    pub order: Box<[&'a str]>,
-    pub param: HashMap<&'a str, Pattern<'a>>,
+pub fn block<'a, I>() -> impl Parser<I, Output = Block<'a, ()>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    between(
+        lex(char('{')),
+        lex(char('}')),
+        many(statement_return(char('}'))),
+    )
+    .map(|statement_expr| {
+        let StatementExpr { statement, expr } = statement_expr;
+        Block {
+            statement: statement.into(),
+            expr: expr.map(Box::new),
+        }
+    })
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct If<'a> {
-    pub condition: Box<Expr<'a>>,
-    pub body: Block<'a>,
-    pub else_part: Option<Box<Expr<'a>>>,
+fn if_<'a, I>() -> impl Parser<I, Output = If<'a, ()>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    let else_part = || {
+        lex(keyword("else")).with(choice((
+            block().map(Expr::Block),
+            if_expression().map(Expr::If),
+        )))
+    };
+    attempt(lex(keyword("if")))
+        .with((expr(0), block(), optional(else_part())))
+        .map(|(condition, body, else_part)| If {
+            condition: Box::new(condition),
+            body,
+            else_part: else_part.map(Box::new),
+        })
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct For<'a> {
-    pub pattern: Pattern<'a>,
-    pub expr: Box<Expr<'a>>,
-    pub body: Block<'a>,
+parser! {
+    fn if_expression['a, I]()(I) -> If<'a, ()>
+    where [
+        I: RangeStream<Token = char, Range = &'a str>,
+        I::Error: ParseError<I::Token, I::Range, I::Position>,
+    ] {
+        if_()
+    }
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct While<'a> {
-    pub condition: Box<Expr<'a>>,
-    pub body: Block<'a>,
+fn for_expression<'a, I>() -> impl Parser<I, Output = For<'a, ()>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    attempt(lex(keyword("for")))
+        .with((pattern(), lex(keyword("in")), expr(0), block()))
+        .map(|(pattern, _, expr, body)| For {
+            pattern,
+            expr: Box::new(expr),
+            body,
+        })
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct Match<'a> {
-    pub expr: Box<Expr<'a>>,
-    pub arm: Box<[MatchArm<'a>]>,
+fn while_expression<'a, I>() -> impl Parser<I, Output = While<'a, ()>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    attempt(lex(keyword("while")))
+        .with((expr(0), block()))
+        .map(|(condition, body)| While {
+            condition: Box::new(condition),
+            body,
+        })
 }
-#[derive(Debug, PartialEq, Clone)]
-pub struct MatchArm<'a> {
-    pub pattern: Pattern<'a>,
-    pub expr: Box<Expr<'a>>,
+fn loop_expression<'a, I>() -> impl Parser<I, Output = Block<'a, ()>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    attempt(lex(keyword("loop"))).with(block())
+}
+fn match_expression<'a, I>() -> impl Parser<I, Output = Match<'a, ()>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    let arm_expr = || {
+        choice((
+            attempt(control_flow()).skip(optional(lex(char(',')))),
+            expr(0).skip(choice((
+                lex(char(',')).map(|_| ()),
+                look_ahead(char('}')).map(|_| ()),
+            ))),
+        ))
+    };
+    let arm = || {
+        (pattern().skip(lex(string("=>"))), arm_expr()).map(|(pattern, expr)| MatchArm {
+            pattern,
+            expr: Box::new(expr),
+        })
+    };
+    let body = || between(lex(char('{')), lex(char('}')), many(arm())).map(Vec::into);
+    attempt(lex(keyword("match")))
+        .with((expr(0), body()))
+        .map(|(expr, arm)| Match {
+            expr: Box::new(expr),
+            arm,
+        })
+}
+fn control_flow_<'a, I>() -> impl Parser<I, Output = Expr<'a, ()>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        block().map(Expr::Block),
+        if_expression().map(Expr::If),
+        for_expression().map(Expr::For),
+        while_expression().map(Expr::While),
+        loop_expression().map(Expr::Loop),
+        match_expression().map(Expr::Match),
+    ))
+}
+parser! {
+    pub fn control_flow['a, I]()(I) -> Expr<'a, ()>
+    where [
+        I: RangeStream<Token = char, Range = &'a str>,
+        I::Error: ParseError<I::Token, I::Range, I::Position>,
+    ] {
+        control_flow_()
+    }
 }

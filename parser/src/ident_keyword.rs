@@ -48,9 +48,9 @@ where
 }
 #[cfg(test)]
 mod test {
-    use crate::parser::ident_keyword::ident;
-    use crate::parser::ident_keyword::ident_or_keyword;
-    use crate::parser::ident_keyword::keyword;
+    use crate::ident_keyword::ident;
+    use crate::ident_keyword::ident_or_keyword;
+    use crate::ident_keyword::keyword;
     use combine::EasyParser;
 
     #[test]

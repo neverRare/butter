@@ -1,7 +1,7 @@
-use crate::parser::expr::integer::integer_str;
-use crate::parser::expr::integer::integer_str_allow_underscore;
-use crate::parser::expr::integer::parse_digit;
-use crate::parser::expr::integer::parse_i32;
+use crate::expr::integer::integer_str;
+use crate::expr::integer::integer_str_allow_underscore;
+use crate::expr::integer::parse_digit;
+use crate::expr::integer::parse_i32;
 use combine::attempt;
 use combine::choice;
 use combine::error::StreamError;
@@ -128,7 +128,7 @@ parser! {
 }
 #[cfg(test)]
 mod test {
-    use crate::parser::expr::float::float;
+    use crate::expr::float::float;
     use combine::EasyParser;
 
     #[test]
