@@ -5,3 +5,4 @@ authors = ["neverRare"]
 edition = "2018"
 
 [dependencies]
+hir = { path = "../hir" }

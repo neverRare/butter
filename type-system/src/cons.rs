@@ -17,7 +17,7 @@ use std::fmt::Result as FmtResult;
 use std::hash::Hash;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(super) enum Cons<'a> {
+pub enum Cons<'a> {
     Unit,
     Num,
     Bool,
@@ -46,7 +46,7 @@ impl<'a> Cons<'a> {
             Self::Union(union) => union.free_vars(),
         }
     }
-    pub fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
+    pub(super) fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Unit | Self::Num | Self::Bool => (),
             Self::Ref(mutability, ty) => {
@@ -69,7 +69,7 @@ impl<'a> Cons<'a> {
         }
         Ok(())
     }
-    pub fn unify_with(
+    pub(super) fn unify_with(
         self,
         other: Self,
         var_state: &mut VarState<'a>,
@@ -100,7 +100,7 @@ impl<'a> Cons<'a> {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(super) struct RowedType<'a> {
+pub struct RowedType<'a> {
     pub fields: HashMap<&'a str, Type<'a>>,
     pub rest: Option<Var<'a>>,
 }
@@ -148,7 +148,7 @@ impl<'a> RowedType<'a> {
         }
         Ok(())
     }
-    pub fn unify_with(
+    pub(super) fn unify_with(
         self,
         other: Self,
         var_state: &mut VarState<'a>,

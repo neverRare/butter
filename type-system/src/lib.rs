@@ -1,4 +1,5 @@
 use crate::cons::Cons;
+use hir::statement::Statement;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt::Display;
@@ -11,7 +12,7 @@ use std::iter::FromIterator;
 mod cons;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-struct Var<'a> {
+pub struct Var<'a> {
     name: &'a str,
     id: u32,
 }
@@ -38,12 +39,12 @@ enum Kind {
     MutType,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-struct KindedVar<'a> {
+pub struct KindedVar<'a> {
     kind: Kind,
     var: Var<'a>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
-enum Type<'a> {
+pub enum Type<'a> {
     Var(Var<'a>),
     Cons(Cons<'a>),
 }
@@ -95,7 +96,7 @@ impl<'a> Type<'a> {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum MutType<'a> {
+pub enum MutType<'a> {
     Var(Var<'a>),
     Imm,
     Mut,
@@ -296,7 +297,10 @@ impl<'a> Env<'a> {
         Scheme { for_all, ty }
     }
 }
-enum TypeError {
+pub fn infer(statements: Vec<Statement<()>>) -> Result<Vec<Statement<Type>>, TypeError> {
+    todo!()
+}
+pub enum TypeError {
     MismatchCons,
     MismatchKind,
     MismatchArity,
