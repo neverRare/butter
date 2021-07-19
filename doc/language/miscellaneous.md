@@ -92,3 +92,13 @@ Butter defines the following operator precedence from strongest to weakest.
 These determines how chain of operations are parsed. You can think of precedence as "binding power": `1 + 3 * 2` is parsed as `1 + (3 * 2)` instead of `(1 + 3) * 2` because `*` binds stronger than `+`, if the latter case is preferred, use [group].
 
 [group]: ./group.md
+
+## Hashbang
+
+[Hashbang] is used to specify interpreter when directly executed in unix-like systems. Butter ignores this like a comment in recognition of its purpose. Hashbangs may only be placed in the beginning of the code without any whitespace before it.
+
+```butter
+#!/path/to/interpreter
+```
+
+[Hashbang]: https://en.wikipedia.org/wiki/Shebang_(Unix)

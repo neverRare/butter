@@ -5,6 +5,7 @@
 use combine::attempt;
 use combine::eof;
 use combine::many;
+use combine::optional;
 use combine::parser::char::space;
 use combine::parser::char::string;
 use combine::parser::range::take_while;
@@ -26,7 +27,10 @@ combine::parser! {
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        insignificants().with(many(statement::statement())).skip(eof())
+        optional(attempt(string("#!")).with(take_while(|ch| ch != '\n')))
+            .with(insignificants())
+            .with(many(statement::statement()))
+            .skip(eof())
     }
 }
 fn comments<'a, I>() -> impl Parser<I, Output = ()>
