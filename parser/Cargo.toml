@@ -5,5 +5,5 @@ authors = ["neverRare"]
 edition = "2018"
 
 [dependencies]
-combine = "4.5.2"
+combine = "4.6.0"
 hir = { path = "../hir" }
