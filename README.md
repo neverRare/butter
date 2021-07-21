@@ -1,6 +1,6 @@
 # ![Butter](butter_text_only.svg)
 
-[Documents](doc/README.md) | [Contributing Guidelines](CONTRIBUTING.md)
+[Documents](doc/README.md) | [Contributing Guidelines](CONTRIBUTING.md) | [Join the Discord server](https://discord.gg/U75vxW5scB)
 
 A tasty language for building efficient software.
 
@@ -48,3 +48,7 @@ After these features are sufficiently implemented. Other useful missing features
 ## Road map
 
 [![A road map for the Butter programming language, depicted in the form style a retro video game map. A single road snakes from right-to-left, with multiple stops, ending with a causeway leading to a castle in the middle of a lake. A flag is placed on the first stop. The project mascot (a cute yellow bear) is at the second stop and exclaims "Let's Go!". The stops on the road are: parser, Hindley-Milner with row polymorphism, IR, lifetime analysis, refinement types, and finally LLVM. An enormous dragon looms behind the castle.](./roadmap.png)](https://github.com/neverRare/butter/projects/1)
+
+## Chat with us
+
+You may join and reach us at [the official Discord server](https://discord.gg/U75vxW5scB), it is still quite fresh. You may also join the [/r/ProgrammingLanguages Discord server](https://discord.gg/4Kjt3ZE). It is a helpful and friendly community for people interested in building programming languages, compilers, and stuffs. It have a dedicated #butter channel.
