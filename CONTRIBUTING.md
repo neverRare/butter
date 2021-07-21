@@ -2,7 +2,7 @@
 
 Thank you for taking your time contributing 🎉🙏.
 
-If you have issues, questions, or suggestions, simply open an issue. If you know how to fix such issues, consider forking and opening a pull request. If you wish to fix existing issues, please tell us you're working on it on the issue page before forking.
+If you have issues, questions, or suggestions, simply open an issue. If you know how to fix such issues, consider forking and opening a pull request. If you wish to fix existing issues, please tell us you're about to work on it on the issue page before forking.
 
 I'll address these as soon as possible, you're my priority because you're awesome enough to contribute 😎.
 
