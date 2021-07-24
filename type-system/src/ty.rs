@@ -16,7 +16,7 @@ pub struct Var<'a> {
     id: u32,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-struct VarState<'a>(HashMap<&'a str, u32>);
+pub(super) struct VarState<'a>(HashMap<&'a str, u32>);
 impl<'a> VarState<'a> {
     fn new() -> Self {
         Self::default()
@@ -216,7 +216,7 @@ impl<'a> Scheme<'a> {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-struct Subs<'a>(HashMap<Var<'a>, Type1<'a>>);
+pub(super) struct Subs<'a>(HashMap<Var<'a>, Type1<'a>>);
 impl<'a> Subs<'a> {
     fn new() -> Self {
         Self::default()
@@ -261,7 +261,7 @@ impl<'a> FromIterator<(Var<'a>, Type1<'a>)> for Subs<'a> {
         Self(iter.into_iter().collect())
     }
 }
-struct Env<'a>(HashMap<Var<'a>, Scheme<'a>>);
+pub(super) struct Env<'a>(HashMap<Var<'a>, Scheme<'a>>);
 impl<'a> Env<'a> {
     fn hashmap(&self) -> &HashMap<Var<'a>, Scheme<'a>> {
         let Self(map) = self;
