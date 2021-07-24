@@ -13,13 +13,20 @@ use combine::RangeStream;
 use hir::expr::compound::Record;
 use std::collections::HashMap;
 
-#[derive(Default)]
-struct RecordExtend<'a> {
-    splats: Vec<Expr<'a, ()>>,
-    fields: HashMap<&'a str, Expr<'a, ()>>,
+struct RecordExtend<'a, T> {
+    splats: Vec<Expr<'a, T>>,
+    fields: HashMap<&'a str, Expr<'a, T>>,
 }
-impl<'a> RecordExtend<'a> {
-    fn into_struct(self) -> Record<'a, ()> {
+impl<'a, T> Default for RecordExtend<'a, T> {
+    fn default() -> Self {
+        Self {
+            splats: Vec::new(),
+            fields: HashMap::new(),
+        }
+    }
+}
+impl<'a, T> RecordExtend<'a, T> {
+    fn into_struct(self) -> Record<'a, T> {
         let mut fields = self.fields;
         fields.shrink_to_fit();
         Record {
@@ -28,10 +35,10 @@ impl<'a> RecordExtend<'a> {
         }
     }
 }
-impl<'a> Extend<FieldSplat<'a>> for RecordExtend<'a> {
-    fn extend<T>(&mut self, iter: T)
+impl<'a, T> Extend<FieldSplat<'a, T>> for RecordExtend<'a, T> {
+    fn extend<I>(&mut self, iter: I)
     where
-        T: IntoIterator<Item = FieldSplat<'a>>,
+        I: IntoIterator<Item = FieldSplat<'a, T>>,
     {
         let iter = iter.into_iter();
         let (min_count, _) = iter.size_hint();
@@ -46,14 +53,15 @@ impl<'a> Extend<FieldSplat<'a>> for RecordExtend<'a> {
         }
     }
 }
-enum FieldSplat<'a> {
-    Field(&'a str, Expr<'a, ()>),
-    Splat(Expr<'a, ()>),
+enum FieldSplat<'a, T> {
+    Field(&'a str, Expr<'a, T>),
+    Splat(Expr<'a, T>),
 }
-fn field_splat<'a, I>() -> impl Parser<I, Output = FieldSplat<'a>>
+fn field_splat<'a, I, T>() -> impl Parser<I, Output = FieldSplat<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     let field = || {
         (lex(ident()), optional(lex(char('=')).with(expr(0))))
@@ -66,10 +74,11 @@ where
     ))
 }
 // TODO: handle duplicate name
-pub fn record<'a, I>() -> impl Parser<I, Output = Record<'a, ()>>
+pub fn record<'a, I, T>() -> impl Parser<I, Output = Record<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     let fields = || sep_end_by(field_splat(), lex(char(',')));
     between(lex(char('(')), lex(char(')')), fields()).map(RecordExtend::into_struct)

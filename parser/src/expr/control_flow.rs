@@ -25,15 +25,23 @@ use hir::expr::control_flow::While;
 use hir::expr::Expr;
 use hir::statement::Statement;
 
-#[derive(Default, Debug, Clone, PartialEq)]
-struct StatementExpr<'a> {
-    statement: Vec<Statement<'a, ()>>,
-    expr: Option<Expr<'a, ()>>,
+#[derive(Debug, Clone, PartialEq)]
+struct StatementExpr<'a, T> {
+    statement: Vec<Statement<'a, T>>,
+    expr: Option<Expr<'a, T>>,
 }
-impl<'a> Extend<StatementReturn<'a>> for StatementExpr<'a> {
-    fn extend<T>(&mut self, iter: T)
+impl<'a, T> Default for StatementExpr<'a, T> {
+    fn default() -> Self {
+        Self {
+            statement: Vec::new(),
+            expr: None,
+        }
+    }
+}
+impl<'a, T> Extend<StatementReturn<'a, T>> for StatementExpr<'a, T> {
+    fn extend<I>(&mut self, iter: I)
     where
-        T: IntoIterator<Item = StatementReturn<'a>>,
+        I: IntoIterator<Item = StatementReturn<'a, T>>,
     {
         let iter = iter.into_iter();
         let (min_count, _) = iter.size_hint();
@@ -48,10 +56,11 @@ impl<'a> Extend<StatementReturn<'a>> for StatementExpr<'a> {
         }
     }
 }
-pub fn block<'a, I>() -> impl Parser<I, Output = Block<'a, ()>>
+pub fn block<'a, I, T>() -> impl Parser<I, Output = Block<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     between(
         lex(char('{')),
@@ -66,10 +75,11 @@ where
         }
     })
 }
-fn if_<'a, I>() -> impl Parser<I, Output = If<'a, ()>>
+fn if_<'a, I, T>() -> impl Parser<I, Output = If<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     let else_part = || {
         lex(keyword("else")).with(choice((
@@ -86,18 +96,20 @@ where
         })
 }
 parser! {
-    fn if_expression['a, I]()(I) -> If<'a, ()>
+    fn if_expression['a, I, T]()(I) -> If<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
     ] {
         if_()
     }
 }
-fn for_expression<'a, I>() -> impl Parser<I, Output = For<'a, ()>>
+fn for_expression<'a, I, T>() -> impl Parser<I, Output = For<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     attempt(lex(keyword("for")))
         .with((pattern(), lex(keyword("in")), expr(0), block()))
@@ -107,10 +119,11 @@ where
             body,
         })
 }
-fn while_expression<'a, I>() -> impl Parser<I, Output = While<'a, ()>>
+fn while_expression<'a, I, T>() -> impl Parser<I, Output = While<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     attempt(lex(keyword("while")))
         .with((expr(0), block()))
@@ -119,17 +132,19 @@ where
             body,
         })
 }
-fn loop_expression<'a, I>() -> impl Parser<I, Output = Block<'a, ()>>
+fn loop_expression<'a, I, T>() -> impl Parser<I, Output = Block<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     attempt(lex(keyword("loop"))).with(block())
 }
-fn match_expression<'a, I>() -> impl Parser<I, Output = Match<'a, ()>>
+fn match_expression<'a, I, T>() -> impl Parser<I, Output = Match<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     let arm_expr = || {
         choice((
@@ -154,10 +169,11 @@ where
             arm,
         })
 }
-fn control_flow_<'a, I>() -> impl Parser<I, Output = Expr<'a, ()>>
+fn control_flow_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     choice((
         block().map(Expr::Block),
@@ -169,10 +185,11 @@ where
     ))
 }
 parser! {
-    pub fn control_flow['a, I]()(I) -> Expr<'a, ()>
+    pub fn control_flow['a, I, T]()(I) -> Expr<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
     ] {
         control_flow_()
     }

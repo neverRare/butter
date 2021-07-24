@@ -29,17 +29,17 @@ use hir::expr::operator::UnnamedArgCall;
 use hir::expr::range::Range;
 use hir::expr::PlaceExpr;
 
-pub enum PartialAst<'a> {
+pub enum PartialAst<'a, T> {
     Property(&'a str),
-    Index(Expr<'a, ()>),
-    Slice(Range<'a, ()>),
-    NamedArgCall(Record<'a, ()>),
-    UnnamedArgCall(Box<[Expr<'a, ()>]>),
+    Index(Expr<'a, T>),
+    Slice(Range<'a, T>),
+    NamedArgCall(Record<'a, T>),
+    UnnamedArgCall(Box<[Expr<'a, T>]>),
     Deref,
     Len,
 }
-impl<'a> PartialAst<'a> {
-    pub fn combine_from(self, left: Expr<'a, ()>) -> Expr<'a, ()> {
+impl<'a, T> PartialAst<'a, T> {
+    pub fn combine_from(self, left: Expr<'a, T>) -> Expr<'a, T> {
         match self {
             Self::Property(name) => Expr::Property(Property {
                 expr: Box::new(left),
@@ -66,10 +66,11 @@ impl<'a> PartialAst<'a> {
         }
     }
 }
-fn infix_6<'a, I>() -> impl Parser<I, Output = PartialAst<'a>>
+fn infix_6<'a, I, T>() -> impl Parser<I, Output = PartialAst<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     // TODO: disallow variable but allow (variable) possibly with lookahead
     let nameless_arg = || expr(0);
@@ -106,10 +107,11 @@ where
         lex(char('^')).map(|_| PartialAst::Deref),
     ))
 }
-pub fn expr_6<'a, I>() -> impl Parser<I, Output = Expr<'a, ()>>
+pub fn expr_6<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     (expr(7), many(infix_6())).map(|(prefix, infixes)| {
         let infixes: Vec<_> = infixes;
@@ -120,10 +122,11 @@ where
         expr
     })
 }
-pub fn expr_0<'a, I>() -> impl Parser<I, Output = Expr<'a, ()>>
+pub fn expr_0<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     (expr(1), optional(lex(attempt(string("<-"))).with(expr(0)))).and_then(|(place, expr)| {
         match expr {
@@ -152,9 +155,9 @@ pub fn precedence_of(token: &str) -> Option<u8> {
         _ => None,
     }
 }
-pub fn infix_expr_op<'a, I>(
+pub fn infix_expr_op<'a, I, T>(
     precedence: u8,
-) -> impl Parser<I, Output = fn(Expr<'a, ()>, Expr<'a, ()>) -> Expr<'a, ()>>
+) -> impl Parser<I, Output = fn(Expr<'a, T>, Expr<'a, T>) -> Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

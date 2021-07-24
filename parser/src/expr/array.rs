@@ -22,10 +22,11 @@ where
         choice((char('.').map(|_| true), (char('<').map(|_| false)))),
     )
 }
-pub fn range<'a, I>() -> impl Parser<I, Output = Range<'a, ()>>
+pub fn range<'a, I, T>() -> impl Parser<I, Output = Range<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     let range = || {
         (optional(expr(0)), lex(range_operator()), optional(expr(0))).map(
@@ -46,10 +47,11 @@ where
     };
     between(lex(char('[')), lex(char(']')), range())
 }
-pub fn array<'a, I>() -> impl Parser<I, Output = Box<[Element<'a, ()>]>>
+pub fn array<'a, I, T>() -> impl Parser<I, Output = Box<[Element<'a, T>]>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     let element = || {
         choice((

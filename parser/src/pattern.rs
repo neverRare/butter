@@ -51,10 +51,11 @@ where
     };
     between(lex(char(left)), lex(char(right)), middle())
 }
-fn array<'a, I>() -> impl Parser<I, Output = Pattern<'a, ()>>
+fn array<'a, I, T>() -> impl Parser<I, Output = Pattern<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     optional_rest('[', ']', pattern, pattern).map(|(left, rest_right)| {
         let left: Vec<_> = left;
@@ -68,27 +69,31 @@ where
         }
     })
 }
-fn field<'a, I>() -> impl Parser<I, Output = (&'a str, Pattern<'a, ()>)>
+fn field<'a, I, T>() -> impl Parser<I, Output = (&'a str, Pattern<'a, T>)>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     (lex(ident()), optional(lex(char('=')).with(pattern()))).map(|(name, pattern)| {
         (
             name,
-            pattern.unwrap_or(Pattern::Var(Var {
-                ident: name,
-                mutable: false,
-                bind_to_ref: false,
-                ty: (),
-            })),
+            pattern.unwrap_or_else(|| {
+                Pattern::Var(Var {
+                    ident: name,
+                    mutable: false,
+                    bind_to_ref: false,
+                    ty: T::default(),
+                })
+            }),
         )
     })
 }
-pub fn parameter<'a, I>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, ()>>>
+pub fn parameter<'a, I, T>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, T>>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     between(
         lex(char('(')),
@@ -96,10 +101,11 @@ where
         sep_end_by(field(), lex(char(','))),
     )
 }
-fn record<'a, I>() -> impl Parser<I, Output = RecordPattern<'a, ()>>
+fn record<'a, I, T>() -> impl Parser<I, Output = RecordPattern<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     // TODO: handle duplicate name as error
     optional_rest('(', ')', field, pattern).map(|(left, rest_right)| match rest_right {
@@ -117,10 +123,11 @@ where
         },
     })
 }
-fn pattern_<'a, I>() -> impl Parser<I, Output = Pattern<'a, ()>>
+fn pattern_<'a, I, T>() -> impl Parser<I, Output = Pattern<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     choice((
         lex(char('@'))
@@ -158,16 +165,17 @@ where
                     ident,
                     mutable: mutability.is_some(),
                     bind_to_ref: bind_to_ref.is_some(),
-                    ty: (),
+                    ty: T::default(),
                 })
             }),
     ))
 }
 parser! {
-    pub fn pattern['a, I]()(I) -> Pattern<'a, ()>
+    pub fn pattern['a, I, T]()(I) -> Pattern<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
     ] {
         pattern_()
     }

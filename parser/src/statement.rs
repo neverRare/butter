@@ -26,15 +26,18 @@ use hir::statement::Declare;
 use hir::statement::FunDeclare;
 use hir::statement::Statement;
 
-pub enum StatementReturn<'a> {
-    Statement(Statement<'a, ()>),
-    Return(Expr<'a, ()>),
+pub enum StatementReturn<'a, T> {
+    Statement(Statement<'a, T>),
+    Return(Expr<'a, T>),
 }
-fn statement_return_<'a, I, P>(end_look_ahead: P) -> impl Parser<I, Output = StatementReturn<'a>>
+fn statement_return_<'a, I, P, T>(
+    end_look_ahead: P,
+) -> impl Parser<I, Output = StatementReturn<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     P: Parser<I>,
+    T: Default,
 {
     let control_flow = || {
         (control_flow(), optional(lex(char(';')))).map(|(expr, semicolon)| match semicolon {
@@ -60,7 +63,7 @@ where
                         param,
                         body: Box::new(body),
                     },
-                    ty: (),
+                    ty: T::default(),
                 })
             })
     };
@@ -130,19 +133,21 @@ where
     ))
 }
 parser! {
-    pub fn statement_return['a, I, P](end_look_ahead: P)(I) -> StatementReturn<'a>
+    pub fn statement_return['a, I, P, T](end_look_ahead: P)(I) -> StatementReturn<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         P: Parser<I>,
+        T: Default,
     ] {
         statement_return_(end_look_ahead)
     }
 }
-pub fn statement<'a, I>() -> impl Parser<I, Output = Statement<'a, ()>>
+pub fn statement<'a, I, T>() -> impl Parser<I, Output = Statement<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     statement_return(char(';')).map(|statement_return| match statement_return {
         StatementReturn::Statement(statement) => statement,
@@ -164,7 +169,7 @@ mod test {
     #[test]
     fn parallel_assign() {
         let src = "foo, bar <- bar, foo;";
-        let expected = Statement::Expr(Expr::ParallelAssign(
+        let expected = <Statement<()>>::Expr(Expr::ParallelAssign(
             vec![
                 Assign {
                     place: Box::new(PlaceExpr::Var("foo")),
@@ -182,7 +187,7 @@ mod test {
     #[test]
     fn chain_assign() {
         let src = "foo <- bar <- baz;";
-        let expected = Statement::Expr(Expr::Assign(Assign {
+        let expected = <Statement<()>>::Expr(Expr::Assign(Assign {
             place: Box::new(PlaceExpr::Var("foo")),
             expr: Box::new(Expr::Assign(Assign {
                 place: Box::new(PlaceExpr::Var("bar")),
@@ -194,7 +199,7 @@ mod test {
     #[test]
     fn var() {
         let src = "foo = 10;";
-        let expected = Statement::Declare(Declare {
+        let expected = <Statement<()>>::Declare(Declare {
             pattern: Pattern::Var(Var {
                 ident: "foo",
                 mutable: false,

@@ -69,12 +69,17 @@ parser! {
         })
     }
 }
-#[derive(Default, Clone, PartialEq, Debug)]
-struct StringLiteral<'a>(Vec<Element<'a, ()>>);
-impl<'a> Extend<Char> for StringLiteral<'a> {
-    fn extend<T>(&mut self, iter: T)
+#[derive(Clone, PartialEq, Debug)]
+struct StringLiteral<'a, T>(Vec<Element<'a, T>>);
+impl<'a, T> Default for StringLiteral<'a, T> {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
+impl<'a, T> Extend<Char> for StringLiteral<'a, T> {
+    fn extend<I>(&mut self, iter: I)
     where
-        T: IntoIterator<Item = Char>,
+        I: IntoIterator<Item = Char>,
     {
         let Self(vec) = self;
         let iter = iter.into_iter();
@@ -96,7 +101,7 @@ impl<'a> Extend<Char> for StringLiteral<'a> {
         }
     }
 }
-pub fn string_literal<'a, I>() -> impl Parser<I, Output = Box<[Element<'a, ()>]>>
+pub fn string_literal<'a, I, T>() -> impl Parser<I, Output = Box<[Element<'a, T>]>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -116,7 +121,7 @@ mod test {
         let expected = "\x41Aßℝ💣\n"
             .as_bytes()
             .iter()
-            .map(|byte| Element::Element(Expr::UInt(*byte as u64)))
+            .map(|byte| <Element<()>>::Element(Expr::UInt(*byte as u64)))
             .collect();
         assert_eq!(string_literal().easy_parse(src), Ok((expected, "")));
     }

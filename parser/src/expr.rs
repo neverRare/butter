@@ -34,10 +34,11 @@ pub mod integer;
 mod record;
 mod string;
 
-fn prefix_expr_<'a, I>() -> impl Parser<I, Output = Expr<'a, ()>>
+fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     choice((
         (attempt(param_arrow()), expr(0)).map(|(param, body)| {
@@ -92,18 +93,20 @@ where
     ))
 }
 parser! {
-    fn prefix_expr['a, I]()(I) -> Expr<'a, ()>
+    fn prefix_expr['a, I, T]()(I) -> Expr<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
     ] {
         prefix_expr_()
     }
 }
-fn expr_<'a, I>(precedence: u8) -> impl Parser<I, Output = Expr<'a, ()>>
+fn expr_<'a, I, T>(precedence: u8) -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     match precedence {
         0 => expr_0().left().left(),
@@ -115,10 +118,11 @@ where
     }
 }
 parser! {
-    pub fn expr['a, I](precedence: u8)(I) -> Expr<'a, ()>
+    pub fn expr['a, I, T](precedence: u8)(I) -> Expr<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
     ] {
         expr_(*precedence)
     }
@@ -135,13 +139,13 @@ mod test {
     #[test]
     fn group() {
         let src = "(foo)";
-        let expected = Expr::Var("foo");
+        let expected = <Expr<()>>::Var("foo");
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn precedence() {
         let src = "foo + bar * baz";
-        let expected = Expr::Add(Binary {
+        let expected = <Expr<()>>::Add(Binary {
             left: Box::new(Expr::Var("foo")),
             right: Box::new(Expr::Multiply(Binary {
                 left: Box::new(Expr::Var("bar")),
@@ -150,7 +154,7 @@ mod test {
         });
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
         let src = "foo * bar + baz";
-        let expected = Expr::Add(Binary {
+        let expected = <Expr<()>>::Add(Binary {
             left: Box::new(Expr::Multiply(Binary {
                 left: Box::new(Expr::Var("foo")),
                 right: Box::new(Expr::Var("bar")),
@@ -162,7 +166,7 @@ mod test {
     #[test]
     fn right_associative() {
         let src = "foo <- bar <- baz";
-        let expected = Expr::Assign(Assign {
+        let expected = <Expr<()>>::Assign(Assign {
             place: Box::new(PlaceExpr::Var("foo")),
             expr: Box::new(Expr::Assign(Assign {
                 place: Box::new(PlaceExpr::Var("bar")),
@@ -174,14 +178,14 @@ mod test {
     #[test]
     fn ignore_higher_precedence() {
         let src = "foo + bar";
-        let expected = Expr::Var("foo");
+        let expected = <Expr<()>>::Var("foo");
         let left = "+ bar";
         assert_eq!(expr(6).easy_parse(src), Ok((expected, left)));
     }
     #[test]
     fn ignore_range() {
         let src = "foo..";
-        let expected = Expr::Var("foo");
+        let expected = <Expr<()>>::Var("foo");
         let left = "..";
         assert_eq!(expr(0).easy_parse(src), Ok((expected, left)));
     }

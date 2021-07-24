@@ -22,10 +22,11 @@ mod pattern;
 mod statement;
 
 combine::parser! {
-    pub fn ast['a, I]()(I) -> Vec<Statement<'a, ()>>
+    pub fn ast['a, I, T]()(I) -> Vec<Statement<'a, T>>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
     ] {
         optional(attempt(string("#!")).with(take_while(|ch| ch != '\n')))
             .with(insignificants())

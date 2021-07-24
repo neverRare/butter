@@ -11,10 +11,11 @@ use hir::pattern::Var;
 use std::collections::HashMap;
 use std::iter::once;
 
-pub fn param_arrow<'a, I>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, ()>>>
+pub fn param_arrow<'a, I, T>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, T>>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
 {
     let arrow = || lex(string("=>"));
     choice((
@@ -27,7 +28,7 @@ where
                         ident,
                         mutable: false,
                         bind_to_ref: false,
-                        ty: (),
+                        ty: T::default(),
                     }),
                 ))
                 .collect();
