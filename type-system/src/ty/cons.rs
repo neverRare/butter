@@ -1,16 +1,16 @@
-use crate::fmt_intersperse;
-use crate::HashSet;
-use crate::Kind;
-use crate::KindedVar;
-use crate::MutType;
-use crate::Subs;
-use crate::Type;
-use crate::Type1;
-use crate::TypeError;
-use crate::Var;
-use crate::VarState;
+use crate::ty::fmt_intersperse;
+use crate::ty::Kind;
+use crate::ty::KindedVar;
+use crate::ty::MutType;
+use crate::ty::Subs;
+use crate::ty::Type;
+use crate::ty::Type1;
+use crate::ty::TypeError;
+use crate::ty::Var;
+use crate::ty::VarState;
 use std::array::IntoIter as ArrayIntoIter;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Result as FmtResult;
@@ -29,7 +29,7 @@ pub enum Cons<'a> {
     Union(RowedType<'a>),
 }
 impl<'a> Cons<'a> {
-    pub fn free_vars(&self) -> HashSet<KindedVar<'a>> {
+    pub(super) fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
             Self::Unit | Self::Num | Self::Bool => HashSet::new(),
             Self::Ref(mutability, ty) => {
