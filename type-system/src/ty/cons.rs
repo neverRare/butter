@@ -137,7 +137,7 @@ impl<'a> RowedType<'a> {
                         if self.fields.contains_key(key) {
                             return Err(TypeError::Overlap);
                         } else {
-                            self.fields.insert(key.clone(), ty.clone());
+                            self.fields.insert(key, ty.clone());
                         }
                     }
                     self.rest = new_rest.rest;

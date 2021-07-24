@@ -1,3 +1,7 @@
+#![warn(clippy::all)]
+#![deny(clippy::correctness)]
+#![forbid(unsafe_code)]
+
 use crate::ty::Env;
 use crate::ty::Subs;
 use crate::ty::VarState;
