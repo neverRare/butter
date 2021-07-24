@@ -10,13 +10,8 @@ pub struct Block<'a, T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a, T> {
-    pub param: Param<'a, T>,
-    pub body: Box<Expr<'a, T>>,
-}
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct Param<'a, T> {
-    pub order: Box<[&'a str]>,
     pub param: HashMap<&'a str, Pattern<'a, T>>,
+    pub body: Box<Expr<'a, T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct If<'a, T> {

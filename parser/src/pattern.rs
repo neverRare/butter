@@ -14,7 +14,6 @@ use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::control_flow::Param;
 use hir::pattern::ArrayWithRest;
 use hir::pattern::Pattern;
 use hir::pattern::RecordPattern;
@@ -86,37 +85,7 @@ where
         )
     })
 }
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct ParamExtend<'a> {
-    order: Vec<&'a str>,
-    param: HashMap<&'a str, Pattern<'a, ()>>,
-}
-impl<'a> ParamExtend<'a> {
-    fn into_param(self) -> Param<'a, ()> {
-        let mut param = self.param;
-        param.shrink_to_fit();
-        Param {
-            order: self.order.into(),
-            param,
-        }
-    }
-}
-impl<'a> Extend<(&'a str, Pattern<'a, ()>)> for ParamExtend<'a> {
-    fn extend<T>(&mut self, iter: T)
-    where
-        T: IntoIterator<Item = (&'a str, Pattern<'a, ()>)>,
-    {
-        let iter = iter.into_iter();
-        let (min, _) = iter.size_hint();
-        self.order.reserve(min);
-        self.param.reserve(min);
-        for (name, pattern) in iter {
-            self.order.push(name);
-            self.param.insert(name, pattern);
-        }
-    }
-}
-pub fn parameter<'a, I>() -> impl Parser<I, Output = Param<'a, ()>>
+pub fn parameter<'a, I>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, ()>>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -124,7 +93,7 @@ where
     between(
         lex(char('(')),
         lex(char(')')),
-        sep_end_by(field(), lex(char(','))).map(ParamExtend::into_param),
+        sep_end_by(field(), lex(char(','))),
     )
 }
 fn record<'a, I>() -> impl Parser<I, Output = RecordPattern<'a, ()>>
