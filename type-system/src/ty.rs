@@ -8,7 +8,7 @@ use std::hash::Hash;
 use std::iter::once;
 use std::iter::FromIterator;
 
-mod cons;
+pub mod cons;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Var<'a> {
@@ -218,7 +218,7 @@ impl<'a> Scheme<'a> {
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub(super) struct Subs<'a>(HashMap<Var<'a>, Type1<'a>>);
 impl<'a> Subs<'a> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
     fn hashmap(&self) -> &HashMap<Var<'a>, Type1<'a>> {
