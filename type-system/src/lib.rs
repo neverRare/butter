@@ -42,6 +42,16 @@ fn infer_expr<'a>(
                 expr: Expr::Literal(literal),
             },
         )),
+        Expr::Var(var) => match env.get(Var { name: var, id: 0 }) {
+            Some(scheme) => Ok((
+                Subs::new(),
+                TypedExpr {
+                    ty: scheme.instantiate(var_state)?,
+                    expr: Expr::Var(var),
+                },
+            )),
+            None => Err(TypeError::UnboundVar),
+        },
         _ => todo!(),
     }
 }

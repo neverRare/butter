@@ -12,8 +12,8 @@ pub mod cons;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Var<'a> {
-    name: &'a str,
-    id: u32,
+    pub name: &'a str,
+    pub id: u32,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub(super) struct VarState<'a>(HashMap<&'a str, u32>);
@@ -177,7 +177,7 @@ impl<'a> Type1<'a> {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct Scheme<'a> {
+pub(super) struct Scheme<'a> {
     for_all: HashSet<KindedVar<'a>>,
     ty: Type<'a>,
 }
@@ -195,7 +195,7 @@ impl<'a> Scheme<'a> {
         self.ty.substitute(&subs)?;
         Ok(())
     }
-    fn instantiate(self, var_state: &mut VarState<'a>) -> Result<Type<'a>, TypeError> {
+    pub fn instantiate(self, var_state: &mut VarState<'a>) -> Result<Type<'a>, TypeError> {
         let subs = self
             .for_all
             .into_iter()
@@ -271,6 +271,9 @@ impl<'a> Env<'a> {
         let Self(map) = self;
         map
     }
+    pub fn get(&self, var: Var<'a>) -> Option<Scheme<'a>> {
+        self.hashmap().get(&var).map(Scheme::clone)
+    }
     fn remove(&mut self, var: Var<'a>) {
         self.hashmap_mut().remove(&var);
     }
@@ -302,6 +305,7 @@ pub enum TypeError {
     MismatchArity,
     InfiniteOccurrence,
     Overlap,
+    UnboundVar,
 }
 impl<'a> Display for Var<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
