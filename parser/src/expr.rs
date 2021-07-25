@@ -24,6 +24,7 @@ use combine::RangeStream;
 use hir::expr::control_flow::Fun;
 use hir::expr::operator::Tag;
 use hir::expr::Expr;
+use hir::expr::Literal;
 
 mod array;
 pub mod control_flow;
@@ -34,6 +35,7 @@ pub mod integer;
 mod record;
 mod string;
 
+// TODO: separate literal parser
 fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
@@ -51,7 +53,7 @@ where
         array().map(Expr::Array),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
         record().map(Expr::Record),
-        lex(char_literal()).map(Expr::UInt),
+        lex(char_literal()).map(|uint| Expr::Literal(Literal::UInt(uint))),
         lex(string_literal()).map(Expr::Array),
         lex(char('!'))
             .with(expr(6))
@@ -78,9 +80,9 @@ where
             }),
         attempt(lex(ident())).map(Expr::Var),
         control_flow::control_flow(),
-        lex(keyword("false")).map(|_| Expr::False),
-        lex(keyword("true")).map(|_| Expr::True),
-        lex(keyword("void")).map(|_| Expr::Void),
+        lex(keyword("false")).map(|_| Expr::Literal(Literal::False)),
+        lex(keyword("true")).map(|_| Expr::Literal(Literal::True)),
+        lex(keyword("void")).map(|_| Expr::Literal(Literal::Void)),
         lex(keyword("break"))
             .with(optional(expr(0)))
             .map(|expr| Expr::Break(expr.map(Box::new))),
@@ -88,8 +90,8 @@ where
         lex(keyword("return"))
             .with(optional(expr(0)))
             .map(|expr| Expr::Return(expr.map(Box::new))),
-        lex(float::float()).map(Expr::Float),
-        lex(integer_u64()).map(Expr::UInt),
+        lex(float::float()).map(|float| Expr::Literal(Literal::Float(float))),
+        lex(integer_u64()).map(|uint| Expr::Literal(Literal::UInt(uint))),
     ))
 }
 parser! {

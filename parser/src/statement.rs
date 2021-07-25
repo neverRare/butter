@@ -162,6 +162,7 @@ mod test {
     use crate::statement::PlaceExpr;
     use crate::Statement;
     use combine::EasyParser;
+    use hir::expr::Literal;
     use hir::pattern::Pattern;
     use hir::pattern::Var;
     use hir::statement::Declare;
@@ -206,7 +207,7 @@ mod test {
                 bind_to_ref: false,
                 ty: (),
             }),
-            expr: Expr::UInt(10),
+            expr: Expr::Literal(Literal::UInt(10)),
         });
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));
     }

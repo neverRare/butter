@@ -20,16 +20,20 @@ pub mod control_flow;
 pub mod operator;
 pub mod range;
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Expr<'a, T> {
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Literal {
     True,
     False,
     Void,
 
-    Var(&'a str),
     UInt(u64),
     Float(f64),
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum Expr<'a, T> {
+    Literal(Literal),
 
+    Var(&'a str),
     Break(Option<Box<Expr<'a, T>>>),
     Continue,
     Return(Option<Box<Expr<'a, T>>>),

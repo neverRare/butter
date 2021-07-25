@@ -13,6 +13,7 @@ use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
 use hir::expr::compound::Element;
+use hir::expr::Literal;
 use std::array;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -69,6 +70,7 @@ parser! {
         })
     }
 }
+// TODO: this should be Vec<u8>
 #[derive(Clone, PartialEq, Debug)]
 struct StringLiteral<'a, T>(Vec<Element<'a, T>>);
 impl<'a, T> Default for StringLiteral<'a, T> {
@@ -87,13 +89,15 @@ impl<'a, T> Extend<Char> for StringLiteral<'a, T> {
         vec.reserve(min_count);
         for ch in iter {
             match ch {
-                Char::Byte(byte) => vec.push(Element::Element(Expr::UInt(byte as u64))),
+                Char::Byte(byte) => {
+                    vec.push(Element::Element(Expr::Literal(Literal::UInt(byte as u64))))
+                }
                 Char::Char(ch) => {
                     let mut arr = [0; 4];
                     ch.encode_utf8(&mut arr);
                     vec.extend(
                         array::IntoIter::new(arr)
-                            .map(|byte| Element::Element(Expr::UInt(byte as u64)))
+                            .map(|byte| Element::Element(Expr::Literal(Literal::UInt(byte as u64))))
                             .take(ch.len_utf8()),
                     );
                 }
@@ -114,6 +118,7 @@ mod test {
     use crate::expr::string_literal;
     use crate::expr::Expr;
     use combine::EasyParser;
+    use hir::expr::Literal;
 
     #[test]
     fn string() {
@@ -121,7 +126,7 @@ mod test {
         let expected = "\x41Aßℝ💣\n"
             .as_bytes()
             .iter()
-            .map(|byte| <Element<()>>::Element(Expr::UInt(*byte as u64)))
+            .map(|byte| <Element<()>>::Element(Expr::Literal(Literal::UInt(*byte as u64))))
             .collect();
         assert_eq!(string_literal().easy_parse(src), Ok((expected, "")));
     }
