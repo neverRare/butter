@@ -29,6 +29,8 @@ pub enum Literal {
     UInt(u64),
     Float(f64),
 }
+// TODO: consider replacing place expressions with PlaceExpr
+// TODO: consider separating control flows
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<'a, T> {
     Literal(Literal),
