@@ -21,14 +21,13 @@ struct TypedExpr<'a> {
     ty: Type<'a>,
     expr: Expr<'a, Type<'a>>,
 }
-fn infer_literal<'a>(expr: Literal) -> Option<Type<'a>> {
-    let cons = match expr {
+fn infer_literal<'a>(literal: Literal) -> Type<'a> {
+    let cons = match literal {
         Literal::Void => Cons::Unit,
         Literal::True | Literal::False => Cons::Bool,
         Literal::UInt(_) | Literal::Float(_) => Cons::Num,
-        _ => return None,
     };
-    Some(Type::Cons(cons))
+    Type::Cons(cons)
 }
 fn infer_expr<'a>(
     expr: Expr<'a, ()>,
@@ -39,7 +38,7 @@ fn infer_expr<'a>(
         Expr::Literal(literal) => Ok((
             Subs::new(),
             TypedExpr {
-                ty: infer_literal(literal).unwrap(),
+                ty: infer_literal(literal),
                 expr: Expr::Literal(literal),
             },
         )),
