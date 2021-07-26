@@ -17,3 +17,7 @@ When opening a pull request, please make sure it follows the following conventio
 [DavidAnson/markdownlint]: https://github.com/DavidAnson/markdownlint
 
 Don't sweat this much though, sometimes the owner himself forget these 😅, you may instead allow me to modify your code before merging it so it comply with the conventions 🧐✏.
+
+---
+
+[License](LICENSE)

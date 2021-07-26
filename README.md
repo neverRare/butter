@@ -4,7 +4,7 @@
 
 A tasty language for building efficient software.
 
-**Note:** Still work in progress and pretty much experimental. [Contributions](CONTRIBUTING.md) are welcome.
+**Note:** Still work in progress and experimental. [Contributions](CONTRIBUTING.md) are welcome.
 
 ## A small taste
 
@@ -47,7 +47,9 @@ After these features are sufficiently implemented. Other useful missing features
 
 ## Road map
 
-[![A road map for the Butter programming language, depicted in the form style a retro video game map. A single road snakes from right-to-left, with multiple stops, ending with a causeway leading to a castle in the middle of a lake. A flag is placed on the first stop. The project mascot (a cute yellow bear) is at the second stop and exclaims "Let's Go!". The stops on the road are: parser, Hindley-Milner with row polymorphism, IR, lifetime analysis, refinement types, and finally LLVM. An enormous dragon looms behind the castle.](./roadmap.png)](https://github.com/neverRare/butter/projects/1)
+![A road map for the Butter programming language, depicted in the form style a retro video game map. A single road snakes from right-to-left, with multiple stops, ending with a causeway leading to a castle in the middle of a lake. A flag is placed on the first stop. The project mascot (a cute yellow bear) is at the second stop and exclaims "Let's Go!". The stops on the road are: parser, Hindley-Milner with row polymorphism, IR, lifetime analysis, refinement types, and finally LLVM. An enormous dragon looms behind the castle.](./roadmap.png)
+
+[More details](https://github.com/neverRare/butter/projects/1)
 
 ## Chat with us
 
