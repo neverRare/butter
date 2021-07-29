@@ -1,6 +1,6 @@
 # Function
 
-Function is a reusable expression that are executed on every call.
+Function is a reusable set of code that are executed on every call.
 
 ```butter
 say_hello(name) => "hello " ++ name ++ "!";
@@ -19,14 +19,6 @@ compose(f, g) => (x) => f(g(x));
 The parameter have the same syntax as [record unpacking], except it cannot have rest syntax.
 
 [record unpacking]: unpacking.md#record
-
-Unnamed functions can have simplified parameter syntax when it have at most 1 parameter: the parentheses can be omitted. Unnamed functions with 1 parameter would look like `param => body` and those with no parameter would simply be `=> body`.
-
-The example above can be rewritten to
-
-```butter
-compose(f, g) => x => f(g(x));
-```
 
 ## Body
 

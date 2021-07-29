@@ -1,6 +1,5 @@
 use crate::expr::array::array;
 use crate::expr::array::range;
-use crate::expr::fun::param_arrow;
 use crate::expr::infix::expr_0;
 use crate::expr::infix::expr_6;
 use crate::expr::infix::infix_expr_op;
@@ -11,6 +10,7 @@ use crate::expr::string::string_literal;
 use crate::ident_keyword::ident;
 use crate::ident_keyword::keyword;
 use crate::lex;
+use crate::pattern::parameter;
 use combine::attempt;
 use combine::between;
 use combine::chainl1;
@@ -18,6 +18,7 @@ use combine::choice;
 use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
+use combine::parser::char::string;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
@@ -29,7 +30,6 @@ use hir::expr::Literal;
 mod array;
 pub mod control_flow;
 mod float;
-mod fun;
 mod infix;
 pub mod integer;
 mod record;
@@ -43,7 +43,7 @@ where
     T: Default,
 {
     choice((
-        (attempt(param_arrow()), expr(0)).map(|(param, body)| {
+        (attempt(parameter().skip(lex(string("=>")))), expr(0)).map(|(param, body)| {
             Expr::Fun(Fun {
                 param,
                 body: Box::new(body),
