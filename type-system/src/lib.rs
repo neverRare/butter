@@ -7,6 +7,7 @@ use crate::ty::Subs;
 use crate::ty::VarState;
 use hir::expr::Expr;
 use hir::expr::Literal;
+use hir::expr::PlaceExpr;
 use hir::statement::Statement;
 
 mod ty;
@@ -42,12 +43,12 @@ fn infer_expr<'a>(
                 expr: Expr::Literal(literal),
             },
         )),
-        Expr::Var(var) => match env.get(Var { name: var, id: 0 }) {
+        Expr::Place(PlaceExpr::Var(var)) => match env.get(Var { name: var, id: 0 }) {
             Some(scheme) => Ok((
                 Subs::new(),
                 TypedExpr {
                     ty: scheme.instantiate(var_state)?,
-                    expr: Expr::Var(var),
+                    expr: Expr::Place(PlaceExpr::Var(var)),
                 },
             )),
             None => Err(TypeError::UnboundVar),

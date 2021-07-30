@@ -18,11 +18,10 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::control_flow::ControlFlow;
-use hir::expr::operator::Assign;
+use hir::expr::Assign;
+use hir::expr::ControlFlow;
 use hir::expr::Expr;
 use hir::expr::Fun;
-use hir::expr::PlaceExpr;
 use hir::statement::Declare;
 use hir::statement::FunDeclare;
 use hir::statement::Statement;
@@ -168,10 +167,10 @@ mod test {
     use crate::statement::statement;
     use crate::statement::Assign;
     use crate::statement::Expr;
-    use crate::statement::PlaceExpr;
     use crate::Statement;
     use combine::EasyParser;
     use hir::expr::Literal;
+    use hir::expr::PlaceExpr;
     use hir::pattern::Pattern;
     use hir::pattern::Var;
     use hir::statement::Declare;
@@ -179,15 +178,15 @@ mod test {
     #[test]
     fn parallel_assign() {
         let src = "foo, bar <- bar, foo;";
-        let expected = <Statement<()>>::Expr(Expr::ParallelAssign(
+        let expected: Statement<()> = Statement::Expr(Expr::ParallelAssign(
             vec![
                 Assign {
                     place: Box::new(PlaceExpr::Var("foo")),
-                    expr: Box::new(Expr::Var("bar")),
+                    expr: Box::new(Expr::Place(PlaceExpr::Var("bar"))),
                 },
                 Assign {
                     place: Box::new(PlaceExpr::Var("bar")),
-                    expr: Box::new(Expr::Var("foo")),
+                    expr: Box::new(Expr::Place(PlaceExpr::Var("foo"))),
                 },
             ]
             .into(),
@@ -197,11 +196,11 @@ mod test {
     #[test]
     fn chain_assign() {
         let src = "foo <- bar <- baz;";
-        let expected = <Statement<()>>::Expr(Expr::Assign(Assign {
+        let expected: Statement<()> = Statement::Expr(Expr::Assign(Assign {
             place: Box::new(PlaceExpr::Var("foo")),
             expr: Box::new(Expr::Assign(Assign {
                 place: Box::new(PlaceExpr::Var("bar")),
-                expr: Box::new(Expr::Var("baz")),
+                expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
             })),
         }));
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));
@@ -209,7 +208,7 @@ mod test {
     #[test]
     fn var() {
         let src = "foo = 10;";
-        let expected = <Statement<()>>::Declare(Declare {
+        let expected: Statement<()> = Statement::Declare(Declare {
             pattern: Pattern::Var(Var {
                 ident: "foo",
                 mutable: false,

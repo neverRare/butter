@@ -8,9 +8,9 @@ use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::compound::Element;
-use hir::expr::range::Bound;
-use hir::expr::range::Range;
+use hir::expr::Bound;
+use hir::expr::Element;
+use hir::expr::Range;
 
 pub fn range_operator<'a, I>() -> impl Parser<I, Output = (bool, bool)>
 where

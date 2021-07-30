@@ -22,11 +22,13 @@ use combine::parser::char::string;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::operator::Tag;
+use hir::expr::Element;
 use hir::expr::Expr;
 use hir::expr::Fun;
 use hir::expr::Jump;
 use hir::expr::Literal;
+use hir::expr::PlaceExpr;
+use hir::expr::Tag;
 
 mod array;
 pub mod control_flow;
@@ -85,7 +87,13 @@ where
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
         record().map(Expr::Record),
         lex(char_literal()).map(|uint| Expr::Literal(Literal::UInt(uint))),
-        lex(string_literal()).map(Expr::Array),
+        lex(string_literal()).map(|vec| {
+            let vec = vec
+                .into_iter()
+                .map(|byte| Element::Element(Expr::Literal(Literal::UInt(byte as u64))))
+                .collect();
+            Expr::Array(vec)
+        }),
         lex(char('!'))
             .with(expr(6))
             .map(|expr| Expr::Not(Box::new(expr))),
@@ -109,7 +117,7 @@ where
                     expr: expr.map(Box::new),
                 })
             }),
-        attempt(lex(ident())).map(Expr::Var),
+        attempt(lex(ident())).map(|ident| Expr::Place(PlaceExpr::Var(ident))),
         control_flow::control_flow().map(Expr::ControlFlow),
         attempt(literal()).map(Expr::Literal),
         jump().map(Expr::Jump),
@@ -155,45 +163,50 @@ mod test {
     use crate::expr::expr;
     use crate::expr::Expr;
     use combine::EasyParser;
-    use hir::expr::operator::Assign;
+    use hir::expr::Assign;
+    use hir::expr::Binary;
+    use hir::expr::BinaryType;
     use hir::expr::PlaceExpr;
 
-    // // TODO: enable this and fix errors
-    // #[test]
-    // fn group() {
-    //     let src = "(foo)";
-    //     let expected = <Expr<()>>::Var("foo");
-    //     assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
-    // }
-    // #[test]
-    // fn precedence() {
-    //     let src = "foo + bar * baz";
-    //     let expected = <Expr<()>>::Add(Binary {
-    //         left: Box::new(Expr::Var("foo")),
-    //         right: Box::new(Expr::Multiply(Binary {
-    //             left: Box::new(Expr::Var("bar")),
-    //             right: Box::new(Expr::Var("baz")),
-    //         })),
-    //     });
-    //     assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
-    //     let src = "foo * bar + baz";
-    //     let expected = <Expr<()>>::Add(Binary {
-    //         left: Box::new(Expr::Multiply(Binary {
-    //             left: Box::new(Expr::Var("foo")),
-    //             right: Box::new(Expr::Var("bar")),
-    //         })),
-    //         right: Box::new(Expr::Var("baz")),
-    //     });
-    //     assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
-    // }
+    #[test]
+    fn group() {
+        let src = "(foo)";
+        let expected: Expr<()> = Expr::Place(PlaceExpr::Var("foo"));
+        assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
+    }
+    #[test]
+    fn precedence() {
+        let src = "foo + bar * baz";
+        let expected: Expr<()> = Expr::Binary(Binary {
+            kind: BinaryType::Add,
+            left: Box::new(Expr::Place(PlaceExpr::Var("foo"))),
+            right: Box::new(Expr::Binary(Binary {
+                kind: BinaryType::Multiply,
+                left: Box::new(Expr::Place(PlaceExpr::Var("bar"))),
+                right: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+            })),
+        });
+        assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
+        let src = "foo * bar + baz";
+        let expected: Expr<()> = Expr::Binary(Binary {
+            kind: BinaryType::Add,
+            left: Box::new(Expr::Binary(Binary {
+                kind: BinaryType::Multiply,
+                left: Box::new(Expr::Place(PlaceExpr::Var("foo"))),
+                right: Box::new(Expr::Place(PlaceExpr::Var("bar"))),
+            })),
+            right: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+        });
+        assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
+    }
     #[test]
     fn right_associative() {
         let src = "foo <- bar <- baz";
-        let expected = <Expr<()>>::Assign(Assign {
+        let expected: Expr<()> = Expr::Assign(Assign {
             place: Box::new(PlaceExpr::Var("foo")),
             expr: Box::new(Expr::Assign(Assign {
                 place: Box::new(PlaceExpr::Var("bar")),
-                expr: Box::new(Expr::Var("baz")),
+                expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
             })),
         });
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
@@ -201,14 +214,14 @@ mod test {
     #[test]
     fn ignore_higher_precedence() {
         let src = "foo + bar";
-        let expected = <Expr<()>>::Var("foo");
+        let expected: Expr<()> = Expr::Place(PlaceExpr::Var("foo"));
         let left = "+ bar";
         assert_eq!(expr(6).easy_parse(src), Ok((expected, left)));
     }
     #[test]
     fn ignore_range() {
         let src = "foo..";
-        let expected = <Expr<()>>::Var("foo");
+        let expected: Expr<()> = Expr::Place(PlaceExpr::Var("foo"));
         let left = "..";
         assert_eq!(expr(0).easy_parse(src), Ok((expected, left)));
     }

@@ -16,14 +16,14 @@ use combine::parser::char::string;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::control_flow::Block;
-use hir::expr::control_flow::ControlFlow;
-use hir::expr::control_flow::For;
-use hir::expr::control_flow::If;
-use hir::expr::control_flow::Match;
-use hir::expr::control_flow::MatchArm;
-use hir::expr::control_flow::While;
+use hir::expr::Block;
+use hir::expr::ControlFlow;
 use hir::expr::Expr;
+use hir::expr::For;
+use hir::expr::If;
+use hir::expr::Match;
+use hir::expr::MatchArm;
+use hir::expr::While;
 use hir::statement::Statement;
 
 #[derive(Debug, Clone, PartialEq)]

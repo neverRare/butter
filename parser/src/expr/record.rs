@@ -10,7 +10,8 @@ use combine::sep_end_by;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::compound::Record;
+use hir::expr::PlaceExpr;
+use hir::expr::Record;
 use std::collections::HashMap;
 
 struct RecordExtend<'a, T> {
@@ -65,7 +66,7 @@ where
 {
     let field = || {
         (lex(ident()), optional(lex(char('=')).with(expr(0))))
-            .map(|(name, expr)| (name, expr.unwrap_or(Expr::Var(name))))
+            .map(|(name, expr)| (name, expr.unwrap_or(Expr::Place(PlaceExpr::Var(name)))))
     };
     let splat = || lex(char('*')).with(expr(0));
     choice((

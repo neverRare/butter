@@ -19,17 +19,17 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::compound::Record;
-use hir::expr::operator::Assign;
-use hir::expr::operator::NamedArgCall;
-use hir::expr::operator::Property;
-use hir::expr::operator::Slice;
-use hir::expr::operator::UnnamedArgCall;
-use hir::expr::range::Range;
+use hir::expr::Assign;
 use hir::expr::Binary;
 use hir::expr::BinaryType;
 use hir::expr::Index;
+use hir::expr::NamedArgCall;
 use hir::expr::PlaceExpr;
+use hir::expr::Property;
+use hir::expr::Range;
+use hir::expr::Record;
+use hir::expr::Slice;
+use hir::expr::UnnamedArgCall;
 
 pub enum PartialAst<'a, T> {
     Property(&'a str),

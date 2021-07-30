@@ -1,20 +1,6 @@
-use crate::expr::compound::Element;
-use crate::expr::compound::Record;
-use crate::expr::control_flow::ControlFlow;
-use crate::expr::operator::Assign;
-use crate::expr::operator::NamedArgCall;
-use crate::expr::operator::Property;
-use crate::expr::operator::Slice;
-use crate::expr::operator::Tag;
-use crate::expr::operator::UnnamedArgCall;
-use crate::expr::range::Range;
 use crate::pattern::Pattern;
+use crate::statement::Statement;
 use std::collections::HashMap;
-
-pub mod compound;
-pub mod control_flow;
-pub mod operator;
-pub mod range;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
@@ -28,8 +14,6 @@ pub enum Literal {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<'a, T> {
     Literal(Literal),
-
-    Var(&'a str),
 
     Minus(Box<Expr<'a, T>>),
     Ref(Box<Expr<'a, T>>),
@@ -104,4 +88,96 @@ pub enum BinaryType {
 pub struct Index<'a, T> {
     pub expr: Box<Expr<'a, T>>,
     pub index: Box<Expr<'a, T>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum Element<'a, T> {
+    Element(Expr<'a, T>),
+    Splat(Expr<'a, T>),
+}
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct Record<'a, T> {
+    pub splats: Box<[Expr<'a, T>]>,
+    pub fields: HashMap<&'a str, Expr<'a, T>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum ControlFlow<'a, T> {
+    Block(Block<'a, T>),
+    If(If<'a, T>),
+    For(For<'a, T>),
+    While(While<'a, T>),
+    Loop(Block<'a, T>),
+    Match(Match<'a, T>),
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Block<'a, T> {
+    pub statement: Box<[Statement<'a, T>]>,
+    pub expr: Option<Box<Expr<'a, T>>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct If<'a, T> {
+    pub condition: Box<Expr<'a, T>>,
+    pub body: Block<'a, T>,
+    pub else_part: Option<Box<ControlFlow<'a, T>>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct For<'a, T> {
+    pub pattern: Pattern<'a, T>,
+    pub expr: Box<Expr<'a, T>>,
+    pub body: Block<'a, T>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct While<'a, T> {
+    pub condition: Box<Expr<'a, T>>,
+    pub body: Block<'a, T>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Match<'a, T> {
+    pub expr: Box<Expr<'a, T>>,
+    pub arm: Box<[MatchArm<'a, T>]>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct MatchArm<'a, T> {
+    pub pattern: Pattern<'a, T>,
+    pub expr: Box<Expr<'a, T>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Assign<'a, T> {
+    pub place: Box<PlaceExpr<'a, T>>,
+    pub expr: Box<Expr<'a, T>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Property<'a, T> {
+    pub expr: Box<Expr<'a, T>>,
+    pub name: &'a str,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Slice<'a, T> {
+    pub expr: Box<Expr<'a, T>>,
+    pub range: Range<'a, T>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct NamedArgCall<'a, T> {
+    pub expr: Box<Expr<'a, T>>,
+    pub args: Record<'a, T>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct UnnamedArgCall<'a, T> {
+    pub expr: Box<Expr<'a, T>>,
+    pub args: Box<[Expr<'a, T>]>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Tag<'a, T> {
+    pub tag: &'a str,
+    pub expr: Option<Box<Expr<'a, T>>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum Bound<'a, T> {
+    NoBound,
+    Inclusive(Box<Expr<'a, T>>),
+    Exclusive(Box<Expr<'a, T>>),
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Range<'a, T> {
+    pub left: Bound<'a, T>,
+    pub right: Bound<'a, T>,
 }
