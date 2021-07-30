@@ -25,6 +25,7 @@ use combine::RangeStream;
 use hir::expr::operator::Tag;
 use hir::expr::Expr;
 use hir::expr::Fun;
+use hir::expr::Jump;
 use hir::expr::Literal;
 
 mod array;
@@ -49,6 +50,22 @@ parser! {
             lex(integer_u64()).map(Literal::UInt),
         ))
     }
+}
+fn jump<'a, I, T>() -> impl Parser<I, Output = Jump<'a, T>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
+{
+    choice((
+        lex(keyword("break"))
+            .with(optional(expr(0)))
+            .map(|expr| Jump::Break(expr.map(Box::new))),
+        lex(keyword("continue")).map(|_| Jump::Continue),
+        lex(keyword("return"))
+            .with(optional(expr(0)))
+            .map(|expr| Jump::Return(expr.map(Box::new))),
+    ))
 }
 fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
@@ -95,13 +112,7 @@ where
         attempt(lex(ident())).map(Expr::Var),
         control_flow::control_flow().map(Expr::ControlFlow),
         attempt(literal()).map(Expr::Literal),
-        lex(keyword("break"))
-            .with(optional(expr(0)))
-            .map(|expr| Expr::Break(expr.map(Box::new))),
-        lex(keyword("continue")).map(|_| Expr::Continue),
-        lex(keyword("return"))
-            .with(optional(expr(0)))
-            .map(|expr| Expr::Return(expr.map(Box::new))),
+        jump().map(Expr::Jump),
     ))
 }
 parser! {

@@ -32,9 +32,6 @@ pub enum Expr<'a, T> {
     Literal(Literal),
 
     Var(&'a str),
-    Break(Option<Box<Expr<'a, T>>>),
-    Continue,
-    Return(Option<Box<Expr<'a, T>>>),
 
     Minus(Box<Expr<'a, T>>),
     Ref(Box<Expr<'a, T>>),
@@ -77,6 +74,7 @@ pub enum Expr<'a, T> {
 
     ControlFlow(ControlFlow<'a, T>),
     Fun(Fun<'a, T>),
+    Jump(Jump<'a, T>),
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlaceExpr<'a, T> {
@@ -100,4 +98,10 @@ impl<'a, T> PlaceExpr<'a, T> {
 pub struct Fun<'a, T> {
     pub param: HashMap<&'a str, Pattern<'a, T>>,
     pub body: Box<Expr<'a, T>>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum Jump<'a, T> {
+    Break(Option<Box<Expr<'a, T>>>),
+    Continue,
+    Return(Option<Box<Expr<'a, T>>>),
 }
