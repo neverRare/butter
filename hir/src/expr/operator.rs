@@ -4,11 +4,6 @@ use crate::expr::PlaceExpr;
 use crate::expr::Record;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Binary<'a, T> {
-    pub left: Box<Expr<'a, T>>,
-    pub right: Box<Expr<'a, T>>,
-}
-#[derive(Debug, PartialEq, Clone)]
 pub struct Assign<'a, T> {
     pub place: Box<PlaceExpr<'a, T>>,
     pub expr: Box<Expr<'a, T>>,

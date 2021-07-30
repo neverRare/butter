@@ -21,12 +21,14 @@ use combine::Parser;
 use combine::RangeStream;
 use hir::expr::compound::Record;
 use hir::expr::operator::Assign;
-use hir::expr::operator::Binary;
 use hir::expr::operator::NamedArgCall;
 use hir::expr::operator::Property;
 use hir::expr::operator::Slice;
 use hir::expr::operator::UnnamedArgCall;
 use hir::expr::range::Range;
+use hir::expr::Binary;
+use hir::expr::BinaryType;
+use hir::expr::Index;
 use hir::expr::PlaceExpr;
 
 pub enum PartialAst<'a, T> {
@@ -45,9 +47,9 @@ impl<'a, T> PartialAst<'a, T> {
                 expr: Box::new(left),
                 name,
             }),
-            Self::Index(index) => Expr::Index(Binary {
-                left: Box::new(left),
-                right: Box::new(index),
+            Self::Index(index) => Expr::Index(Index {
+                expr: Box::new(left),
+                index: Box::new(index),
             }),
             Self::Slice(range) => Expr::Slice(Slice {
                 expr: Box::new(left),
@@ -157,7 +159,7 @@ pub fn precedence_of(token: &str) -> Option<u8> {
 }
 pub fn infix_expr_op<'a, I, T>(
     precedence: u8,
-) -> impl Parser<I, Output = fn(Expr<'a, T>, Expr<'a, T>) -> Expr<'a, T>>
+) -> impl Parser<I, Output = impl Fn(Expr<'a, T>, Expr<'a, T>) -> Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -195,52 +197,50 @@ where
             char('|'),
         ])
     };
-    let precedence_checker = move |token| match precedence_of(token) {
-        Some(this_precedence) if this_precedence > precedence => Ok(token),
-        Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
-            "infix operator with higher precedence",
-        )),
-        None => Err(<StreamErrorFor<I>>::expected_static_message(
-            "expression operator",
-        )),
-    };
-    macro_rules! op_matcher {
-        ($($str:pat => $name:ident),* $(,)?) => {
-            |op| match op {
-                $($str => {
-                    let fun: fn(_, _) -> _ = |left, right| {
-                        Expr::$name(Binary {
-                            left: Box::new(left),
-                            right: Box::new(right),
-                        })
-                    };
-                    Ok(fun)
-                })*
-                _ => Err(<StreamErrorFor<I>>::expected_static_message(
-                    "infix expression operator",
-                )),
-            }
-        };
-    }
     lex(choice((double_ops(), recognize(single_ops()))))
-        .and_then(precedence_checker)
-        .and_then(op_matcher! {
-            "+" => Add,
-            "-" => Sub,
-            "*" => Multiply,
-            "/" => Div,
-            "//" => FloorDiv,
-            "%" => Mod,
-            "&" => And,
-            "|" => Or,
-            "||" => LazyOr,
-            "==" => Equal,
-            "!=" => NotEqual,
-            "<" => Less,
-            ">" => Greater,
-            "<=" => LessEqual,
-            ">=" => GreaterEqual,
-            "++" => Concatenate,
-            "&&" => LazyAnd,
+        .and_then(move |token| match precedence_of(token) {
+            Some(this_precedence) if this_precedence > precedence => Ok(token),
+            Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
+                "infix operator with higher precedence",
+            )),
+            None => Err(<StreamErrorFor<I>>::expected_static_message(
+                "expression operator",
+            )),
+        })
+        .and_then(|op| {
+            let op = match op {
+                "+" => BinaryType::Add,
+                "-" => BinaryType::Sub,
+                "*" => BinaryType::Multiply,
+                "/" => BinaryType::Div,
+                "//" => BinaryType::FloorDiv,
+                "%" => BinaryType::Mod,
+                "&" => BinaryType::And,
+                "|" => BinaryType::Or,
+                "||" => BinaryType::LazyOr,
+                "==" => BinaryType::Equal,
+                "!=" => BinaryType::NotEqual,
+                "<" => BinaryType::Less,
+                ">" => BinaryType::Greater,
+                "<=" => BinaryType::LessEqual,
+                ">=" => BinaryType::GreaterEqual,
+                "++" => BinaryType::Concatenate,
+                "&&" => BinaryType::LazyAnd,
+                _ => {
+                    return Err(<StreamErrorFor<I>>::expected_static_message(
+                        "infix expression operator",
+                    ))
+                }
+            };
+            Ok(op)
+        })
+        .map(|op| {
+            move |left, right| {
+                Expr::Binary(Binary {
+                    kind: op,
+                    left: Box::new(left),
+                    right: Box::new(right),
+                })
+            }
         })
 }
