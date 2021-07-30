@@ -74,11 +74,14 @@ where
             })
     };
     let place = || {
-        expr(1).and_then(|expr| match PlaceExpr::from_expr(expr) {
-            Some(place) => Ok(place),
-            None => Err(<StreamErrorFor<I>>::message_static_message(
-                "non place expression",
-            )),
+        expr(1).and_then(|expr| {
+            if let Expr::Place(place) = expr {
+                Ok(place)
+            } else {
+                Err(<StreamErrorFor<I>>::message_static_message(
+                    "non place expression",
+                ))
+            }
         })
     };
     let parallel_assign = || {

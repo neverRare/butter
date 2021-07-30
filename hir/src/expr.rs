@@ -25,7 +25,6 @@ pub enum Literal {
     UInt(u64),
     Float(f64),
 }
-// TODO: consider replacing place expressions with PlaceExpr
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<'a, T> {
     Literal(Literal),
@@ -46,14 +45,10 @@ pub enum Expr<'a, T> {
     Record(Record<'a, T>),
 
     Binary(Binary<'a, T>),
+    Place(PlaceExpr<'a, T>),
 
-    Property(Property<'a, T>),
-    Index(Index<'a, T>),
-    Slice(Slice<'a, T>),
     NamedArgCall(NamedArgCall<'a, T>),
     UnnamedArgCall(UnnamedArgCall<'a, T>),
-    Deref(Box<Expr<'a, T>>),
-    Len(Box<Expr<'a, T>>),
 
     ControlFlow(ControlFlow<'a, T>),
     Fun(Fun<'a, T>),
@@ -64,18 +59,9 @@ pub enum PlaceExpr<'a, T> {
     Var(&'a str),
     Property(Property<'a, T>),
     Index(Index<'a, T>),
+    Slice(Slice<'a, T>),
     Deref(Box<Expr<'a, T>>),
-}
-impl<'a, T> PlaceExpr<'a, T> {
-    pub fn from_expr(expr: Expr<'a, T>) -> Option<Self> {
-        Some(match expr {
-            Expr::Var(var) => Self::Var(var),
-            Expr::Property(prop_expr) => Self::Property(prop_expr),
-            Expr::Index(ind_expr) => Self::Index(ind_expr),
-            Expr::Deref(expr) => Self::Deref(expr),
-            _ => return None,
-        })
-    }
+    Len(Box<Expr<'a, T>>),
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a, T> {

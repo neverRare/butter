@@ -43,18 +43,18 @@ pub enum PartialAst<'a, T> {
 impl<'a, T> PartialAst<'a, T> {
     pub fn combine_from(self, left: Expr<'a, T>) -> Expr<'a, T> {
         match self {
-            Self::Property(name) => Expr::Property(Property {
+            Self::Property(name) => Expr::Place(PlaceExpr::Property(Property {
                 expr: Box::new(left),
                 name,
-            }),
-            Self::Index(index) => Expr::Index(Index {
+            })),
+            Self::Index(index) => Expr::Place(PlaceExpr::Index(Index {
                 expr: Box::new(left),
                 index: Box::new(index),
-            }),
-            Self::Slice(range) => Expr::Slice(Slice {
+            })),
+            Self::Slice(range) => Expr::Place(PlaceExpr::Slice(Slice {
                 expr: Box::new(left),
                 range,
-            }),
+            })),
             Self::NamedArgCall(args) => Expr::NamedArgCall(NamedArgCall {
                 expr: Box::new(left),
                 args,
@@ -63,8 +63,8 @@ impl<'a, T> PartialAst<'a, T> {
                 expr: Box::new(left),
                 args,
             }),
-            Self::Deref => Expr::Deref(Box::new(left)),
-            Self::Len => Expr::Len(Box::new(left)),
+            Self::Deref => Expr::Place(PlaceExpr::Deref(Box::new(left))),
+            Self::Len => Expr::Place(PlaceExpr::Len(Box::new(left))),
         }
     }
 }
@@ -132,15 +132,18 @@ where
 {
     (expr(1), optional(lex(attempt(string("<-"))).with(expr(0)))).and_then(|(place, expr)| {
         match expr {
-            Some(expr) => match PlaceExpr::from_expr(place) {
-                Some(place) => Ok(Expr::Assign(Assign {
-                    place: Box::new(place),
-                    expr: Box::new(expr),
-                })),
-                None => Err(<StreamErrorFor<I>>::message_static_message(
-                    "non place expression",
-                )),
-            },
+            Some(expr) => {
+                if let Expr::Place(place) = place {
+                    Ok(Expr::Assign(Assign {
+                        place: Box::new(place),
+                        expr: Box::new(expr),
+                    }))
+                } else {
+                    Err(<StreamErrorFor<I>>::message_static_message(
+                        "non place expression",
+                    ))
+                }
+            }
             None => Ok(place),
         }
     })
