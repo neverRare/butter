@@ -35,7 +35,21 @@ pub mod integer;
 mod record;
 mod string;
 
-// TODO: separate literal parser
+parser! {
+    fn literal['a, I]()(I) -> Literal
+    where [
+        I: RangeStream<Token = char, Range = &'a str>,
+        I::Error: ParseError<I::Token, I::Range, I::Position>,
+    ] {
+        choice((
+            lex(keyword("false")).map(|_| Literal::False),
+            lex(keyword("true")).map(|_| Literal::True),
+            lex(keyword("void")).map(|_| Literal::Void),
+            lex(float::float()).map(Literal::Float),
+            lex(integer_u64()).map(Literal::UInt),
+        ))
+    }
+}
 fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
@@ -80,9 +94,7 @@ where
             }),
         attempt(lex(ident())).map(Expr::Var),
         control_flow::control_flow().map(Expr::ControlFlow),
-        lex(keyword("false")).map(|_| Expr::Literal(Literal::False)),
-        lex(keyword("true")).map(|_| Expr::Literal(Literal::True)),
-        lex(keyword("void")).map(|_| Expr::Literal(Literal::Void)),
+        attempt(literal()).map(Expr::Literal),
         lex(keyword("break"))
             .with(optional(expr(0)))
             .map(|expr| Expr::Break(expr.map(Box::new))),
@@ -90,8 +102,6 @@ where
         lex(keyword("return"))
             .with(optional(expr(0)))
             .map(|expr| Expr::Return(expr.map(Box::new))),
-        lex(float::float()).map(|float| Expr::Literal(Literal::Float(float))),
-        lex(integer_u64()).map(|uint| Expr::Literal(Literal::UInt(uint))),
     ))
 }
 parser! {
