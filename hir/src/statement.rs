@@ -1,5 +1,5 @@
-use crate::expr::control_flow::Fun;
 use crate::expr::Expr;
+use crate::expr::Fun;
 use crate::pattern::Pattern;
 
 #[derive(Debug, PartialEq, Clone)]

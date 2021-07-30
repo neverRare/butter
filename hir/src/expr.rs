@@ -1,11 +1,6 @@
 use crate::expr::compound::Element;
 use crate::expr::compound::Record;
-use crate::expr::control_flow::Block;
-use crate::expr::control_flow::For;
-use crate::expr::control_flow::Fun;
-use crate::expr::control_flow::If;
-use crate::expr::control_flow::Match;
-use crate::expr::control_flow::While;
+use crate::expr::control_flow::ControlFlow;
 use crate::expr::operator::Assign;
 use crate::expr::operator::Binary;
 use crate::expr::operator::NamedArgCall;
@@ -14,6 +9,8 @@ use crate::expr::operator::Slice;
 use crate::expr::operator::Tag;
 use crate::expr::operator::UnnamedArgCall;
 use crate::expr::range::Range;
+use crate::pattern::Pattern;
+use std::collections::HashMap;
 
 pub mod compound;
 pub mod control_flow;
@@ -30,7 +27,6 @@ pub enum Literal {
     Float(f64),
 }
 // TODO: consider replacing place expressions with PlaceExpr
-// TODO: consider separating control flows
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<'a, T> {
     Literal(Literal),
@@ -79,13 +75,8 @@ pub enum Expr<'a, T> {
     Deref(Box<Expr<'a, T>>),
     Len(Box<Expr<'a, T>>),
 
-    Block(Block<'a, T>),
+    ControlFlow(ControlFlow<'a, T>),
     Fun(Fun<'a, T>),
-    If(If<'a, T>),
-    For(For<'a, T>),
-    While(While<'a, T>),
-    Loop(Block<'a, T>),
-    Match(Match<'a, T>),
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlaceExpr<'a, T> {
@@ -104,4 +95,9 @@ impl<'a, T> PlaceExpr<'a, T> {
             _ => return None,
         })
     }
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Fun<'a, T> {
+    pub param: HashMap<&'a str, Pattern<'a, T>>,
+    pub body: Box<Expr<'a, T>>,
 }

@@ -17,6 +17,7 @@ use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
 use hir::expr::control_flow::Block;
+use hir::expr::control_flow::ControlFlow;
 use hir::expr::control_flow::For;
 use hir::expr::control_flow::If;
 use hir::expr::control_flow::Match;
@@ -83,8 +84,8 @@ where
 {
     let else_part = || {
         lex(keyword("else")).with(choice((
-            block().map(Expr::Block),
-            if_expression().map(Expr::If),
+            block().map(ControlFlow::Block),
+            if_expression().map(ControlFlow::If),
         )))
     };
     attempt(lex(keyword("if")))
@@ -148,7 +149,9 @@ where
 {
     let arm_expr = || {
         choice((
-            attempt(control_flow()).skip(optional(lex(char(',')))),
+            attempt(control_flow())
+                .skip(optional(lex(char(','))))
+                .map(Expr::ControlFlow),
             expr(0).skip(choice((
                 lex(char(',')).map(|_| ()),
                 look_ahead(char('}')).map(|_| ()),
@@ -169,23 +172,23 @@ where
             arm,
         })
 }
-fn control_flow_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+fn control_flow_<'a, I, T>() -> impl Parser<I, Output = ControlFlow<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     choice((
-        block().map(Expr::Block),
-        if_expression().map(Expr::If),
-        for_expression().map(Expr::For),
-        while_expression().map(Expr::While),
-        loop_expression().map(Expr::Loop),
-        match_expression().map(Expr::Match),
+        block().map(ControlFlow::Block),
+        if_expression().map(ControlFlow::If),
+        for_expression().map(ControlFlow::For),
+        while_expression().map(ControlFlow::While),
+        loop_expression().map(ControlFlow::Loop),
+        match_expression().map(ControlFlow::Match),
     ))
 }
 parser! {
-    pub fn control_flow['a, I, T]()(I) -> Expr<'a, T>
+    pub fn control_flow['a, I, T]()(I) -> ControlFlow<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,

@@ -22,9 +22,9 @@ use combine::parser::char::string;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::control_flow::Fun;
 use hir::expr::operator::Tag;
 use hir::expr::Expr;
+use hir::expr::Fun;
 use hir::expr::Literal;
 
 mod array;
@@ -79,7 +79,7 @@ where
                 })
             }),
         attempt(lex(ident())).map(Expr::Var),
-        control_flow::control_flow(),
+        control_flow::control_flow().map(Expr::ControlFlow),
         lex(keyword("false")).map(|_| Expr::Literal(Literal::False)),
         lex(keyword("true")).map(|_| Expr::Literal(Literal::True)),
         lex(keyword("void")).map(|_| Expr::Literal(Literal::Void)),

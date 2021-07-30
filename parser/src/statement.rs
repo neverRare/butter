@@ -18,9 +18,10 @@ use combine::stream::StreamErrorFor;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
-use hir::expr::control_flow::Fun;
+use hir::expr::control_flow::ControlFlow;
 use hir::expr::operator::Assign;
 use hir::expr::Expr;
+use hir::expr::Fun;
 use hir::expr::PlaceExpr;
 use hir::statement::Declare;
 use hir::statement::FunDeclare;
@@ -40,14 +41,19 @@ where
     T: Default,
 {
     let control_flow = || {
-        (control_flow(), optional(lex(char(';')))).map(|(expr, semicolon)| match semicolon {
-            Some(_) => StatementReturn::Statement(Statement::Expr(expr)),
-            None => StatementReturn::Return(expr),
+        (control_flow(), optional(lex(char(';')))).map(|(control_flow, semicolon)| {
+            let expr = Expr::ControlFlow(control_flow);
+            match semicolon {
+                Some(_) => StatementReturn::Statement(Statement::Expr(expr)),
+                None => StatementReturn::Return(expr),
+            }
         })
     };
     let fun_body = || {
         choice((
-            block().skip(optional(lex(char(';')))).map(Expr::Block),
+            block()
+                .skip(optional(lex(char(';'))))
+                .map(|block| Expr::ControlFlow(ControlFlow::Block(block))),
             expr(0).skip(lex(char(';'))),
         ))
     };
