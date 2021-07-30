@@ -29,6 +29,8 @@ use hir::expr::Jump;
 use hir::expr::Literal;
 use hir::expr::PlaceExpr;
 use hir::expr::Tag;
+use hir::expr::Unary;
+use hir::expr::UnaryType;
 
 mod array;
 pub mod control_flow;
@@ -45,11 +47,12 @@ parser! {
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
         choice((
-            lex(keyword("false")).map(|_| Literal::False),
-            lex(keyword("true")).map(|_| Literal::True),
-            lex(keyword("void")).map(|_| Literal::Void),
-            lex(float::float()).map(Literal::Float),
-            lex(integer_u64()).map(Literal::UInt),
+            char_literal().map(Literal::UInt),
+            float::float().map(Literal::Float),
+            integer_u64().map(Literal::UInt),
+            attempt(keyword("false")).map(|_| Literal::False),
+            attempt(keyword("true") ).map(|_| Literal::True),
+            attempt(keyword("void") ).map(|_| Literal::Void),
         ))
     }
 }
@@ -69,6 +72,49 @@ where
             .map(|expr| Jump::Return(expr.map(Box::new))),
     ))
 }
+fn unary<'a, I, T>() -> impl Parser<I, Output = Unary<'a, T>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
+{
+    let kind = || {
+        choice((
+            char('!').map(|_| UnaryType::Not),
+            char('&').map(|_| UnaryType::Ref),
+            char('-').map(|_| UnaryType::Minus),
+            attempt(keyword("clone")).map(|_| UnaryType::Clone),
+        ))
+    };
+    (lex(kind()), expr(6)).map(|(kind, expr)| Unary {
+        kind,
+        expr: Box::new(expr),
+    })
+}
+fn tag<'a, I, T>() -> impl Parser<I, Output = Tag<'a, T>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
+{
+    lex(char('@'))
+        .with((lex(ident()), optional(expr(6))))
+        .map(|(tag, expr)| Tag {
+            tag,
+            expr: expr.map(Box::new),
+        })
+}
+fn fun<'a, I, T>() -> impl Parser<I, Output = Fun<'a, T>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
+{
+    (attempt(parameter().skip(lex(string("=>")))), expr(0)).map(|(param, body)| Fun {
+        param,
+        body: Box::new(body),
+    })
+}
 fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
@@ -76,17 +122,11 @@ where
     T: Default,
 {
     choice((
-        (attempt(parameter().skip(lex(string("=>")))), expr(0)).map(|(param, body)| {
-            Expr::Fun(Fun {
-                param,
-                body: Box::new(body),
-            })
-        }),
+        fun().map(Expr::Fun),
         attempt(range()).map(Expr::ArrayRange),
         array().map(Expr::Array),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))),
         record().map(Expr::Record),
-        lex(char_literal()).map(|uint| Expr::Literal(Literal::UInt(uint))),
         lex(string_literal()).map(|vec| {
             let vec = vec
                 .into_iter()
@@ -94,32 +134,11 @@ where
                 .collect();
             Expr::Array(vec)
         }),
-        lex(char('!'))
-            .with(expr(6))
-            .map(|expr| Expr::Not(Box::new(expr))),
-        lex(char('&'))
-            .with((optional(attempt(lex(keyword("mut")))), expr(6)))
-            .map(|(mutability, expr)| {
-                let boxed = Box::new(expr);
-                match mutability {
-                    Some(_) => Expr::MutRef(boxed),
-                    None => Expr::Ref(boxed),
-                }
-            }),
-        lex(char('-'))
-            .with(expr(6))
-            .map(|expr| Expr::Minus(Box::new(expr))),
-        lex(char('@'))
-            .with((lex(ident()), optional(expr(6))))
-            .map(|(tag, expr)| {
-                Expr::Tag(Tag {
-                    tag,
-                    expr: expr.map(Box::new),
-                })
-            }),
+        unary().map(Expr::Unary),
+        tag().map(Expr::Tag),
         attempt(lex(ident())).map(|ident| Expr::Place(PlaceExpr::Var(ident))),
         control_flow::control_flow().map(Expr::ControlFlow),
-        attempt(literal()).map(Expr::Literal),
+        lex(literal()).map(Expr::Literal),
         jump().map(Expr::Jump),
     ))
 }

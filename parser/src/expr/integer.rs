@@ -67,6 +67,7 @@ where
 {
     take_while1(move |ch| parse_digit(ch, base).is_some() || ch == '_')
 }
+// TODO: clean this up, it looks ugly
 macro_rules! gen_integer_parser {
     ($ident:ident, $parser:expr, $type:ty) => {
         parser! {

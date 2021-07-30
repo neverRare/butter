@@ -15,10 +15,6 @@ pub enum Literal {
 pub enum Expr<'a, T> {
     Literal(Literal),
 
-    Minus(Box<Expr<'a, T>>),
-    Ref(Box<Expr<'a, T>>),
-    MutRef(Box<Expr<'a, T>>),
-    Not(Box<Expr<'a, T>>),
     Tag(Tag<'a, T>),
 
     Assign(Assign<'a, T>),
@@ -28,6 +24,7 @@ pub enum Expr<'a, T> {
     ArrayRange(Range<'a, T>),
     Record(Record<'a, T>),
 
+    Unary(Unary<'a, T>),
     Binary(Binary<'a, T>),
     Place(PlaceExpr<'a, T>),
 
@@ -57,6 +54,18 @@ pub enum Jump<'a, T> {
     Break(Option<Box<Expr<'a, T>>>),
     Continue,
     Return(Option<Box<Expr<'a, T>>>),
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Unary<'a, T> {
+    pub kind: UnaryType,
+    pub expr: Box<Expr<'a, T>>,
+}
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum UnaryType {
+    Minus,
+    Ref,
+    Not,
+    Clone,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Binary<'a, T> {
