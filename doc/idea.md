@@ -43,27 +43,35 @@ It won't be nestable.
 }
 ```
 
-## Map and Set
+## Dict and Set
 
 ```butter
+-- option 1
 map = #(10 = 20, 20 = 40);
 set = #[10, 20, 30];
+
+-- option 2
+map = dict(10 = 20, 20 = 40);
+set = set[10, 20, 30];
 ```
+
+Access and manipulation? How??
 
 ## Type alias
 
-`'a` here are type variables.
-
 ```butter
-alias Option('a) = @some 'a | @none;
+alias Option(a) = @some a | @none;
 ```
 
 ## Type annotation
 
+`tvar` may be replaced with `forall`.
+
 For functions
 
 ```butter
-map_option(val: Option('a), mapper: 'a -> 'b) -> Option('b) =>
+tvar(a, b):
+map_option(val: Option(a), mapper: a -> b) -> Option(b) =>
     match val {
         @some(val) => @some(mapper(val)),
         @none => @none,
@@ -114,29 +122,44 @@ doubles = [n * 2 : n in numbers];
 no_doubles = [n : n in numbers : n % 2 == 0];
 ```
 
+There must be first class iterators too.
+
 ## Module system
 
-Records could double as namespace.
-
 ```butter
-math = (
-    pi = 3.14,
+-- option 1
+math = mod (
+    pi = 3.14;
     sqrt(num) => {
         -- ...
     }
 );
+
+-- option 2
+mod math {
+    pi = 3.14;
+    sqrt(num) => {
+        -- ...
+    }
+}
 ```
 
-Maybe a record something like rust's module.
+Module in different file.
 
 ```butter
+-- option 1
 math = mod math;
+
+-- option 2
+mod math;
 ```
 
-Importing from modules could be the same as declaration.
+Importing from nested module, would be similar to declaration.
 
 ```butter
 pi = math.pi;
+-- or with unpacking pattern
+(pi,) = math;
 ```
 
 ## Visibility system
@@ -145,28 +168,13 @@ pi = math.pi;
 pub greet(name) => "hello " ++ name ++ "!";
 ```
 
-## Function as operator
-
-```butter
-and(a, b) => match (a, b) {
-    (a = @true, b = @true) => @true,
-    _ => @false,
-};
-not(a) => match a {
-    @true => @false,
-    @false => @true,
-};
-@true `and` @false;  -- @false
-`not` @true;  -- also @false
-```
-
-## Chain operator
+## Pipeline operator
 
 ```butter
 "hello world" |> std.print;
 ```
 
-## Function Currying
+## Partial application
 
 ```butter
 add(a, b) => a + b;
@@ -186,12 +194,21 @@ foo <- 10;
 An escape hatch for ownership and no mutable alias rule.
 
 ```butter
-cell 10
+foo = cell 10;
+bar = num_a;
+```
+
+Casting to reference, `cell_inner` would be a weak keyword.
+
+```butter
+mut num = &bar.cell_inner;
+num^ <- num^ + 1;
+std.assert(foo.cell_inner == 11);
 ```
 
 ## Never
 
-It should never be reachable, it is guaranteed by refinement type (or not).
+It should never be reachable enforced by refinement type.
 
 ```butter
 -- this could be in std
@@ -225,24 +242,28 @@ Useful for unwrapping.
 @some val = val else { std.abort() };
 ```
 
-## Polymorphism with tag and field name
+## Identifier as compile-time value
 
 ```butter
-map_tagged(val, tag = @$tag, fn) =>
+map_tagged(val, tag, fn) =>
     match val {
         @$tag val => @$tag fn(val),
         val => val,
     };
+
+map_tagged(val, $some, (val) => val + 3);
 ```
 
 ## Traits
 
 ```butter
-trait Eq('val) {
-    equal(a: &'val, b: &'val) -> Bool;
+tvar(a):
+trait Eq(a) {
+    equal(a: &a, b: &b) -> Bool;
 }
-given Eq('val)
-impl Eq(['val]) {
+tvar(a):
+given Eq(a):
+impl Eq([a]) {
     equal(a, b) => {
         if a^.len != b^.len { return false; }
         for i in [0.< a^.len] {
@@ -256,7 +277,13 @@ impl Eq(['val]) {
 ## New nominal type
 
 ```butter
-newtype Point(a: Num, b: Num);
+derive(Eq):
+newtype Point(
+    pub x: Num,
+    pub y: Num,
+);
 ```
 
 They won't have trait implementation by default and each field can have its own visibility (for structural record, every field is public).
+
+Generics? How??
