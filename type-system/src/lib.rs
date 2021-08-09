@@ -5,6 +5,8 @@
 use crate::ty::Env;
 use crate::ty::Subs;
 use crate::ty::VarState;
+use hir::expr::Element;
+use hir::expr::ElementKind;
 use hir::expr::Expr;
 use hir::expr::Literal;
 use hir::expr::PlaceExpr;
@@ -53,6 +55,33 @@ fn infer_expr<'a>(
             )),
             None => Err(TypeError::UnboundVar),
         },
+        Expr::Array(elements) => {
+            let mut subs = Subs::new();
+            let mut ty = Type::Cons(Cons::Array(Box::new(Type::Var(var_state.new_var()))));
+            let mut typed_elements = Vec::new();
+            for element in Vec::from(elements) {
+                let (more_subs, typed_expr) = infer_expr(element.expr, var_state, env)?;
+                typed_elements.push(Element {
+                    kind: element.kind,
+                    expr: typed_expr.expr,
+                });
+                subs.compose_with(more_subs)?;
+                let inferred_ty = match element.kind {
+                    ElementKind::Splat => typed_expr.ty,
+                    ElementKind::Element => Type::Cons(Cons::Array(Box::new(typed_expr.ty))),
+                };
+                let more_subs = ty.clone().unify_with(inferred_ty, var_state)?;
+                subs.compose_with(more_subs)?;
+                ty.substitute(&subs)?;
+            }
+            Ok((
+                subs,
+                TypedExpr {
+                    ty,
+                    expr: Expr::Array(typed_elements.into()),
+                },
+            ))
+        }
         _ => todo!(),
     }
 }

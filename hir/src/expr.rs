@@ -100,9 +100,14 @@ pub struct Index<'a, T> {
     pub index: Box<Expr<'a, T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Element<'a, T> {
-    Element(Expr<'a, T>),
-    Splat(Expr<'a, T>),
+pub struct Element<'a, T> {
+    pub expr: Expr<'a, T>,
+    pub kind: ElementKind,
+}
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum ElementKind {
+    Element,
+    Splat,
 }
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Record<'a, T> {

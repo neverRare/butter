@@ -19,10 +19,12 @@ use combine::optional;
 use combine::parser;
 use combine::parser::char::char;
 use combine::parser::char::string;
+use combine::value;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
 use hir::expr::Element;
+use hir::expr::ElementKind;
 use hir::expr::Expr;
 use hir::expr::Fun;
 use hir::expr::Jump;
@@ -50,9 +52,9 @@ parser! {
             char_literal().map(Literal::UInt),
             float::float().map(Literal::Float),
             integer_u64().map(Literal::UInt),
-            attempt(keyword("false")).map(|_| Literal::False),
-            attempt(keyword("true") ).map(|_| Literal::True),
-            attempt(keyword("void") ).map(|_| Literal::Void),
+            attempt(keyword("false")).with(value(Literal::False)),
+            attempt(keyword("true") ).with(value(Literal::True)),
+            attempt(keyword("void") ).with(value(Literal::Void)),
         ))
     }
 }
@@ -80,11 +82,11 @@ where
 {
     let kind = || {
         choice((
-            char('!').map(|_| UnaryType::Not),
-            char('&').map(|_| UnaryType::Ref),
-            char('-').map(|_| UnaryType::Minus),
-            char('>').map(|_| UnaryType::Move),
-            attempt(keyword("clone")).map(|_| UnaryType::Clone),
+            char('!').with(value(UnaryType::Not)),
+            char('&').with(value(UnaryType::Ref)),
+            char('-').with(value(UnaryType::Minus)),
+            char('>').with(value(UnaryType::Move)),
+            attempt(keyword("clone")).with(value(UnaryType::Clone)),
         ))
     };
     (lex(kind()), expr(6)).map(|(kind, expr)| Unary {
@@ -131,7 +133,10 @@ where
         lex(string_literal()).map(|vec| {
             let vec = vec
                 .into_iter()
-                .map(|byte| Element::Element(Expr::Literal(Literal::UInt(byte as u64))))
+                .map(|byte| Element {
+                    expr: Expr::Literal(Literal::UInt(byte as u64)),
+                    kind: ElementKind::Element,
+                })
                 .collect();
             Expr::Array(vec)
         }),

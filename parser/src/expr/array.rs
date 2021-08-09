@@ -5,11 +5,13 @@ use combine::choice;
 use combine::optional;
 use combine::parser::char::char;
 use combine::sep_end_by;
+use combine::value;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
 use hir::expr::Bound;
 use hir::expr::Element;
+use hir::expr::ElementKind;
 use hir::expr::Range;
 
 pub fn range_operator<'a, I>() -> impl Parser<I, Output = (bool, bool)>
@@ -53,12 +55,13 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    let element = || {
+    let element_kind = || {
         choice((
-            lex(char('*')).with(expr(0)).map(Element::Splat),
-            expr(0).map(Element::Element),
+            char('*').map(|_| ElementKind::Splat),
+            value(ElementKind::Element),
         ))
     };
+    let element = || (lex(element_kind()), expr(0)).map(|(kind, expr)| Element { expr, kind });
     between(
         lex(char('[')),
         lex(char(']')),

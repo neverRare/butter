@@ -21,10 +21,10 @@ impl<'a> VarState<'a> {
     fn new() -> Self {
         Self::default()
     }
-    fn new_var(&mut self) -> Var<'a> {
+    pub fn new_var(&mut self) -> Var<'a> {
         self.new_named("")
     }
-    fn new_named(&mut self, name: &'a str) -> Var<'a> {
+    pub fn new_named(&mut self, name: &'a str) -> Var<'a> {
         let Self(map) = self;
         let state = map.entry(name).or_default();
         let id = *state;
@@ -58,7 +58,7 @@ impl<'a> Type<'a> {
             Self::Cons(cons) => cons.free_vars(),
         }
     }
-    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
+    pub(super) fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Var(var) => {
                 if let Some(ty) = subs.get(*var) {
@@ -72,7 +72,7 @@ impl<'a> Type<'a> {
         }
         Ok(())
     }
-    fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
+    pub(super) fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
         let mut subs = Subs::new();
         match (self, other) {
             (Self::Cons(cons1), Self::Cons(cons2)) => {
@@ -244,7 +244,7 @@ impl<'a> Subs<'a> {
             self.hashmap_mut().remove(&var.var);
         }
     }
-    fn compose_with(&mut self, other: Self) -> Result<(), TypeError> {
+    pub fn compose_with(&mut self, other: Self) -> Result<(), TypeError> {
         let map = self.hashmap_mut();
         for (_, ty) in map.iter_mut() {
             ty.substitute(&other)?;
