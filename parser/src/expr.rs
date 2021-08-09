@@ -83,6 +83,7 @@ where
             char('!').map(|_| UnaryType::Not),
             char('&').map(|_| UnaryType::Ref),
             char('-').map(|_| UnaryType::Minus),
+            char('>').map(|_| UnaryType::Move),
             attempt(keyword("clone")).map(|_| UnaryType::Clone),
         ))
     };

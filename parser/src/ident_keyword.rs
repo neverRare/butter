@@ -10,8 +10,8 @@ use combine::Parser;
 use combine::RangeStream;
 use std::array::IntoIter as ArrayIntoIter;
 
-static KEYWORDS: [&str; 16] = [
-    "_", "break", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut", "ref",
+static KEYWORDS: [&str; 17] = [
+    "_", "break", "clone", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut", "ref",
     "return", "true", "void", "while",
 ];
 fn rest(ch: char) -> bool {

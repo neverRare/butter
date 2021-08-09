@@ -65,6 +65,7 @@ pub enum UnaryType {
     Minus,
     Ref,
     Not,
+    Move,
     Clone,
 }
 #[derive(Debug, PartialEq, Clone)]
