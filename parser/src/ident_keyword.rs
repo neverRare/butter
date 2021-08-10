@@ -11,8 +11,8 @@ use combine::RangeStream;
 use std::array::IntoIter as ArrayIntoIter;
 
 static KEYWORDS: [&str; 17] = [
-    "_", "break", "clone", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut", "ref",
-    "return", "true", "void", "while",
+    "_", "break", "clone", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut",
+    "ref", "return", "true", "void", "while",
 ];
 fn rest(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'

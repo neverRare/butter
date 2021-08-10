@@ -5,11 +5,13 @@
 use crate::ty::Env;
 use crate::ty::Subs;
 use crate::ty::VarState;
+use hir::expr::Bound;
 use hir::expr::Element;
 use hir::expr::ElementKind;
 use hir::expr::Expr;
 use hir::expr::Literal;
 use hir::expr::PlaceExpr;
+use hir::expr::Range;
 use hir::statement::Statement;
 
 mod ty;
@@ -79,6 +81,42 @@ fn infer_expr<'a>(
                 TypedExpr {
                     ty,
                     expr: Expr::Array(typed_elements.into()),
+                },
+            ))
+        }
+        Expr::ArrayRange(range) => {
+            let mut subs = Subs::new();
+            let left = match range.left {
+                Some(bound) => {
+                    let (more_subs, typed) = infer_expr(*bound.expr, var_state, env)?;
+                    subs.compose_with(more_subs)?;
+                    let more_subs = Type::Cons(Cons::Num).unify_with(typed.ty, var_state)?;
+                    subs.compose_with(more_subs)?;
+                    Some(Bound {
+                        kind: bound.kind,
+                        expr: Box::new(typed.expr),
+                    })
+                }
+                None => None,
+            };
+            let right = match range.right {
+                Some(bound) => {
+                    let (more_subs, typed) = infer_expr(*bound.expr, var_state, env)?;
+                    subs.compose_with(more_subs)?;
+                    let more_subs = Type::Cons(Cons::Num).unify_with(typed.ty, var_state)?;
+                    subs.compose_with(more_subs)?;
+                    Some(Bound {
+                        kind: bound.kind,
+                        expr: Box::new(typed.expr),
+                    })
+                }
+                None => None,
+            };
+            Ok((
+                subs,
+                TypedExpr {
+                    ty: Type::Cons(Cons::Array(Box::new(Type::Cons(Cons::Num)))),
+                    expr: Expr::ArrayRange(Range { left, right }),
                 },
             ))
         }

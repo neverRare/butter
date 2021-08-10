@@ -185,14 +185,18 @@ pub struct Tag<'a, T> {
     pub tag: &'a str,
     pub expr: Option<Box<Expr<'a, T>>>,
 }
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum BoundType {
+    Inclusive,
+    Exclusive,
+}
 #[derive(Debug, PartialEq, Clone)]
-pub enum Bound<'a, T> {
-    NoBound,
-    Inclusive(Box<Expr<'a, T>>),
-    Exclusive(Box<Expr<'a, T>>),
+pub struct Bound<'a, T> {
+    pub kind: BoundType,
+    pub expr: Box<Expr<'a, T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Range<'a, T> {
-    pub left: Bound<'a, T>,
-    pub right: Bound<'a, T>,
+    pub left: Option<Bound<'a, T>>,
+    pub right: Option<Bound<'a, T>>,
 }

@@ -72,7 +72,11 @@ impl<'a> Type<'a> {
         }
         Ok(())
     }
-    pub(super) fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
+    pub(super) fn unify_with(
+        self,
+        other: Self,
+        var_state: &mut VarState<'a>,
+    ) -> Result<Subs<'a>, TypeError> {
         let mut subs = Subs::new();
         match (self, other) {
             (Self::Cons(cons1), Self::Cons(cons2)) => {
