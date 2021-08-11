@@ -12,11 +12,14 @@ use hir::expr::Expr;
 use hir::expr::Literal;
 use hir::expr::PlaceExpr;
 use hir::expr::Range;
+use hir::expr::Tag;
 use hir::statement::Statement;
+use std::iter::once;
 
 mod ty;
 
 pub use crate::ty::cons::Cons;
+pub use crate::ty::cons::RowedType;
 pub use crate::ty::MutType;
 pub use crate::ty::Type;
 pub use crate::ty::TypeError;
@@ -117,6 +120,30 @@ fn infer_expr<'a>(
                 TypedExpr {
                     ty: Type::Cons(Cons::Array(Box::new(Type::Cons(Cons::Num)))),
                     expr: Expr::ArrayRange(Range { left, right }),
+                },
+            ))
+        }
+        Expr::Tag(tag) => {
+            let mut subs = Subs::new();
+            let (expr, ty) = match tag.expr {
+                Some(expr) => {
+                    let (more_subs, typed) = infer_expr(*expr, var_state, env)?;
+                    subs.compose_with(more_subs)?;
+                    (Some(typed.expr), typed.ty)
+                }
+                None => (None, Type::Cons(Cons::Unit)),
+            };
+            Ok((
+                subs,
+                TypedExpr {
+                    ty: Type::Cons(Cons::Union(RowedType {
+                        fields: once((tag.tag, ty)).collect(),
+                        rest: Some(var_state.new_var()),
+                    })),
+                    expr: Expr::Tag(Tag {
+                        tag: tag.tag,
+                        expr: expr.map(Box::new),
+                    }),
                 },
             ))
         }
