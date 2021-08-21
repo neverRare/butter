@@ -14,6 +14,7 @@ use combine::skip_many1;
 use combine::ParseError;
 use combine::Parser;
 use combine::RangeStream;
+use hir::expr::Expr;
 use hir::statement::Statement;
 
 mod expr;
@@ -33,6 +34,14 @@ combine::parser! {
             .with(many(statement::statement()))
             .skip(eof())
     }
+}
+pub fn expr_parser<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
+{
+    insignificants().with(expr::expr(0)).skip(eof())
 }
 fn comments<'a, I>() -> impl Parser<I, Output = ()>
 where

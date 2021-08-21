@@ -5,3 +5,7 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.3.22"
+combine = "4.6.0" # TODO: try remove this dependency
+parser = { path = "../parser/" }
+hir = { path = "../hir/" }
+type-system = { path = "../type-system/" }

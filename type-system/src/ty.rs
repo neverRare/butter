@@ -18,7 +18,7 @@ pub struct Var<'a> {
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub(super) struct VarState<'a>(HashMap<&'a str, u32>);
 impl<'a> VarState<'a> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
     pub fn new_var(&mut self) -> Var<'a> {
@@ -265,8 +265,12 @@ impl<'a> FromIterator<(Var<'a>, Type1<'a>)> for Subs<'a> {
         Self(iter.into_iter().collect())
     }
 }
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub(super) struct Env<'a>(HashMap<Var<'a>, Scheme<'a>>);
 impl<'a> Env<'a> {
+    pub fn new() -> Self {
+        Self::default()
+    }
     fn hashmap(&self) -> &HashMap<Var<'a>, Scheme<'a>> {
         let Self(map) = self;
         map
@@ -303,6 +307,7 @@ impl<'a> Env<'a> {
         Scheme { for_all, ty }
     }
 }
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum TypeError {
     MismatchCons,
     MismatchKind,
@@ -310,6 +315,11 @@ pub enum TypeError {
     InfiniteOccurrence,
     Overlap,
     UnboundVar,
+}
+impl Display for TypeError {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+        "Type Error".fmt(fmt)
+    }
 }
 impl<'a> Display for Var<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> FmtResult {

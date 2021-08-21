@@ -152,3 +152,9 @@ fn infer_expr<'a>(
 pub fn infer(statements: Vec<Statement<()>>) -> Result<Vec<Statement<Type>>, TypeError> {
     todo!()
 }
+pub fn test_infer(expr: Expr<()>) -> Result<Type, TypeError> {
+    let (subs, typed_expr) = infer_expr(expr, &mut VarState::new(), &Env::new())?;
+    let mut ty = typed_expr.ty;
+    ty.substitute(&subs)?;
+    Ok(ty)
+}
