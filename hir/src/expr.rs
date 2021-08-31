@@ -46,6 +46,7 @@ pub enum PlaceExpr<'a, T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a, T> {
+    // TODO: preserve order
     pub param: HashMap<&'a str, Pattern<'a, T>>,
     pub body: Box<Expr<'a, T>>,
 }
@@ -111,6 +112,7 @@ pub enum ElementKind {
 }
 #[derive(Debug, PartialEq, Clone, Default)]
 pub struct Record<'a, T> {
+    // TODO: preserve order
     pub splats: Box<[Expr<'a, T>]>,
     pub fields: HashMap<&'a str, Expr<'a, T>>,
 }
