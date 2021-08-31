@@ -63,8 +63,8 @@ fn infer_expr<'a>(
         Expr::Array(elements) => {
             let mut subs = Subs::new();
             let mut typed_elements = Vec::new();
-            let ty_var = Type::Var(var_state.new_var());
-            let arr_ty = Type::Cons(Cons::Array(Box::new(ty_var.clone())));
+            let mut ty_var = Type::Var(var_state.new_var());
+            let mut arr_ty = Type::Cons(Cons::Array(Box::new(ty_var.clone())));
             for element in Vec::from(elements) {
                 let (more_subs, typed_expr) = infer_expr(element.expr, var_state, env)?;
                 typed_elements.push(Element {
@@ -76,7 +76,10 @@ fn infer_expr<'a>(
                     ElementKind::Splat => arr_ty.clone(),
                     ElementKind::Element => ty_var.clone(),
                 };
-                subs.compose_with(unify_to.unify_with(typed_expr.ty, var_state)?)?;
+                let arr_subs = unify_to.unify_with(typed_expr.ty, var_state)?;
+                ty_var.substitute(&arr_subs)?;
+                arr_ty.substitute(&arr_subs)?;
+                // subs.compose_with(arr_subs)?;
             }
             Ok((
                 subs,

@@ -92,7 +92,7 @@ impl<'a> Cons<'a> {
                 subs.compose_with(rec1.unify_with(rec2, var_state, |ty| Cons::Record(ty))?)?
             }
             (Self::Union(union1), Self::Union(union2)) => {
-                subs.compose_with(union1.unify_with(union2, var_state, |ty| Cons::Record(ty))?)?
+                subs.compose_with(union1.unify_with(union2, var_state, |ty| Cons::Union(ty))?)?
             }
             _ => return Err(TypeError::MismatchCons),
         }
