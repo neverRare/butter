@@ -25,25 +25,29 @@ reverse(mut arr) => {
 The goals for Butter is to be:
 
 - Concise: The language constructs (aka the syntax) should be simple and have a feel of scripting language.
+- Explicit: There must be little-to-no vagueness syntax-wise or semantic-wise.
 - High-level: The language should be easily understandable and lacks visible low-level concepts.
 - Efficient: Compiled programs should be fast and memory-efficient as much as possible.
 
-For now, Butter is designed to be as simple as possible while being quite useful. Some features such as modules, traits, concurrency/parallelism, comprehensive standard library, and good compiler messages are not a priority for now.
-
-Here are the prioritized features in no particular order:
+And here are the features to be implemented:
 
 - Structural typing
-- Mix of explicit and inferred mutability
+- Mix of explicit and inferred mutability &mdash; variables are explicitly "mut-typed" but it's inner data such as individual record fields are "mut-type inferred"
 - An extension of Hindley-Milner type system, this includes row-polymorphism
 - Refinement types
-- Mix of ownership systems and automatic reference counting &mdash; some data are owned, some are shared
-- Reference types with no mutable aliasing rule
+- Mix of ownership systems and automatic reference counting &mdash; data that are immutable and never moved are shareable
+- Reference types with mutability xor aliasability rule
 - Lifetime analysis
+
+More features planned:
+
+- Traits or typeclasses
+- `newtype` for nominally typed data
+- Module and visibility system
+- Shareable mutable containers &mdash; those are also interiorly mutable
 - Low-level representation heuristics &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
 
-These features ensures the goals and at the same time harms it, there should be a good balance.
-
-After these features are sufficiently implemented. Other useful missing features shall be implemented as well.
+These features ensures some goals and at the same harms some, there should be a good balance.Ultimately, the designs and features are up for my decision and taste and there are influences from Rust, Typescript, and Haskell.
 
 ## Road map
 
