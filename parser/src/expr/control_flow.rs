@@ -1,30 +1,19 @@
-use crate::expr::expr;
-use crate::ident_keyword::keyword;
-use crate::lex;
-use crate::pattern::pattern;
-use crate::statement::statement_return;
-use crate::statement::StatementReturn;
-use combine::attempt;
-use combine::between;
-use combine::choice;
-use combine::look_ahead;
-use combine::many;
-use combine::optional;
-use combine::parser;
-use combine::parser::char::char;
-use combine::parser::char::string;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
-use hir::expr::Block;
-use hir::expr::ControlFlow;
-use hir::expr::Expr;
-use hir::expr::For;
-use hir::expr::If;
-use hir::expr::Match;
-use hir::expr::MatchArm;
-use hir::expr::While;
-use hir::statement::Statement;
+use crate::{
+    expr::expr,
+    ident_keyword::keyword,
+    lex,
+    pattern::pattern,
+    statement::{statement_return, StatementReturn},
+};
+use combine::{
+    attempt, between, choice, look_ahead, many, optional,
+    parser::char::{char, string},
+    ParseError, Parser, RangeStream,
+};
+use hir::{
+    expr::{Block, ControlFlow, Expr, For, If, Match, MatchArm, While},
+    statement::Statement,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 struct StatementExpr<'a, T> {
@@ -57,7 +46,7 @@ impl<'a, T> Extend<StatementReturn<'a, T>> for StatementExpr<'a, T> {
         }
     }
 }
-pub fn block<'a, I, T>() -> impl Parser<I, Output = Block<'a, T>>
+pub(crate) fn block<'a, I, T>() -> impl Parser<I, Output = Block<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -96,7 +85,7 @@ where
             else_part: else_part.map(Box::new),
         })
 }
-parser! {
+combine::parser! {
     fn if_expression['a, I, T]()(I) -> If<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
@@ -187,8 +176,8 @@ where
         match_expression().map(ControlFlow::Match),
     ))
 }
-parser! {
-    pub fn control_flow['a, I, T]()(I) -> ControlFlow<'a, T>
+combine::parser! {
+    pub(crate) fn control_flow['a, I, T]()(I) -> ControlFlow<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,

@@ -1,32 +1,27 @@
-use crate::expr::control_flow::block;
-use crate::expr::control_flow::control_flow;
-use crate::expr::expr;
-use crate::ident_keyword::ident;
-use crate::lex;
-use crate::pattern::parameter;
-use crate::pattern::pattern;
-use combine::attempt;
-use combine::choice;
-use combine::error::StreamError;
-use combine::look_ahead;
-use combine::optional;
-use combine::parser;
-use combine::parser::char::char;
-use combine::parser::char::string;
-use combine::sep_by1;
-use combine::stream::StreamErrorFor;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
-use hir::expr::Assign;
-use hir::expr::ControlFlow;
-use hir::expr::Expr;
-use hir::expr::Fun;
-use hir::statement::Declare;
-use hir::statement::FunDeclare;
-use hir::statement::Statement;
+use crate::{
+    expr::{
+        control_flow::{block, control_flow},
+        expr,
+    },
+    ident_keyword::ident,
+    lex,
+    pattern::{parameter, pattern},
+};
+use combine::{
+    attempt, choice,
+    error::StreamError,
+    look_ahead, optional,
+    parser::char::{char, string},
+    sep_by1,
+    stream::StreamErrorFor,
+    ParseError, Parser, RangeStream,
+};
+use hir::{
+    expr::{Assign, ControlFlow, Expr, Fun},
+    statement::{Declare, FunDeclare, Statement},
+};
 
-pub enum StatementReturn<'a, T> {
+pub(crate) enum StatementReturn<'a, T> {
     Statement(Statement<'a, T>),
     Return(Expr<'a, T>),
 }
@@ -140,8 +135,8 @@ where
         expr(),
     ))
 }
-parser! {
-    pub fn statement_return['a, I, P, T](end_look_ahead: P)(I) -> StatementReturn<'a, T>
+combine::parser! {
+    pub(crate) fn statement_return['a, I, P, T](end_look_ahead: P)(I) -> StatementReturn<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -151,7 +146,7 @@ parser! {
         statement_return_(end_look_ahead)
     }
 }
-pub fn statement<'a, I, T>() -> impl Parser<I, Output = Statement<'a, T>>
+pub(crate) fn statement<'a, I, T>() -> impl Parser<I, Output = Statement<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -164,16 +159,16 @@ where
 }
 #[cfg(test)]
 mod test {
-    use crate::statement::statement;
-    use crate::statement::Assign;
-    use crate::statement::Expr;
-    use crate::Statement;
+    use crate::{
+        statement::{statement, Assign, Expr},
+        Statement,
+    };
     use combine::EasyParser;
-    use hir::expr::Literal;
-    use hir::expr::PlaceExpr;
-    use hir::pattern::Pattern;
-    use hir::pattern::Var;
-    use hir::statement::Declare;
+    use hir::{
+        expr::{Literal, PlaceExpr},
+        pattern::{Pattern, Var},
+        statement::Declare,
+    };
 
     #[test]
     fn parallel_assign() {

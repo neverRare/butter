@@ -2,28 +2,19 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use crate::ty::Env;
-use crate::ty::Subs;
-use crate::ty::VarState;
-use hir::expr::Bound;
-use hir::expr::Element;
-use hir::expr::ElementKind;
-use hir::expr::Expr;
-use hir::expr::Literal;
-use hir::expr::PlaceExpr;
-use hir::expr::Range;
-use hir::expr::Tag;
-use hir::statement::Statement;
+use crate::ty::{Env, Subs, VarState};
+use hir::{
+    expr::{Bound, Element, ElementKind, Expr, Literal, PlaceExpr, Range, Tag},
+    statement::Statement,
+};
 use std::iter::once;
 
 mod ty;
 
-pub use crate::ty::cons::Cons;
-pub use crate::ty::cons::RowedType;
-pub use crate::ty::MutType;
-pub use crate::ty::Type;
-pub use crate::ty::TypeError;
-pub use crate::ty::Var;
+pub use crate::ty::{
+    cons::{Cons, RowedType},
+    MutType, Type, TypeError, Var,
+};
 
 struct TypedExpr<'a> {
     ty: Type<'a>,

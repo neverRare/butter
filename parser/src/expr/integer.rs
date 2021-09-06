@@ -1,20 +1,17 @@
-use combine::attempt;
-use combine::choice;
-use combine::error::StreamError;
-use combine::not_followed_by;
-use combine::parser;
-use combine::parser::char::alpha_num;
-use combine::parser::char::char;
-use combine::parser::range::recognize;
-use combine::parser::range::take_while;
-use combine::parser::range::take_while1;
-use combine::satisfy;
-use combine::stream::StreamErrorFor;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
+use combine::{
+    attempt, choice,
+    error::StreamError,
+    not_followed_by,
+    parser::{
+        char::{alpha_num, char},
+        range::{recognize, take_while, take_while1},
+    },
+    satisfy,
+    stream::StreamErrorFor,
+    ParseError, Parser, RangeStream,
+};
 
-pub fn parse_digit(ch: char, base: u8) -> Option<u8> {
+pub(crate) fn parse_digit(ch: char, base: u8) -> Option<u8> {
     let (lower_ch, lower_bound) = match ch {
         '0'..='9' => ('0', 0),
         'a'..='z' => ('a', 10),
@@ -30,7 +27,7 @@ pub fn parse_digit(ch: char, base: u8) -> Option<u8> {
 }
 macro_rules! gen_integer_decoder {
     ($ident:ident, $type:ty) => {
-        pub fn $ident(src: &str, base: $type) -> Option<$type> {
+        pub(crate) fn $ident(src: &str, base: $type) -> Option<$type> {
             let mut result: $type = 0;
             for ch in src.chars().filter(|ch| *ch != '_') {
                 let digit = parse_digit(ch, base as u8).unwrap() as $type;
@@ -50,7 +47,7 @@ macro_rules! gen_integer_decoder {
 gen_integer_decoder!(parse_u64, u64);
 gen_integer_decoder!(parse_i64, i64);
 gen_integer_decoder!(parse_i32, i32);
-pub fn integer_str<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
+pub(crate) fn integer_str<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -60,7 +57,7 @@ where
         take_while(move |ch| parse_digit(ch, base).is_some() || ch == '_'),
     ))
 }
-pub fn integer_str_allow_underscore<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
+pub(crate) fn integer_str_allow_underscore<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -70,13 +67,13 @@ where
 // TODO: clean this up, it looks ugly
 macro_rules! gen_integer_parser {
     ($ident:ident, $parser:expr, $type:ty) => {
-        parser! {
-            pub fn $ident['a, I]()(I) -> $type
+        combine::parser! {
+            pub(crate) fn $ident['a, I]()(I) -> $type
             where [
                 I: RangeStream<Token = char, Range = &'a str>,
                 I::Error: ParseError<I::Token, I::Range, I::Position>,
             ] {
-                parser! {
+                combine::parser! {
                     fn integer['a, I, P](num_parser: P, base: $type)(I) -> $type
                     where [
                         I: RangeStream<Token = char, Range = &'a str>,

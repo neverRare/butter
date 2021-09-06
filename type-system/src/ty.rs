@@ -1,12 +1,10 @@
 use crate::ty::cons::Cons;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Result as FmtResult;
-use std::hash::Hash;
-use std::iter::once;
-use std::iter::FromIterator;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt::{self, Display, Formatter},
+    hash::Hash,
+    iter::{once, FromIterator},
+};
 
 pub mod cons;
 
@@ -317,22 +315,22 @@ pub enum TypeError {
     UnboundVar,
 }
 impl Display for TypeError {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         "Type Error".fmt(fmt)
     }
 }
 impl<'a> Display for Var<'a> {
-    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         write!(fmt, "{}#{}", self.name, self.id)
     }
 }
 impl<'a> Display for KindedVar<'a> {
-    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         self.var.fmt(fmt)
     }
 }
 impl<'a> Display for Type<'a> {
-    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match &self {
             Type::Var(var) => var.fmt(fmt),
             Type::Cons(cons) => cons.fmt(fmt),
@@ -340,7 +338,7 @@ impl<'a> Display for Type<'a> {
     }
 }
 impl<'a> Display for MutType<'a> {
-    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match &self {
             Self::Var(var) => var.fmt(fmt),
             Self::Imm => write!(fmt, "imm"),
@@ -349,7 +347,7 @@ impl<'a> Display for MutType<'a> {
     }
 }
 impl<'a> Display for Scheme<'a> {
-    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         write!(fmt, "<")?;
         fmt_intersperse(fmt, &self.for_all, ", ", KindedVar::fmt)?;
         write!(fmt, ">")?;
@@ -363,8 +361,8 @@ fn fmt_intersperse<I>(
     fmt: &mut Formatter,
     iter: I,
     intersperse: &'static str,
-    mut fmt_mapper: impl FnMut(I::Item, &mut Formatter) -> FmtResult,
-) -> FmtResult
+    mut fmt_mapper: impl FnMut(I::Item, &mut Formatter) -> fmt::Result,
+) -> fmt::Result
 where
     I: IntoIterator,
 {

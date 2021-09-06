@@ -1,6 +1,7 @@
-use crate::expr::Expr;
-use crate::expr::Fun;
-use crate::pattern::Pattern;
+use crate::{
+    expr::{Expr, Fun},
+    pattern::Pattern,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement<'a, T> {

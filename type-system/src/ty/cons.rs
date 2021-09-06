@@ -1,20 +1,12 @@
-use crate::ty::fmt_intersperse;
-use crate::ty::Kind;
-use crate::ty::KindedVar;
-use crate::ty::MutType;
-use crate::ty::Subs;
-use crate::ty::Type;
-use crate::ty::Type1;
-use crate::ty::TypeError;
-use crate::ty::Var;
-use crate::ty::VarState;
-use std::array::IntoIter as ArrayIntoIter;
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::fmt::Display;
-use std::fmt::Formatter;
-use std::fmt::Result as FmtResult;
-use std::hash::Hash;
+use crate::ty::{
+    fmt_intersperse, Kind, KindedVar, MutType, Subs, Type, Type1, TypeError, Var, VarState,
+};
+use std::{
+    array,
+    collections::{HashMap, HashSet},
+    fmt::{self, Display, Formatter},
+    hash::Hash,
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cons<'a> {
@@ -33,12 +25,12 @@ impl<'a> Cons<'a> {
         match self {
             Self::Unit | Self::Num | Self::Bool => HashSet::new(),
             Self::Ref(mutability, ty) => {
-                ArrayIntoIter::new([mutability.free_vars(), ty.free_vars()])
+                array::IntoIter::new([mutability.free_vars(), ty.free_vars()])
                     .flatten()
                     .collect()
             }
             Self::Array(ty) => ty.free_vars(),
-            Self::Fun(param, ret) => ArrayIntoIter::new([param, ret])
+            Self::Fun(param, ret) => array::IntoIter::new([param, ret])
                 .map(AsRef::as_ref)
                 .flat_map(Type::free_vars)
                 .collect(),
@@ -218,7 +210,7 @@ where
         .collect()
 }
 impl<'a> Display for Cons<'a> {
-    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
             Self::Unit => write!(fmt, "unit"),
             Self::Num => write!(fmt, "number"),

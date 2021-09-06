@@ -2,20 +2,15 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use combine::attempt;
-use combine::eof;
-use combine::many;
-use combine::optional;
-use combine::parser::char::space;
-use combine::parser::char::string;
-use combine::parser::range::take_while;
-use combine::skip_many;
-use combine::skip_many1;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
-use hir::expr::Expr;
-use hir::statement::Statement;
+use combine::{
+    attempt, eof, many, optional,
+    parser::{
+        char::{space, string},
+        range::take_while,
+    },
+    skip_many, skip_many1, ParseError, Parser, RangeStream,
+};
+use hir::{expr::Expr, statement::Statement};
 
 mod expr;
 mod ident_keyword;

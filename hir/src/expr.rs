@@ -1,5 +1,4 @@
-use crate::pattern::Pattern;
-use crate::statement::Statement;
+use crate::{pattern::Pattern, statement::Statement};
 use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Clone, Copy)]

@@ -1,7 +1,6 @@
 use combine::EasyParser;
 use parser::expr_parser;
-use std::io;
-use std::io::Write;
+use std::io::{self, Write};
 use structopt::StructOpt;
 use type_system::test_infer;
 

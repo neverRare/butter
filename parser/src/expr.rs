@@ -1,48 +1,31 @@
-use crate::expr::array::array;
-use crate::expr::array::range;
-use crate::expr::infix::expr_0;
-use crate::expr::infix::expr_6;
-use crate::expr::infix::infix_expr_op;
-use crate::expr::integer::integer_u64;
-use crate::expr::record::record;
-use crate::expr::string::char_literal;
-use crate::expr::string::string_literal;
-use crate::ident_keyword::ident;
-use crate::ident_keyword::keyword;
-use crate::lex;
-use crate::pattern::parameter;
-use combine::attempt;
-use combine::between;
-use combine::chainl1;
-use combine::choice;
-use combine::optional;
-use combine::parser;
-use combine::parser::char::char;
-use combine::parser::char::string;
-use combine::value;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
-use hir::expr::Element;
-use hir::expr::ElementKind;
-use hir::expr::Expr;
-use hir::expr::Fun;
-use hir::expr::Jump;
-use hir::expr::Literal;
-use hir::expr::PlaceExpr;
-use hir::expr::Tag;
-use hir::expr::Unary;
-use hir::expr::UnaryType;
+use crate::{
+    expr::{
+        array::{array, range},
+        infix::{expr_0, expr_6, infix_expr_op},
+        integer::integer_u64,
+        record::record,
+        string::{char_literal, string_literal},
+    },
+    ident_keyword::{ident, keyword},
+    lex,
+    pattern::parameter,
+};
+use combine::{
+    attempt, between, chainl1, choice, optional,
+    parser::char::{char, string},
+    value, ParseError, Parser, RangeStream,
+};
+use hir::expr::{Element, ElementKind, Expr, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType};
 
 mod array;
-pub mod control_flow;
+pub(crate) mod control_flow;
 mod float;
 mod infix;
-pub mod integer;
+pub(crate) mod integer;
 mod record;
 mod string;
 
-parser! {
+combine::parser! {
     fn literal['a, I]()(I) -> Literal
     where [
         I: RangeStream<Token = char, Range = &'a str>,
@@ -148,7 +131,7 @@ where
         jump().map(Expr::Jump),
     ))
 }
-parser! {
+combine::parser! {
     fn prefix_expr['a, I, T]()(I) -> Expr<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
@@ -173,8 +156,8 @@ where
         _ => prefix_expr().right().right(),
     }
 }
-parser! {
-    pub fn expr['a, I, T](precedence: u8)(I) -> Expr<'a, T>
+combine::parser! {
+    pub(crate) fn expr['a, I, T](precedence: u8)(I) -> Expr<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -185,13 +168,9 @@ parser! {
 }
 #[cfg(test)]
 mod test {
-    use crate::expr::expr;
-    use crate::expr::Expr;
+    use crate::expr::{expr, Expr};
     use combine::EasyParser;
-    use hir::expr::Assign;
-    use hir::expr::Binary;
-    use hir::expr::BinaryType;
-    use hir::expr::PlaceExpr;
+    use hir::expr::{Assign, Binary, BinaryType, PlaceExpr};
 
     #[test]
     fn group() {

@@ -1,16 +1,13 @@
 use crate::expr::integer::parse_digit;
-use combine::between;
-use combine::choice;
-use combine::error::StreamError;
-use combine::many;
-use combine::parser;
-use combine::parser::char::char;
-use combine::parser::char::hex_digit;
-use combine::satisfy;
-use combine::stream::StreamErrorFor;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
+use combine::{
+    between, choice,
+    error::StreamError,
+    many,
+    parser::char::{char, hex_digit},
+    satisfy,
+    stream::StreamErrorFor,
+    ParseError, Parser, RangeStream,
+};
 use std::array;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -47,8 +44,8 @@ where
         satisfy(move |ch: char| ch != delimiter && ch != '\n').map(Char::Char),
     ))
 }
-parser! {
-    pub fn char_literal['a, I]()(I) -> u64
+combine::parser! {
+    pub(crate) fn char_literal['a, I]()(I) -> u64
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -96,7 +93,7 @@ impl Extend<Char> for StringLiteral {
         }
     }
 }
-pub fn string_literal<'a, I>() -> impl Parser<I, Output = Vec<u8>>
+pub(crate) fn string_literal<'a, I>() -> impl Parser<I, Output = Vec<u8>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

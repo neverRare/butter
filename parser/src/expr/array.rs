@@ -1,21 +1,11 @@
-use crate::expr::expr;
-use crate::lex;
-use combine::between;
-use combine::choice;
-use combine::optional;
-use combine::parser::char::char;
-use combine::sep_end_by;
-use combine::value;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
-use hir::expr::Bound;
-use hir::expr::BoundType;
-use hir::expr::Element;
-use hir::expr::ElementKind;
-use hir::expr::Range;
+use crate::{expr::expr, lex};
+use combine::{
+    between, choice, optional, parser::char::char, sep_end_by, value, ParseError, Parser,
+    RangeStream,
+};
+use hir::expr::{Bound, BoundType, Element, ElementKind, Range};
 
-pub fn range_operator<'a, I>() -> impl Parser<I, Output = (BoundType, BoundType)>
+pub(crate) fn range_operator<'a, I>() -> impl Parser<I, Output = (BoundType, BoundType)>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -31,7 +21,7 @@ where
         )),
     )
 }
-pub fn range<'a, I, T>() -> impl Parser<I, Output = Range<'a, T>>
+pub(crate) fn range<'a, I, T>() -> impl Parser<I, Output = Range<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -54,7 +44,7 @@ where
     };
     between(lex(char('[')), lex(char(']')), range())
 }
-pub fn array<'a, I, T>() -> impl Parser<I, Output = Box<[Element<'a, T>]>>
+pub(crate) fn array<'a, I, T>() -> impl Parser<I, Output = Box<[Element<'a, T>]>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

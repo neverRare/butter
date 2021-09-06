@@ -1,17 +1,12 @@
-use crate::expr::expr;
-use crate::expr::Expr;
-use crate::ident_keyword::ident;
-use crate::lex;
-use combine::between;
-use combine::choice;
-use combine::optional;
-use combine::parser::char::char;
-use combine::sep_end_by;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
-use hir::expr::PlaceExpr;
-use hir::expr::Record;
+use crate::{
+    expr::{expr, Expr},
+    ident_keyword::ident,
+    lex,
+};
+use combine::{
+    between, choice, optional, parser::char::char, sep_end_by, ParseError, Parser, RangeStream,
+};
+use hir::expr::{PlaceExpr, Record};
 use std::collections::HashMap;
 
 struct RecordExtend<'a, T> {
@@ -75,7 +70,7 @@ where
     ))
 }
 // TODO: handle duplicate name
-pub fn record<'a, I, T>() -> impl Parser<I, Output = Record<'a, T>>
+pub(crate) fn record<'a, I, T>() -> impl Parser<I, Output = Record<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

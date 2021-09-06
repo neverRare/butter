@@ -1,24 +1,13 @@
-use crate::expr::integer::integer_i64;
-use crate::expr::integer::integer_u64;
-use crate::ident_keyword::ident;
-use crate::ident_keyword::keyword;
-use crate::lex;
-use combine::attempt;
-use combine::between;
-use combine::choice;
-use combine::many;
-use combine::optional;
-use combine::parser;
-use combine::parser::char::char;
-use combine::sep_end_by;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
-use hir::pattern::ArrayWithRest;
-use hir::pattern::Pattern;
-use hir::pattern::RecordPattern;
-use hir::pattern::TaggedPattern;
-use hir::pattern::Var;
+use crate::{
+    expr::integer::{integer_i64, integer_u64},
+    ident_keyword::{ident, keyword},
+    lex,
+};
+use combine::{
+    attempt, between, choice, many, optional, parser::char::char, sep_end_by, ParseError, Parser,
+    RangeStream,
+};
+use hir::pattern::{ArrayWithRest, Pattern, RecordPattern, TaggedPattern, Var};
 use std::collections::HashMap;
 
 fn optional_rest<'a, I, EP, RP, C>(
@@ -89,7 +78,7 @@ where
         )
     })
 }
-pub fn parameter<'a, I, T>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, T>>>
+pub(crate) fn parameter<'a, I, T>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, T>>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -170,8 +159,8 @@ where
             }),
     ))
 }
-parser! {
-    pub fn pattern['a, I, T]()(I) -> Pattern<'a, T>
+combine::parser! {
+    pub(crate) fn pattern['a, I, T]()(I) -> Pattern<'a, T>
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,

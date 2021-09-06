@@ -1,22 +1,15 @@
-use crate::expr::integer::integer_str;
-use crate::expr::integer::integer_str_allow_underscore;
-use crate::expr::integer::parse_digit;
-use crate::expr::integer::parse_i32;
-use combine::attempt;
-use combine::choice;
-use combine::error::StreamError;
-use combine::look_ahead;
-use combine::not_followed_by;
-use combine::optional;
-use combine::parser;
-use combine::parser::char::alpha_num;
-use combine::parser::char::char;
-use combine::parser::char::digit;
-use combine::parser::range::take_while;
-use combine::stream::StreamErrorFor;
-use combine::ParseError;
-use combine::Parser;
-use combine::RangeStream;
+use crate::expr::integer::{integer_str, integer_str_allow_underscore, parse_digit, parse_i32};
+use combine::{
+    attempt, choice,
+    error::StreamError,
+    look_ahead, not_followed_by, optional,
+    parser::{
+        char::{alpha_num, char, digit},
+        range::take_while,
+    },
+    stream::StreamErrorFor,
+    ParseError, Parser, RangeStream,
+};
 use std::convert::TryInto;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -114,8 +107,8 @@ where
             }
         })
 }
-parser! {
-    pub fn float['a, I]()(I) -> f64
+combine::parser! {
+    pub(crate) fn float['a, I]()(I) -> f64
     where [
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
