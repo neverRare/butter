@@ -99,7 +99,8 @@ macro_rules! gen_integer_parser {
                         .with(integer(integer_str_allow_underscore(2), 2)),
                     integer(integer_str(10), 10),
                 ))
-                .skip(not_followed_by(alpha_num()))
+                    .skip(not_followed_by(alpha_num()))
+                    .expected("integer")
             }
         }
     };

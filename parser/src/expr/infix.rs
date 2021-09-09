@@ -15,7 +15,10 @@ use combine::{
     stream::StreamErrorFor,
     ParseError, Parser, RangeStream,
 };
-use hir::expr::{Assign, Binary, BinaryType, Expr, FieldSplat, Index, NamedArgCall, PlaceExpr, Property, Range, Slice, UnnamedArgCall};
+use hir::expr::{
+    Assign, Binary, BinaryType, Expr, FieldSplat, Index, NamedArgCall, PlaceExpr, Property, Range,
+    Slice, UnnamedArgCall,
+};
 
 pub(crate) enum PartialAst<'a, T> {
     Property(&'a str),
@@ -69,6 +72,7 @@ where
             sep_end_by(nameless_arg(), lex(char(','))),
         )
         .map(Vec::into)
+        .expected("argument")
     };
     let property_or_len = || {
         lex(attempt(
@@ -85,13 +89,19 @@ where
             }
         })
     };
-    let index = || between(lex(char('[')), lex(char(']')), expr(0)).map(PartialAst::Index);
+    let index = || {
+        between(lex(char('[')), lex(char(']')), expr(0))
+            .map(PartialAst::Index)
+            .expected("index")
+    };
     choice((
-        attempt(record()).map(PartialAst::NamedArgCall),
+        attempt(record())
+            .map(PartialAst::NamedArgCall)
+            .expected("argument"),
         nameless_args().map(PartialAst::UnnamedArgCall),
         property_or_len(),
         attempt(index()),
-        range().map(PartialAst::Slice),
+        range().map(PartialAst::Slice).expected("slice"),
         lex(char('^')).map(|_| PartialAst::Deref),
     ))
 }
@@ -190,7 +200,7 @@ where
         .and_then(move |token| match precedence_of(token) {
             Some(this_precedence) if this_precedence > precedence => Ok(token),
             Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
-                "infix operator with higher precedence",
+                "operator with higher precedence",
             )),
             None => Err(<StreamErrorFor<I>>::expected_static_message(
                 "expression operator",

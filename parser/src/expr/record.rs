@@ -32,5 +32,7 @@ where
     T: Default,
 {
     let fields = || sep_end_by(field_splat(), lex(char(',')));
-    between(lex(char('(')), lex(char(')')), fields()).map(Vec::into)
+    between(lex(char('(')), lex(char(')')), fields())
+        .map(Vec::into)
+        .expected("record")
 }

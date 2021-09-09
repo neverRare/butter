@@ -64,6 +64,7 @@ where
             expr: expr.map(Box::new),
         }
     })
+    .expected("block")
 }
 fn if_<'a, I, T>() -> impl Parser<I, Output = If<'a, T>>
 where
@@ -153,7 +154,11 @@ where
             expr: Box::new(expr),
         })
     };
-    let body = || between(lex(char('{')), lex(char('}')), many(arm())).map(Vec::into);
+    let body = || {
+        between(lex(char('{')), lex(char('}')), many(arm()))
+            .map(Vec::into)
+            .expected("match body")
+    };
     attempt(lex(keyword("match")))
         .with((expr(0), body()))
         .map(|(expr, arm)| Match {

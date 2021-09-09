@@ -111,7 +111,7 @@ where
         fun().map(Expr::Fun),
         attempt(range()).map(Expr::ArrayRange),
         array().map(Expr::Array),
-        attempt(between(lex(char('(')), lex(char(')')), expr(0))),
+        attempt(between(lex(char('(')), lex(char(')')), expr(0))).expected("group"),
         record().map(Expr::Record),
         lex(string_literal()).map(|vec| {
             let vec = vec

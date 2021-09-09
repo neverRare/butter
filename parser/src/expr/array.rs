@@ -20,6 +20,7 @@ where
             (char('<').map(|_| BoundType::Exclusive)),
         )),
     )
+        .expected("range operator")
 }
 pub(crate) fn range<'a, I, T>() -> impl Parser<I, Output = Range<'a, T>>
 where
@@ -42,7 +43,7 @@ where
             },
         )
     };
-    between(lex(char('[')), lex(char(']')), range())
+    between(lex(char('[')), lex(char(']')), range()).expected("range array")
 }
 pub(crate) fn array<'a, I, T>() -> impl Parser<I, Output = Box<[Element<'a, T>]>>
 where
@@ -63,4 +64,5 @@ where
         sep_end_by(element(), lex(char(','))),
     )
     .map(Vec::into)
+    .expected("array")
 }

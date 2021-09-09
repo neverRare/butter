@@ -46,17 +46,19 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    optional_rest('[', ']', pattern, pattern).map(|(left, rest_right)| {
-        let left: Vec<_> = left;
-        match rest_right {
-            Some((rest, right)) => Pattern::ArrayWithRest(ArrayWithRest {
-                left: left.into(),
-                rest: Box::new(rest),
-                right: right.into(),
-            }),
-            None => Pattern::Array(left.into()),
-        }
-    })
+    optional_rest('[', ']', pattern, pattern)
+        .map(|(left, rest_right)| {
+            let left: Vec<_> = left;
+            match rest_right {
+                Some((rest, right)) => Pattern::ArrayWithRest(ArrayWithRest {
+                    left: left.into(),
+                    rest: Box::new(rest),
+                    right: right.into(),
+                }),
+                None => Pattern::Array(left.into()),
+            }
+        })
+        .expected("array pattern")
 }
 fn field<'a, I, T>() -> impl Parser<I, Output = (&'a str, Pattern<'a, T>)>
 where
@@ -64,19 +66,21 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    (lex(ident()), optional(lex(char('=')).with(pattern()))).map(|(name, pattern)| {
-        (
-            name,
-            pattern.unwrap_or_else(|| {
-                Pattern::Var(Var {
-                    ident: name,
-                    mutable: false,
-                    bind_to_ref: false,
-                    ty: T::default(),
-                })
-            }),
-        )
-    })
+    (lex(ident()), optional(lex(char('=')).with(pattern())))
+        .map(|(name, pattern)| {
+            (
+                name,
+                pattern.unwrap_or_else(|| {
+                    Pattern::Var(Var {
+                        ident: name,
+                        mutable: false,
+                        bind_to_ref: false,
+                        ty: T::default(),
+                    })
+                }),
+            )
+        })
+        .expected("field pattern")
 }
 pub(crate) fn parameter<'a, I, T>() -> impl Parser<I, Output = HashMap<&'a str, Pattern<'a, T>>>
 where
@@ -89,6 +93,7 @@ where
         lex(char(')')),
         sep_end_by(field(), lex(char(','))),
     )
+    .expected("parameter")
 }
 fn record<'a, I, T>() -> impl Parser<I, Output = RecordPattern<'a, T>>
 where
@@ -97,20 +102,22 @@ where
     T: Default,
 {
     // TODO: handle duplicate name as error
-    optional_rest('(', ')', field, pattern).map(|(left, rest_right)| match rest_right {
-        Some((rest, right)) => {
-            let mut fields: HashMap<_, _> = left;
-            fields.extend(right);
-            RecordPattern {
-                fields,
-                rest: Some(Box::new(rest)),
+    optional_rest('(', ')', field, pattern)
+        .map(|(left, rest_right)| match rest_right {
+            Some((rest, right)) => {
+                let mut fields: HashMap<_, _> = left;
+                fields.extend(right);
+                RecordPattern {
+                    fields,
+                    rest: Some(Box::new(rest)),
+                }
             }
-        }
-        None => RecordPattern {
-            fields: left,
-            rest: None,
-        },
-    })
+            None => RecordPattern {
+                fields: left,
+                rest: None,
+            },
+        })
+        .expected("record pattern")
 }
 fn pattern_<'a, I, T>() -> impl Parser<I, Output = Pattern<'a, T>>
 where
@@ -139,7 +146,7 @@ where
             .map(|num| Pattern::Int(-num)),
         integer_u64().map(Pattern::UInt),
         array(),
-        attempt(between(lex(char('(')), lex(char(')')), pattern())),
+        attempt(between(lex(char('(')), lex(char(')')), pattern())).expected("group"),
         record().map(Pattern::Record),
         attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
         attempt(lex(keyword("true"))).map(|_| Pattern::True),

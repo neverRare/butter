@@ -37,10 +37,9 @@ where
             parse_digit(sixteens, 16).unwrap() * 16 + parse_digit(ones, 16).unwrap()
         })
     };
+    let escape = || choice((simple_escape(), char('x').with(byte())));
     choice((
-        char('\\')
-            .with(choice((simple_escape(), char('x').with(byte()))))
-            .map(Char::Byte),
+        char('\\').with(escape()).map(Char::Byte),
         satisfy(move |ch: char| ch != delimiter && ch != '\n').map(Char::Char),
     ))
 }
@@ -62,6 +61,7 @@ combine::parser! {
                 }
             }
         })
+            .expected("char")
     }
 }
 // TODO: this should be Vec<u8>
@@ -98,7 +98,9 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    between(char('"'), char('"'), many(char_inside('"'))).map(|StringLiteral(vec)| vec)
+    between(char('"'), char('"'), many(char_inside('"')))
+        .map(|StringLiteral(vec)| vec)
+        .expected("string")
 }
 #[cfg(test)]
 mod test {

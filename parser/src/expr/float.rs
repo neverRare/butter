@@ -113,10 +113,12 @@ combine::parser! {
         I: RangeStream<Token = char, Range = &'a str>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
-        float_src().and_then(|src| match src.parse() {
-            Some(float) => Ok(float),
-            None => Err(<StreamErrorFor<I>>::message_static_message("magnitude overflow"))
-        })
+        float_src()
+            .and_then(|src| match src.parse() {
+                Some(float) => Ok(float),
+                None => Err(<StreamErrorFor<I>>::message_static_message("magnitude overflow"))
+            })
+            .expected("float")
     }
 }
 #[cfg(test)]

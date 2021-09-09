@@ -24,7 +24,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let start = move |ch: char| rest(ch) && !('0'..='9').contains(&ch);
-    recognize((satisfy(start), take_while(rest)))
+    recognize((satisfy(start), take_while(rest))).expected("identifier")
 }
 pub(crate) fn keyword<'a, I>(keyword: &'static str) -> impl Parser<I, Output = &'a str>
 where
