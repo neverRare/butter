@@ -15,16 +15,13 @@ use combine::{
     stream::StreamErrorFor,
     ParseError, Parser, RangeStream,
 };
-use hir::expr::{
-    Assign, Binary, BinaryType, Expr, Index, NamedArgCall, PlaceExpr, Property, Range, Record,
-    Slice, UnnamedArgCall,
-};
+use hir::expr::{Assign, Binary, BinaryType, Expr, FieldSplat, Index, NamedArgCall, PlaceExpr, Property, Range, Slice, UnnamedArgCall};
 
 pub(crate) enum PartialAst<'a, T> {
     Property(&'a str),
     Index(Expr<'a, T>),
     Slice(Range<'a, T>),
-    NamedArgCall(Record<'a, T>),
+    NamedArgCall(Box<[FieldSplat<'a, T>]>),
     UnnamedArgCall(Box<[Expr<'a, T>]>),
     Deref,
     Len,

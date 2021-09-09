@@ -21,7 +21,7 @@ pub enum Expr<'a, T> {
 
     Array(Box<[Element<'a, T>]>),
     ArrayRange(Range<'a, T>),
-    Record(Record<'a, T>),
+    Record(Box<[FieldSplat<'a, T>]>),
 
     Unary(Unary<'a, T>),
     Binary(Binary<'a, T>),
@@ -45,7 +45,6 @@ pub enum PlaceExpr<'a, T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a, T> {
-    // TODO: preserve order
     pub param: HashMap<&'a str, Pattern<'a, T>>,
     pub body: Box<Expr<'a, T>>,
 }
@@ -109,11 +108,15 @@ pub enum ElementKind {
     Element,
     Splat,
 }
-#[derive(Debug, PartialEq, Clone, Default)]
-pub struct Record<'a, T> {
-    // TODO: preserve order
-    pub splats: Box<[Expr<'a, T>]>,
-    pub fields: HashMap<&'a str, Expr<'a, T>>,
+#[derive(Debug, PartialEq, Clone)]
+pub enum FieldSplat<'a, T> {
+    Field(Field<'a, T>),
+    Splat(Expr<'a, T>),
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct Field<'a, T> {
+    pub name: &'a str,
+    pub expr: Expr<'a, T>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum ControlFlow<'a, T> {
@@ -174,7 +177,7 @@ pub struct Slice<'a, T> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct NamedArgCall<'a, T> {
     pub expr: Box<Expr<'a, T>>,
-    pub args: Record<'a, T>,
+    pub args: Box<[FieldSplat<'a, T>]>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnnamedArgCall<'a, T> {
