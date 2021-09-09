@@ -4,10 +4,10 @@
 
 use crate::ty::{Env, Subs, VarState};
 use hir::{
-    expr::{Bound, Element, ElementKind, Expr, Literal, PlaceExpr, Range, Tag},
+    expr::{Bound, Element, ElementKind, Expr, Field, FieldSplat, Literal, PlaceExpr, Range, Tag},
     statement::Statement,
 };
-use std::iter::once;
+use std::{collections::HashMap, iter::once};
 
 mod ty;
 
@@ -137,6 +137,56 @@ fn infer_expr<'a>(
                         tag: tag.tag,
                         expr: expr.map(Box::new),
                     }),
+                },
+            ))
+        }
+        Expr::Record(record) => {
+            let record: Vec<_> = record.into();
+            let mut subs = Subs::new();
+            let mut rest = None;
+            let mut fields = HashMap::new();
+            let mut typed_record = Vec::with_capacity(record.len());
+            for field in record {
+                match field {
+                    FieldSplat::Field(field) => {
+                        let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
+                        subs.compose_with(more_subs)?;
+                        fields.insert(field.name, expr.ty);
+                        typed_record.push(FieldSplat::Field(Field {
+                            name: field.name,
+                            expr: expr.expr,
+                        }));
+                    }
+                    FieldSplat::Splat(expr) => {
+                        if let None = rest {
+                            let (more_subs, expr) = infer_expr(expr, var_state, env)?;
+                            subs.compose_with(more_subs)?;
+                            typed_record.push(FieldSplat::Splat(expr.expr));
+                            rest = Some(expr.ty)
+                        } else {
+                            return Err(TypeError::ExtraRest);
+                        }
+                    }
+                }
+            }
+            let ty = match rest {
+                Some(rest) => {
+                    let var = var_state.new_var();
+                    let mut record = Type::Cons(Cons::Record(RowedType {
+                        fields,
+                        rest: Some(var),
+                    }));
+                    let subs = Type::Var(var).unify_with(rest, var_state)?;
+                    record.substitute(&subs)?;
+                    record
+                }
+                None => Type::Cons(Cons::Record(RowedType { fields, rest: None })),
+            };
+            Ok((
+                subs,
+                TypedExpr {
+                    ty,
+                    expr: Expr::Record(typed_record.into()),
                 },
             ))
         }

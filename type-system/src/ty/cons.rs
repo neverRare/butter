@@ -91,7 +91,7 @@ impl<'a> Cons<'a> {
         Ok(subs)
     }
 }
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct RowedType<'a> {
     pub fields: HashMap<&'a str, Type<'a>>,
     pub rest: Option<Var<'a>>,

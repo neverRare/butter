@@ -313,6 +313,7 @@ pub enum TypeError {
     InfiniteOccurrence,
     Overlap,
     UnboundVar,
+    ExtraRest,
 }
 impl Display for TypeError {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
