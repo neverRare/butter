@@ -51,6 +51,31 @@ fn infer_expr<'a>(
             )),
             None => Err(TypeError::UnboundVar),
         },
+        Expr::Place(PlaceExpr::Property(expr)) => {
+            let mut subs = Subs::new();
+            let name = expr.name;
+            let (more_subs, typed_expr) = infer_expr(*expr.expr, var_state, env)?;
+            subs.compose_with(more_subs)?;
+            let var = var_state.new_var();
+            let more_subs = Type::Cons(Cons::Record(RowedType {
+                fields: once((name, Type::Var(var))).collect(),
+                rest: Some(var_state.new_var()),
+            }))
+            .unify_with(typed_expr.ty, var_state)?;
+            let mut ty = Type::Var(var);
+            ty.substitute(&more_subs)?;
+            Ok((
+                subs,
+                TypedExpr {
+                    ty,
+                    expr: typed_expr.expr,
+                },
+            ))
+        }
+        Expr::Place(PlaceExpr::Index(_)) => todo!(),
+        Expr::Place(PlaceExpr::Slice(_)) => todo!(),
+        Expr::Place(PlaceExpr::Deref(_)) => todo!(),
+        Expr::Place(PlaceExpr::Len(_)) => todo!(),
         Expr::Array(elements) => {
             let mut subs = Subs::new();
             let mut typed_elements = Vec::new();
@@ -190,7 +215,15 @@ fn infer_expr<'a>(
                 },
             ))
         }
-        _ => todo!(),
+        Expr::Assign(_) => todo!(),
+        Expr::ParallelAssign(_) => todo!(),
+        Expr::Unary(_) => todo!(),
+        Expr::Binary(_) => todo!(),
+        Expr::NamedArgCall(_) => todo!(),
+        Expr::UnnamedArgCall(_) => todo!(),
+        Expr::ControlFlow(_) => todo!(),
+        Expr::Fun(_) => todo!(),
+        Expr::Jump(_) => todo!(),
     }
 }
 pub fn infer(statements: Vec<Statement<()>>) -> Result<Vec<Statement<Type>>, TypeError> {
