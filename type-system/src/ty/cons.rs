@@ -10,7 +10,6 @@ use std::{
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cons<'a> {
-    Unit,
     Num,
     Bool,
     Ref(MutType<'a>, Box<Type<'a>>),
@@ -23,7 +22,7 @@ pub enum Cons<'a> {
 impl<'a> Cons<'a> {
     pub(super) fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
-            Self::Unit | Self::Num | Self::Bool => HashSet::new(),
+            Self::Num | Self::Bool => HashSet::new(),
             Self::Ref(mutability, ty) => {
                 array::IntoIter::new([mutability.free_vars(), ty.free_vars()])
                     .flatten()
@@ -40,7 +39,7 @@ impl<'a> Cons<'a> {
     }
     pub(super) fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
-            Self::Unit | Self::Num | Self::Bool => (),
+            Self::Num | Self::Bool => (),
             Self::Ref(mutability, ty) => {
                 mutability.substitute(subs)?;
                 ty.substitute(subs)?;
@@ -68,7 +67,7 @@ impl<'a> Cons<'a> {
     ) -> Result<Subs<'a>, TypeError> {
         let mut subs = Subs::new();
         match (self, other) {
-            (Self::Unit, Self::Unit) | (Self::Bool, Self::Bool) | (Self::Num, Self::Num) => (),
+            (Self::Bool, Self::Bool) | (Self::Num, Self::Num) => (),
             (Self::Ref(mut1, ty1), Self::Ref(mut2, ty2)) => {
                 subs.compose_with(mut1.unify_with(mut2)?)?;
                 subs.compose_with(ty1.unify_with(*ty2, var_state)?)?;
@@ -212,7 +211,6 @@ where
 impl<'a> Display for Cons<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
-            Self::Unit => write!(fmt, "unit"),
             Self::Num => write!(fmt, "number"),
             Self::Bool => write!(fmt, "boolean"),
             Self::Ref(mutability, ty) => write!(fmt, "&{} {}", mutability, ty),

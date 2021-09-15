@@ -5,7 +5,6 @@ use std::collections::HashMap;
 pub enum Literal {
     True,
     False,
-    Void,
 
     UInt(u64),
     Float(f64),

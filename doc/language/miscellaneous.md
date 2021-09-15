@@ -18,7 +18,6 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `ref`
 - `return`
 - `true`
-- `void`
 - `while`
 
 ## Contextual keyword reference

@@ -20,9 +20,14 @@ struct TypedExpr<'a> {
     ty: Type<'a>,
     expr: Expr<'a, Type<'a>>,
 }
+fn void<'a>() -> Type<'a> {
+    Type::Cons(Cons::Record(RowedType {
+        fields: HashMap::new(),
+        rest: None,
+    }))
+}
 fn infer_literal<'a>(literal: Literal) -> Type<'a> {
     let cons = match literal {
-        Literal::Void => Cons::Unit,
         Literal::True | Literal::False => Cons::Bool,
         Literal::UInt(_) | Literal::Float(_) => Cons::Num,
     };
@@ -149,7 +154,7 @@ fn infer_expr<'a>(
                     subs.compose_with(more_subs)?;
                     (Some(typed.expr), typed.ty)
                 }
-                None => (None, Type::Cons(Cons::Unit)),
+                None => (None, void()),
             };
             Ok((
                 subs,

@@ -37,7 +37,6 @@ combine::parser! {
             integer_u64().map(Literal::UInt),
             attempt(keyword("false")).with(value(Literal::False)),
             attempt(keyword("true") ).with(value(Literal::True)),
-            attempt(keyword("void") ).with(value(Literal::Void)),
         ))
     }
 }

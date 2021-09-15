@@ -31,7 +31,6 @@ A high level documentation of syntax and semantics of Butter.
 - [Tag](language/tag.md)
 - [Type](language/type.md)
 - [Variable declaration](language/variable_declaration.md)
-- [Void](language/void.md)
 
 TODO: this is quite tiring to update, use mdbook or other document framework
 
