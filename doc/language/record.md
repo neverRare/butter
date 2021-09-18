@@ -1,6 +1,6 @@
 # Record
 
-Record value is a collection of field whose fields are pairs of name and another value.
+Record is an association of names to values with variety of types. These pairs is called field or record field.
 
 ```butter
 car = (
@@ -9,7 +9,7 @@ car = (
 );
 ```
 
-You can create another record value based on existing record value and extend it with more fields. You can splat as many record as you like as long as every fields have unique name.
+You can create another record value based on existing record value and extend it with more fields. Every fields must have unique name.
 
 ```butter
 car = (
@@ -23,18 +23,7 @@ You can use field declaration shortcut if the value is stored in a variable with
 ```butter
 color = "red";
 brand = "a nice brand";
-car = (color, brand);
-```
-
-[Grouping] and record shares the same delimiter `()`. There is a rare case where ambiguity can arise: When defining a record with single field using the shortcut syntax. Butter considers this as grouping. If record is expected, you can easily add a trailing comma.
-
-[Grouping]: ./group.md
-
-```butter
-color = "red";
-
-car = (red);  -- grouping, similar to `red`
-car = (red,);  -- record, similar to `(red = red)`
+car = (= color, = brand);
 ```
 
 ## Field access

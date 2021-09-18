@@ -1,10 +1,14 @@
 # Pattern
 
-Pattern can be used in [variable declaration], [function parameter], and iteration variable in [`for`] loop. These are used to match against the structure of the value and possibly bind a value to a variable.
+Pattern can be used in [variable declaration], [match expression], and [`for`] loop. These are used to match against the structure of the value and possibly bind a value to a variable.
 
 [variable declaration]: variable_and_assignment.md#declaration
-[function parameter]: function.md#parameters
+[match expression]: match.md
 [`for`]: control_flow.md#for
+
+## Pattern group
+
+TODO
 
 ## Literal
 
@@ -44,7 +48,7 @@ ref num = 10;
 -- num is a reference to 10
 ```
 
-You can do both
+You can do both.
 
 ```butter
 ref mut num = 10;
@@ -66,10 +70,6 @@ foo = foo == 20;
 std.assert(foo == true);
 ```
 
-## Void
-
-This pattern matches against `void`, nothing special.
-
 ## Array
 
 [Array] pattern matches against the length and each element of the array.
@@ -90,7 +90,7 @@ You can match against its start or its end then match against the rest as an ano
 
 ## Record
 
-[record] pattern matches against record. You may use a shortcut syntax where `var` or `ref var` is written instead of `var = var` or `var = ref var` respectively.
+[record] pattern matches against record. You may use a shortcut syntax where `= var` is written instead of `var = var` respectively.
 
 [record]: record.md
 
@@ -99,7 +99,7 @@ user = (
     name = "someone",
     email = "someone@example.com",
 );
-(name = username, email) = user;
+(name = username, = email) = user;
 ```
 
 You can partially match against fields and match against the rest as another record. There can be only at most one rest pattern.
@@ -110,8 +110,12 @@ car = (
     brand = "a nice brand",
     price = 100,
 );
-(price, *car) = car;
+(= price, *car) = car;
 ```
+
+## Tuple pattern
+
+TODO
 
 ## Tagged pattern
 

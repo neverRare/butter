@@ -29,6 +29,7 @@ A high level documentation of syntax and semantics of Butter.
 - [Share](language/share.md)
 - [String and char](language/string_and_char.md)
 - [Tag](language/tag.md)
+- [Tuple](language/tuple.md)
 - [Type](language/type.md)
 - [Variable declaration](language/variable_declaration.md)
 

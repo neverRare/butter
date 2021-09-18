@@ -14,18 +14,6 @@ The example above defines named function. Butter also have unnamed functions whe
 compose(f, g) => (x) => f(g(x));
 ```
 
-## Parameters
-
-The parameter have the same syntax as [record unpacking], except it cannot have rest syntax.
-
-[record unpacking]: unpacking.md#record
-
-## Body
-
-The body is evaluated on every call. Body can only contain single expression, so [block] is used for more complex body.
-
-[block]: control_flow.md#block
-
 ## Return
 
 Return expressions immediately exits the function body and use its expression as the value of the function call.
@@ -47,30 +35,17 @@ reverse(arr) => {
 
 ## Calling
 
-Calling executes the body of a function. The arguments have similar syntax to record initialization.
+Calling executes the body of a function. Within the arguments, you can use either record syntax or tuple syntax.
 
 ```butter
 report_favorite(name, favorite) => {
     std.println(name ++ "'s favorite is " ++ favorite ++ "!");
 }
+
+-- calling with record syntax
 report_favorite(name = "Alex", favorite = "butter toast");
-```
-
-You can omit the names and Butter will use the order of parameter.
-
-```butter
+-- calling with tuple syntax
 report_favorite("Alex", "butter toast");
-```
-
-If there's only one parameter, then you can use any name on argument.
-
-```butter
-report_niceness(something) => std.println(something ++ " is really nice!");
-
-report_niceness(any_arbitrary_name = "tomato salad");
-
-food = "tomato salad";
-report_niceness(food);  -- note that this is actually report_niceness(food = food)
 ```
 
 ## Scoping of named function
