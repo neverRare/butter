@@ -4,7 +4,9 @@
 
 A tasty language for building efficient software.
 
-**Note:** Still work in progress and experimental. [Contributions](CONTRIBUTING.md) are welcome.
+**Note:** Still work in progress and experimental. [Contributions] are welcome.
+
+[Contributions]: CONTRIBUTING.md
 
 ## A small taste
 
@@ -22,14 +24,21 @@ reverse(mut arr) => {
 
 ## Goals and planned features
 
-The goals for Butter is to be:
+Butter is a personal and experimental language that seeks balance for these aspects:
 
-- Concise: The language constructs (aka the syntax) should be simple and have a feel of scripting language.
-- Explicit: There must be little-to-no vagueness syntax-wise or semantic-wise.
-- High-level: The language should be easily understandable and lacks visible low-level concepts.
-- Efficient: Compiled programs should be fast and memory-efficient as much as possible.
+- Concise: The language constructs should be simple and have a feel of scripting language.
+- Explicit: There should be little-to-no vagueness syntax-wise nor semantic-wise.
+- High-level: Low-level concepts that are hard to understand should be abstracted.
+- Efficient: The added runtime code for compiled programs should be minimal.
+- Correct: Detectable errors should be caught on compile-time.
 
-And here are the features to be implemented:
+I also to want to experiment with novel features deemed necessary for these goals such refinement types.
+
+Being my personal project, designs and features are ultimately up for my decision and taste. Some features can help with some aspect while also hurt other, this is where I weigh in the pros and cons. Of course, that doesn't mean I won't listen to suggestions, everyone is welcome to [contribute].
+
+[contribute]: CONTRIBUTING.md
+
+Here are the features to be implemented:
 
 - Structural typing
 - Mix of explicit and inferred mutability &mdash; variables are explicitly "mut-typed" but it's inner data such as individual record fields are "mut-type inferred"
@@ -46,8 +55,6 @@ More features planned:
 - Module and visibility system
 - Shareable mutable containers &mdash; those are also interiorly mutable
 - Low-level representation heuristics &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
-
-These features ensures some goals and at the same harms some, there should be a good balance.Ultimately, the designs and features are up for my decision and taste and there are influences from Rust, Typescript, and Haskell.
 
 ## Road map
 

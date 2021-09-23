@@ -38,10 +38,12 @@ It won't be nestable.
 ## Ignore codeblock
 
 ```butter
-{--
+{-
     std.print("this code is ignored, nothing would be printed");
-}
+-}
 ```
+
+This can be nested, but the content must be lexable.
 
 ## Dict and Set
 
@@ -65,12 +67,10 @@ alias Option(a) = @some a | @none;
 
 ## Type annotation
 
-`tvar` may be replaced with `forall`.
-
 For functions
 
 ```butter
-tvar(a, b):
+forall(a, b):
 map_option(val: Option(a), mapper: a -> b) -> Option(b) =>
     match val {
         @some(val) => @some(mapper(val)),
@@ -234,6 +234,14 @@ prime_factor(num) => {
 
 Similar to `if let` and `while let` on rust.
 
+```butter
+if val =: @some val {
+    -- ...
+} else {
+    -- ...
+}
+```
+
 ## Match else
 
 Useful for unwrapping.
@@ -257,11 +265,11 @@ map_tagged(val, $some, (val) => val + 3);
 ## Traits
 
 ```butter
-tvar(a):
+forall(a):
 trait Eq(a) {
     equal(a: &a, b: &b) -> Bool;
 }
-tvar(a):
+forall(a):
 given Eq(a):
 impl Eq([a]) {
     equal(a, b) => {
@@ -277,8 +285,8 @@ impl Eq([a]) {
 ## New nominal type
 
 ```butter
-derive(Eq):
-newtype Point(
+derive Eq(_):
+pub newtype Point(
     pub x: Num,
     pub y: Num,
 );
