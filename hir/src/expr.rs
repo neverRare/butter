@@ -41,8 +41,8 @@ pub enum Expr<'a, T> {
 impl<'a, T> Expr<'a, T> {
     pub fn field_name(&self) -> Option<&'a str> {
         match self {
-            Self::Tag(tag) => todo!(),
-            Self::Unary(unary) => todo!(),
+            Self::Tag(tag) => tag.expr.as_ref().and_then(|expr| Expr::field_name(expr)),
+            Self::Unary(unary) => unary.expr.field_name(),
             Self::Place(place) => place.field_name(),
             _ => None,
         }
