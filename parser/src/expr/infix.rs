@@ -1,3 +1,4 @@
+use super::tuple::tuple;
 use crate::{
     expr::{array::range, expr, record},
     ident_keyword::ident,
@@ -11,28 +12,29 @@ use combine::{
         char::{char, string},
         range::recognize,
     },
-    sep_end_by,
     stream::StreamErrorFor,
     ParseError, Parser, RangeStream,
 };
 use hir::expr::{
-    Assign, Binary, BinaryType, Expr, FieldSplat, Index, NamedArgCall, PlaceExpr, Property, Range,
-    Slice, UnnamedArgCall,
+    Arg, Assign, Binary, BinaryType, Call, Expr, FieldAccess, Index, PlaceExpr, Range, Record,
+    Slice, Tuple,
 };
 
 pub(crate) enum PartialAst<'a, T> {
     Property(&'a str),
     Index(Expr<'a, T>),
     Slice(Range<'a, T>),
-    NamedArgCall(Box<[FieldSplat<'a, T>]>),
-    UnnamedArgCall(Box<[Expr<'a, T>]>),
+    UnitCall,
+    SplatCall(Expr<'a, T>),
+    RecordCall(Record<'a, T>),
+    TupleCall(Tuple<'a, T>),
     Deref,
     Len,
 }
 impl<'a, T> PartialAst<'a, T> {
     pub(crate) fn combine_from(self, left: Expr<'a, T>) -> Expr<'a, T> {
         match self {
-            Self::Property(name) => Expr::Place(PlaceExpr::Property(Property {
+            Self::Property(name) => Expr::Place(PlaceExpr::FieldAccess(FieldAccess {
                 expr: Box::new(left),
                 name,
             })),
@@ -44,13 +46,21 @@ impl<'a, T> PartialAst<'a, T> {
                 expr: Box::new(left),
                 range,
             })),
-            Self::NamedArgCall(args) => Expr::NamedArgCall(NamedArgCall {
+            Self::UnitCall => Expr::Call(Call {
                 expr: Box::new(left),
-                args,
+                arg: Arg::Unit,
             }),
-            Self::UnnamedArgCall(args) => Expr::UnnamedArgCall(UnnamedArgCall {
+            Self::SplatCall(arg) => Expr::Call(Call {
                 expr: Box::new(left),
-                args,
+                arg: Arg::Splat(Box::new(arg)),
+            }),
+            Self::RecordCall(arg) => Expr::Call(Call {
+                expr: Box::new(left),
+                arg: Arg::Record(arg),
+            }),
+            Self::TupleCall(arg) => Expr::Call(Call {
+                expr: Box::new(left),
+                arg: Arg::Tuple(arg),
             }),
             Self::Deref => Expr::Place(PlaceExpr::Deref(Box::new(left))),
             Self::Len => Expr::Place(PlaceExpr::Len(Box::new(left))),
@@ -63,17 +73,6 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    // TODO: disallow variable but allow (variable) possibly with lookahead
-    let nameless_arg = || expr(0);
-    let nameless_args = || {
-        between(
-            lex(char('(')),
-            lex(char(')')),
-            sep_end_by(nameless_arg(), lex(char(','))),
-        )
-        .map(Vec::into)
-        .expected("argument")
-    };
     let property_or_len = || {
         lex(attempt(
             char('.')
@@ -94,11 +93,22 @@ where
             .map(PartialAst::Index)
             .expected("index")
     };
+    let arg = || {
+        choice((
+            attempt((lex(char('(')), lex(char(')')))).map(|_| PartialAst::UnitCall),
+            attempt(between(
+                (lex(char('(')), lex(char('*'))),
+                (optional(lex(char(','))), lex(char(')'))),
+                expr(0),
+            ))
+            .map(|expr| PartialAst::SplatCall(expr)),
+            attempt(tuple()).map(PartialAst::TupleCall),
+            attempt(record()).map(PartialAst::RecordCall),
+        ))
+        .expected("argument")
+    };
     choice((
-        attempt(record())
-            .map(PartialAst::NamedArgCall)
-            .expected("argument"),
-        nameless_args().map(PartialAst::UnnamedArgCall),
+        arg(),
         property_or_len(),
         attempt(index()),
         range().map(PartialAst::Slice).expected("slice"),

@@ -1,5 +1,7 @@
-use crate::{pattern::Pattern, statement::Statement};
-use std::collections::HashMap;
+use crate::{
+    pattern::{Pattern, Var},
+    statement::Statement,
+};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
@@ -20,31 +22,54 @@ pub enum Expr<'a, T> {
 
     Array(Box<[Element<'a, T>]>),
     ArrayRange(Range<'a, T>),
-    Record(Box<[FieldSplat<'a, T>]>),
+
+    Unit,
+    Splat(Box<Expr<'a, T>>),
+    Record(Record<'a, T>),
+    Tuple(Tuple<'a, T>),
 
     Unary(Unary<'a, T>),
     Binary(Binary<'a, T>),
     Place(PlaceExpr<'a, T>),
 
-    NamedArgCall(NamedArgCall<'a, T>),
-    UnnamedArgCall(UnnamedArgCall<'a, T>),
+    Call(Call<'a, T>),
 
     ControlFlow(ControlFlow<'a, T>),
     Fun(Fun<'a, T>),
     Jump(Jump<'a, T>),
 }
+impl<'a, T> Expr<'a, T> {
+    pub fn field_name(&self) -> Option<&'a str> {
+        match self {
+            Self::Tag(tag) => todo!(),
+            Self::Unary(unary) => todo!(),
+            Self::Place(place) => place.field_name(),
+            _ => None,
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlaceExpr<'a, T> {
     Var(&'a str),
-    Property(Property<'a, T>),
+    FieldAccess(FieldAccess<'a, T>),
     Index(Index<'a, T>),
     Slice(Slice<'a, T>),
     Deref(Box<Expr<'a, T>>),
     Len(Box<Expr<'a, T>>),
 }
+impl<'a, T> PlaceExpr<'a, T> {
+    pub fn field_name(&self) -> Option<&'a str> {
+        match self {
+            Self::Var(var) => Some(var),
+            Self::FieldAccess(field) => field.field_name(),
+            Self::Deref(deref) => deref.field_name(),
+            _ => None,
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<'a, T> {
-    pub param: HashMap<&'a str, Pattern<'a, T>>,
+    pub param: Box<[Var<'a, T>]>,
     pub body: Box<Expr<'a, T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -108,9 +133,26 @@ pub enum ElementKind {
     Splat,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum FieldSplat<'a, T> {
-    Field(Field<'a, T>),
-    Splat(Expr<'a, T>),
+pub enum Tuple<'a, T> {
+    Tuple(Box<[Expr<'a, T>]>),
+    TupleWithSplat(TupleWithSplat<'a, T>),
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct TupleWithSplat<'a, T> {
+    pub left: Box<[Expr<'a, T>]>,
+    pub splat: Box<Expr<'a, T>>,
+    pub right: Box<[Expr<'a, T>]>,
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum Record<'a, T> {
+    Record(Box<[Field<'a, T>]>),
+    RecordWithSplat(RecordWithSplat<'a, T>),
+}
+#[derive(Debug, PartialEq, Clone)]
+pub struct RecordWithSplat<'a, T> {
+    pub left: Box<[Field<'a, T>]>,
+    pub splat: Box<Expr<'a, T>>,
+    pub right: Box<[Field<'a, T>]>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Field<'a, T> {
@@ -164,9 +206,14 @@ pub struct Assign<'a, T> {
     pub expr: Box<Expr<'a, T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Property<'a, T> {
+pub struct FieldAccess<'a, T> {
     pub expr: Box<Expr<'a, T>>,
     pub name: &'a str,
+}
+impl<'a, T> FieldAccess<'a, T> {
+    pub fn field_name(&self) -> Option<&'a str> {
+        Some(self.name)
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Slice<'a, T> {
@@ -174,14 +221,16 @@ pub struct Slice<'a, T> {
     pub range: Range<'a, T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct NamedArgCall<'a, T> {
+pub struct Call<'a, T> {
     pub expr: Box<Expr<'a, T>>,
-    pub args: Box<[FieldSplat<'a, T>]>,
+    pub arg: Arg<'a, T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct UnnamedArgCall<'a, T> {
-    pub expr: Box<Expr<'a, T>>,
-    pub args: Box<[Expr<'a, T>]>,
+pub enum Arg<'a, T> {
+    Unit,
+    Splat(Box<Expr<'a, T>>),
+    Record(Record<'a, T>),
+    Tuple(Tuple<'a, T>),
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Tag<'a, T> {

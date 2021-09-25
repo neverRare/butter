@@ -3,12 +3,12 @@
 #![forbid(unsafe_code)]
 
 use combine::{
-    attempt, eof, many, optional,
+    attempt, choice, eof, many, optional,
     parser::{
         char::{space, string},
         range::take_while,
     },
-    skip_many, skip_many1, ParseError, Parser, RangeStream,
+    sep_end_by, skip_many, skip_many1, ParseError, Parser, RangeStream,
 };
 use hir::{expr::Expr, statement::Statement};
 
@@ -59,6 +59,32 @@ where
     P: Parser<I>,
 {
     parser.skip(insignificants())
+}
+fn optional_rest<'a, I, EP, RP, SP, C>(
+    element: fn() -> EP,
+    rest: fn() -> RP,
+    sep: fn() -> SP,
+) -> impl Parser<I, Output = (C, Option<(RP::Output, C)>)>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    EP: Parser<I>,
+    RP: Parser<I>,
+    SP: Parser<I>,
+    C: Extend<EP::Output> + Default,
+{
+    let no_rest = move || sep_end_by(element(), sep());
+    let have_rest = move || {
+        (
+            many(element().skip(sep())),
+            rest(),
+            optional(sep().with(no_rest())).map(|right| right.unwrap_or_else(Default::default)),
+        )
+    };
+    choice((
+        attempt(have_rest()).map(|(left, rest, right)| (left, Some((rest, right)))),
+        no_rest().map(|collection| (collection, None)),
+    ))
 }
 #[cfg(test)]
 mod test {

@@ -1,38 +1,41 @@
-use crate::{
-    expr::{expr, Expr},
-    ident_keyword::ident,
-    lex,
-};
+use crate::{expr::expr, ident_keyword::ident, lex, optional_rest};
 use combine::{
-    between, choice, optional, parser::char::char, sep_end_by, ParseError, Parser, RangeStream,
+    between, error::StreamError, optional, parser::char::char, stream::StreamErrorFor, ParseError,
+    Parser, RangeStream,
 };
-use hir::expr::{Field, FieldSplat, PlaceExpr};
+use hir::expr::{Field, Record, RecordWithSplat};
 
-fn field_splat<'a, I, T>() -> impl Parser<I, Output = FieldSplat<'a, T>>
+// TODO: handle duplicate name
+pub(crate) fn record<'a, I, T>() -> impl Parser<I, Output = Record<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     let field = || {
-        (lex(ident()), optional(lex(char('=')).with(expr(0))))
-            .map(|(name, expr)| (name, expr.unwrap_or(Expr::Place(PlaceExpr::Var(name)))))
+        (optional(lex(ident())), lex(char('=')).with(expr(0))).and_then(|(name, expr)| {
+            match name.or_else(|| expr.field_name()) {
+                Some(name) => Ok(Field { name, expr }),
+                None => Err(<StreamErrorFor<I>>::unexpected_static_message(
+                    "couldn't infer field name",
+                )),
+            }
+        })
     };
-    let splat = || lex(char('*')).with(expr(0));
-    choice((
-        field().map(|(name, expr)| FieldSplat::Field(Field { name, expr })),
-        splat().map(FieldSplat::Splat),
-    ))
-}
-// TODO: handle duplicate name
-pub(crate) fn record<'a, I, T>() -> impl Parser<I, Output = Box<[FieldSplat<'a, T>]>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
-{
-    let fields = || sep_end_by(field_splat(), lex(char(',')));
-    between(lex(char('(')), lex(char(')')), fields())
-        .map(Vec::into)
-        .expected("record")
+    let fields = || {
+        optional_rest(field, || lex(char('*')).with(expr(0)), || lex(char(','))).map(
+            |(left, rest_right)| {
+                let left: Vec<_> = left;
+                match rest_right {
+                    Some((rest, right)) => Record::RecordWithSplat(RecordWithSplat {
+                        left: left.into(),
+                        splat: Box::new(rest),
+                        right: right.into(),
+                    }),
+                    None => Record::Record(left.into()),
+                }
+            },
+        )
+    };
+    between(lex(char('(')), lex(char(')')), fields()).expected("record")
 }

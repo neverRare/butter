@@ -5,6 +5,7 @@ use crate::{
         integer::integer_u64,
         record::record,
         string::{char_literal, string_literal},
+        tuple::tuple,
     },
     ident_keyword::{ident, keyword},
     lex,
@@ -24,6 +25,7 @@ mod infix;
 pub(crate) mod integer;
 mod record;
 mod string;
+mod tuple;
 
 combine::parser! {
     fn literal['a, I]()(I) -> Literal
@@ -110,7 +112,18 @@ where
         fun().map(Expr::Fun),
         attempt(range()).map(Expr::ArrayRange),
         array().map(Expr::Array),
+        attempt((lex(char('(')), lex(char(')'))))
+            .map(|_| Expr::Unit)
+            .silent(),
+        attempt(between(
+            (lex(char('(')), lex(char('*'))),
+            (optional(lex(char(','))), lex(char(')'))),
+            expr(0),
+        ))
+        .map(|expr| Expr::Splat(Box::new(expr)))
+        .silent(),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))).expected("group"),
+        attempt(tuple()).map(Expr::Tuple),
         record().map(Expr::Record),
         lex(string_literal()).map(|vec| {
             let vec = vec
