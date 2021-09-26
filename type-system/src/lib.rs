@@ -12,7 +12,7 @@ use std::{collections::HashMap, iter::once};
 mod ty;
 
 pub use crate::ty::{
-    cons::{Cons, RowedType},
+    cons::{Cons, Keyed},
     MutType, Type, TypeError, Var,
 };
 
@@ -21,7 +21,7 @@ struct TypedExpr<'a> {
     expr: Expr<'a, Type<'a>>,
 }
 fn void<'a>() -> Type<'a> {
-    Type::Cons(Cons::Record(RowedType {
+    Type::Cons(Cons::Record(Keyed {
         fields: HashMap::new(),
         rest: None,
     }))
@@ -62,7 +62,7 @@ fn infer_expr<'a>(
             let (more_subs, typed_expr) = infer_expr(*expr.expr, var_state, env)?;
             subs.compose_with(more_subs)?;
             let var = var_state.new_var();
-            let more_subs = Type::Cons(Cons::Record(RowedType {
+            let more_subs = Type::Cons(Cons::Record(Keyed {
                 fields: once((name, Type::Var(var))).collect(),
                 rest: Some(var_state.new_var()),
             }))
@@ -159,7 +159,7 @@ fn infer_expr<'a>(
             Ok((
                 subs,
                 TypedExpr {
-                    ty: Type::Cons(Cons::Union(RowedType {
+                    ty: Type::Cons(Cons::Union(Keyed {
                         fields: once((tag.tag, ty)).collect(),
                         rest: Some(var_state.new_var()),
                     })),
