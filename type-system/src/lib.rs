@@ -4,7 +4,10 @@
 
 use crate::ty::{Env, Subs, VarState};
 use hir::{
-    expr::{Bound, Element, ElementKind, Expr, Literal, PlaceExpr, Range, Tag},
+    expr::{
+        Bound, Element, ElementKind, Expr, Field, Literal, PlaceExpr, Range, Record,
+        RecordWithSplat, Tag,
+    },
     statement::Statement,
 };
 use std::{collections::HashMap, iter::once};
@@ -161,7 +164,7 @@ fn infer_expr<'a>(
                 TypedExpr {
                     ty: Type::Cons(Cons::Union(Keyed {
                         fields: once((tag.tag, ty)).collect(),
-                        rest: Some(var_state.new_var()),
+                        rest: None,
                     })),
                     expr: Expr::Tag(Tag {
                         tag: tag.tag,
@@ -170,56 +173,73 @@ fn infer_expr<'a>(
                 },
             ))
         }
-        Expr::Record(record) => {
-            // let record: Vec<_> = record.into();
-            // let mut subs = Subs::new();
-            // let mut rest = None;
-            // let mut fields = HashMap::new();
-            // let mut typed_record = Vec::with_capacity(record.len());
-            // for field in record {
-            //     match field {
-            //         FieldSplat::Field(field) => {
-            //             let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
-            //             subs.compose_with(more_subs)?;
-            //             fields.insert(field.name, expr.ty);
-            //             typed_record.push(FieldSplat::Field(Field {
-            //                 name: field.name,
-            //                 expr: expr.expr,
-            //             }));
-            //         }
-            //         FieldSplat::Splat(expr) => {
-            //             if let None = rest {
-            //                 let (more_subs, expr) = infer_expr(expr, var_state, env)?;
-            //                 subs.compose_with(more_subs)?;
-            //                 typed_record.push(FieldSplat::Splat(expr.expr));
-            //                 rest = Some(expr.ty)
-            //             } else {
-            //                 return Err(TypeError::ExtraRest);
-            //             }
-            //         }
-            //     }
-            // }
-            // let ty = match rest {
-            //     Some(rest) => {
-            //         let var = var_state.new_var();
-            //         let mut record = Type::Cons(Cons::Record(RowedType {
-            //             fields,
-            //             rest: Some(var),
-            //         }));
-            //         let subs = Type::Var(var).unify_with(rest, var_state)?;
-            //         record.substitute(&subs)?;
-            //         record
-            //     }
-            //     None => Type::Cons(Cons::Record(RowedType { fields, rest: None })),
-            // };
-            // Ok((
-            //     subs,
-            //     TypedExpr {
-            //         ty,
-            //         expr: Expr::Record(typed_record.into()),
-            //     },
-            // ))
-            todo!()
+        Expr::Record(Record::Record(record)) => {
+            let record: Vec<_> = record.into();
+            let mut subs = Subs::new();
+            let mut typed = Vec::with_capacity(record.len());
+            let mut fields = HashMap::new();
+            for field in record {
+                let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
+                subs.compose_with(more_subs)?;
+                fields.insert(field.name, expr.ty);
+                typed.push(Field {
+                    name: field.name,
+                    expr: expr.expr,
+                });
+            }
+            Ok((
+                subs,
+                TypedExpr {
+                    ty: Type::Cons(Cons::Record(Keyed { fields, rest: None })),
+                    expr: Expr::Record(Record::Record(typed.into())),
+                },
+            ))
+        }
+        Expr::Record(Record::RecordWithSplat(record)) => {
+            let left: Vec<_> = record.left.into();
+            let splat = record.splat;
+            let right: Vec<_> = record.right.into();
+            let mut subs = Subs::new();
+            let mut typed_left = Vec::with_capacity(left.len());
+            let mut typed_right = Vec::with_capacity(right.len());
+            let mut fields = HashMap::new();
+            // TODO: this is mostly copy-pasted
+            for field in left {
+                let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
+                subs.compose_with(more_subs)?;
+                fields.insert(field.name, expr.ty);
+                typed_left.push(Field {
+                    name: field.name,
+                    expr: expr.expr,
+                });
+            }
+            for field in right {
+                let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
+                subs.compose_with(more_subs)?;
+                fields.insert(field.name, expr.ty);
+                typed_right.push(Field {
+                    name: field.name,
+                    expr: expr.expr,
+                });
+            }
+            let (more_subs, rest) = infer_expr(*splat, var_state, env)?;
+            subs.compose_with(more_subs)?;
+            let var = var_state.new_var();
+            subs.compose_with(Type::Var(var).unify_with(rest.ty, var_state)?)?;
+            Ok((
+                subs,
+                TypedExpr {
+                    ty: Type::Cons(Cons::Record(Keyed {
+                        fields,
+                        rest: Some(var),
+                    })),
+                    expr: Expr::Record(Record::RecordWithSplat(RecordWithSplat {
+                        left: typed_left.into(),
+                        splat: Box::new(rest.expr),
+                        right: typed_right.into(),
+                    })),
+                },
+            ))
         }
         Expr::Assign(_) => todo!(),
         Expr::ParallelAssign(_) => todo!(),
