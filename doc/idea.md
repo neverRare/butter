@@ -1,5 +1,9 @@
 # Ideas
 
+## Unicode support
+
+String and char literal are just syntactic sugar for array of bytes and bytes encoded in utf8. There should be a proper support for unicode but how?
+
 ## Equal to pattern
 
 Also known as pin pattern or pin operator.
@@ -33,7 +37,7 @@ outer: while true {
 /-
 ```
 
-It won't be nestable.
+It won't be nestable. Intended for textual comments rather than disabling span of codes.
 
 ## Ignore codeblock
 
@@ -43,7 +47,7 @@ It won't be nestable.
 -}
 ```
 
-This can be nested, but the content must be lexable.
+This can be nested, but the content must be lexable. Intended for disabling span of codes.
 
 ## Dict and Set
 
@@ -95,34 +99,28 @@ foo = []: [Num];
 ```butter
 num = 10;
 10 =: num;
+```
 
--- unpacking complex values
+Unpacking complex values
+
+```butter
 account =: (
-    name,
-    email,
+    = name,
+    = email,
     birth_date = (
-        month,
-        day,
-        year,
+        = day,
+        = month,
+        = year,
     ),
 );
 ```
 
-## Array comprehension
+## Iterators
 
-```butter
-numbers = [1..100];
+Options for design and implementation:
 
--- python-like syntax
-doubles = [n * 2 for n in numbers];
-no_doubles = [n for n in numbers if n % 2 == 0];
-
--- alternative syntax
-doubles = [n * 2 : n in numbers];
-no_doubles = [n : n in numbers : n % 2 == 0];
-```
-
-There must be first class iterators too.
+- Have traits for iterators. Simplest implementation but lessens the ergonomics.
+- Have iterator as first-class type. This will use dynamic dispatch but ergonomics can be great. A generalization for this approach would be an implementation of dynamic object with certain trait.
 
 ## Module system
 
@@ -191,7 +189,7 @@ foo <- 10;
 
 ## Shareable mutable container
 
-An escape hatch for ownership and no mutable alias rule.
+An escape hatch for ownership and no mutable alias rule. There might be a better keyword other than `cell`.
 
 ```butter
 foo = cell 10;
@@ -231,8 +229,6 @@ prime_factor(num) => {
 ```
 
 ## If match, while match
-
-Similar to `if let` and `while let` on rust.
 
 ```butter
 if val =: @some val {
