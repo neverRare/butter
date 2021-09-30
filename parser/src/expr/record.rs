@@ -1,4 +1,4 @@
-use crate::{expr::expr, ident_keyword::ident, lex, optional_rest};
+use crate::{expr::expr, ident_keyword::ident, lex, optional_between};
 use combine::{
     between, error::StreamError, optional, parser::char::char, stream::StreamErrorFor, ParseError,
     Parser, RangeStream,
@@ -23,7 +23,7 @@ where
         })
     };
     let fields = || {
-        optional_rest(field, || lex(char('*')).with(expr(0)), || lex(char(','))).map(
+        optional_between(field, lex(char('*')).with(expr(0)), || lex(char(','))).map(
             |(left, rest_right)| {
                 let left: Vec<_> = left;
                 match rest_right {

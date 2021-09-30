@@ -154,15 +154,15 @@ where
         }
     })
 }
-pub(crate) fn precedence_of(token: &str) -> Option<u8> {
+fn precedence_of(token: &str) -> Option<u8> {
     match token {
-        "." | "[" | "(" | "^" => Some(7),
+        // "." | "[" | "(" | "^" => Some(7),
         "*" | "/" | "//" | "%" => Some(6),
         "+" | "-" | "++" => Some(5),
         "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(4),
         "&&" | "&" => Some(3),
         "||" | "|" => Some(2),
-        "<-" => Some(1),
+        // "<-" => Some(1),
         _ => None,
     }
 }
@@ -173,6 +173,9 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
+    // TODO: instead of testing every possible operator, just output a parser of
+    // operator with given precedence, be wary of assignment operator `<-`, and
+    // range operators
     let double_ops = || {
         choice([
             attempt(string("//")),
@@ -208,15 +211,17 @@ where
     };
     lex(choice((double_ops(), recognize(single_ops()))))
         .and_then(move |token| match precedence_of(token) {
-            Some(this_precedence) if this_precedence > precedence => Ok(token),
+            Some(this_precedence) if this_precedence == precedence => Ok(token),
+            // TODO: these errors are made for attempt combinator outside, it
+            // should be silent
             Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
-                "operator with higher precedence",
+                "operator with equal precedence",
             )),
             None => Err(<StreamErrorFor<I>>::expected_static_message(
                 "expression operator",
             )),
         })
-        .and_then(|op| {
+        .map(|op| {
             let op = match op {
                 "+" => BinaryType::Add,
                 "-" => BinaryType::Sub,
@@ -235,15 +240,8 @@ where
                 ">=" => BinaryType::GreaterEqual,
                 "++" => BinaryType::Concatenate,
                 "&&" => BinaryType::LazyAnd,
-                _ => {
-                    return Err(<StreamErrorFor<I>>::expected_static_message(
-                        "infix expression operator",
-                    ))
-                }
+                _ => unreachable!(),
             };
-            Ok(op)
-        })
-        .map(|op| {
             move |left, right| {
                 Expr::Binary(Binary {
                     kind: op,

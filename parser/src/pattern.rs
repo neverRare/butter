@@ -1,7 +1,7 @@
 use crate::{
     expr::integer::{integer_i64, integer_u64},
     ident_keyword::{ident, keyword},
-    lex, optional_rest,
+    lex, optional_between,
 };
 use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
@@ -34,9 +34,9 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    optional_rest(
+    optional_between(
         pattern,
-        || lex(char('*')).with(pattern()),
+        lex(char('*')).with(pattern()),
         || lex(char(',')),
     )
     .map(|(left, rest_right)| {
@@ -108,7 +108,7 @@ where
     between(
         lex(char('(')),
         lex(char(')')),
-        optional_rest(field, || lex(char('*')).with(pattern()), || lex(char(','))),
+        optional_between(field, lex(char('*')).with(pattern()), || lex(char(','))),
     )
     .map(|(left, rest_right)| match rest_right {
         Some((rest, right)) => {

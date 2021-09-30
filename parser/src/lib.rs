@@ -60,9 +60,9 @@ where
 {
     parser.skip(insignificants())
 }
-fn optional_rest<'a, I, EP, RP, SP, C>(
+fn optional_between<'a, I, EP, RP, SP, C>(
     element: fn() -> EP,
-    rest: fn() -> RP,
+    rest: RP,
     sep: fn() -> SP,
 ) -> impl Parser<I, Output = (C, Option<(RP::Output, C)>)>
 where
@@ -77,7 +77,7 @@ where
     let have_rest = move || {
         (
             many(element().skip(sep())),
-            rest(),
+            rest,
             optional(sep().with(no_rest())).map(|right| right.unwrap_or_else(Default::default)),
         )
     };

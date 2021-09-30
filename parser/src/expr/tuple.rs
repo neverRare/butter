@@ -1,4 +1,4 @@
-use crate::{expr::expr, lex, optional_rest};
+use crate::{expr::expr, lex, optional_between};
 use combine::{between, parser::char::char, ParseError, Parser, RangeStream};
 use hir::expr::{Tuple, TupleWithSplat};
 
@@ -9,9 +9,9 @@ where
     T: Default,
 {
     let fields = || {
-        optional_rest(
+        optional_between(
             || expr(0),
-            || lex(char('*')).with(expr(0)),
+            lex(char('*')).with(expr(0)),
             || lex(char(',')),
         )
         .map(|(left, rest_right)| {
