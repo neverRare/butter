@@ -1,6 +1,5 @@
-use super::tuple::tuple;
 use crate::{
-    expr::{array::range, expr, record},
+    expr::{array::range, expr, tuple::tuple},
     ident_keyword::ident,
     lex,
 };
@@ -101,9 +100,9 @@ where
                 (optional(lex(char(','))), lex(char(')'))),
                 expr(0),
             ))
-            .map(|expr| PartialAst::SplatCall(expr)),
-            attempt(tuple()).map(PartialAst::TupleCall),
-            attempt(record()).map(PartialAst::RecordCall),
+            .map(PartialAst::SplatCall),
+            tuple().map(PartialAst::TupleCall),
+            // record().map(PartialAst::RecordCall),
         ))
         .expected("argument")
     };

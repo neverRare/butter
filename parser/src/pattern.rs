@@ -1,7 +1,7 @@
 use crate::{
     expr::integer::{integer_i64, integer_u64},
     ident_keyword::{ident, keyword},
-    lex, optional_between,
+    lex, sep_optional_between,
 };
 use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
@@ -34,22 +34,19 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    optional_between(
-        pattern,
-        lex(char('*')).with(pattern()),
-        || lex(char(',')),
+    sep_optional_between(pattern, lex(char('*')).with(pattern()), || lex(char(','))).map(
+        |(left, rest_right)| {
+            let left: Vec<_> = left;
+            match rest_right {
+                Some((rest, right)) => ListPattern::ListWithRest(ListWithRest {
+                    left: left.into(),
+                    rest: Box::new(rest),
+                    right: right.into(),
+                }),
+                None => ListPattern::List(left.into()),
+            }
+        },
     )
-    .map(|(left, rest_right)| {
-        let left: Vec<_> = left;
-        match rest_right {
-            Some((rest, right)) => ListPattern::ListWithRest(ListWithRest {
-                left: left.into(),
-                rest: Box::new(rest),
-                right: right.into(),
-            }),
-            None => ListPattern::List(left.into()),
-        }
-    })
 }
 fn array<'a, I, T>() -> impl Parser<I, Output = ListPattern<'a, T>>
 where
@@ -66,23 +63,6 @@ where
     T: Default,
 {
     between(lex(char('(')), lex(char(')')), list()).expected("tuple pattern")
-}
-fn field<'a, I, T>() -> impl Parser<I, Output = (&'a str, Pattern<'a, T>)>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
-{
-    (optional(lex(ident())), lex(char('=')).with(pattern()))
-        .and_then(
-            |(name, pattern)| match name.or_else(|| pattern.field_name()) {
-                Some(name) => Ok((name, pattern)),
-                None => Err(<StreamErrorFor<I>>::unexpected_static_message(
-                    "couldn't infer field name",
-                )),
-            },
-        )
-        .expected("field pattern")
 }
 pub(crate) fn parameter<'a, I, T>() -> impl Parser<I, Output = Box<[Var<'a, T>]>>
 where
@@ -104,11 +84,21 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
+    let field = || {
+        (optional(lex(ident())), lex(char('=')).with(pattern())).and_then(|(name, pattern)| {
+            match name.or_else(|| pattern.field_name()) {
+                Some(name) => Ok((name, pattern)),
+                None => Err(<StreamErrorFor<I>>::unexpected_static_message(
+                    "couldn't infer field name",
+                )),
+            }
+        })
+    };
     // TODO: handle duplicate name as error
     between(
         lex(char('(')),
         lex(char(')')),
-        optional_between(field, lex(char('*')).with(pattern()), || lex(char(','))),
+        sep_optional_between(field, lex(char('*')).with(pattern()), || lex(char(','))),
     )
     .map(|(left, rest_right)| match rest_right {
         Some((rest, right)) => {
@@ -149,10 +139,10 @@ where
             .with(integer_i64())
             .map(|num| Pattern::Int(-num)),
         integer_u64().map(Pattern::UInt),
-        array().map(Pattern::Array),
         attempt(between(lex(char('(')), lex(char(')')), pattern())).expected("group"),
         record().map(Pattern::Record),
         tuple().map(Pattern::Tuple),
+        array().map(Pattern::Array),
         attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
         attempt(lex(keyword("true"))).map(|_| Pattern::True),
         attempt(lex(keyword("false"))).map(|_| Pattern::False),

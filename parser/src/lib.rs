@@ -60,7 +60,7 @@ where
 {
     parser.skip(insignificants())
 }
-fn optional_between<'a, I, EP, RP, SP, C>(
+fn sep_optional_between<'a, I, EP, RP, SP, C>(
     element: fn() -> EP,
     rest: RP,
     sep: fn() -> SP,
@@ -76,13 +76,12 @@ where
     let no_rest = move || sep_end_by(element(), sep());
     let have_rest = move || {
         (
-            many(element().skip(sep())),
-            rest,
+            attempt((many(element().skip(sep())), rest)),
             optional(sep().with(no_rest())).map(|right| right.unwrap_or_else(Default::default)),
         )
     };
     choice((
-        attempt(have_rest()).map(|(left, rest, right)| (left, Some((rest, right)))),
+        have_rest().map(|((left, rest), right)| (left, Some((rest, right)))),
         no_rest().map(|collection| (collection, None)),
     ))
 }

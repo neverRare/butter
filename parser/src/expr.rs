@@ -102,16 +102,24 @@ where
         body: Box::new(body),
     })
 }
-fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+fn array_range<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     choice((
-        fun().map(Expr::Fun),
         attempt(range()).map(Expr::ArrayRange),
         array().map(Expr::Array),
+    ))
+}
+fn tuple_record_group<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
+{
+    choice((
         attempt((lex(char('(')), lex(char(')'))))
             .map(|_| Expr::Unit)
             .silent(),
@@ -125,6 +133,18 @@ where
         attempt(between(lex(char('(')), lex(char(')')), expr(0))).expected("group"),
         attempt(tuple()).map(Expr::Tuple),
         record().map(Expr::Record),
+    ))
+}
+fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+where
+    I: RangeStream<Token = char, Range = &'a str>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+    T: Default,
+{
+    choice((
+        fun().map(Expr::Fun),
+        tuple_record_group(),
+        array_range(),
         lex(string_literal()).map(|vec| {
             let vec = vec
                 .into_iter()
@@ -165,7 +185,7 @@ where
             .right()
             .left(),
         6 => expr_6().left().right(),
-        _ => prefix_expr().right().right(),
+        7.. => prefix_expr().right().right(),
     }
 }
 combine::parser! {
