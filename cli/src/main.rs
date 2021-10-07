@@ -8,23 +8,31 @@ use type_system::test_infer;
 #[derive(StructOpt, Debug, Clone, Copy, PartialEq, Eq)]
 #[structopt(name = "butter")]
 enum Command {
-    /// Start a repl for type inference
+    /// Start a repl for testing type inference
     TypeRepl,
+    /// Start a repl for testing parser
+    ParserRepl,
 }
 fn main() {
     match Command::from_args() {
-        Command::TypeRepl => repl().unwrap(),
+        Command::TypeRepl => type_repl().unwrap(),
+        Command::ParserRepl => parser_repl().unwrap(),
     }
 }
-fn repl() -> io::Result<()> {
+fn type_repl() -> io::Result<()> {
     let mut stdout = io::stdout();
     let stdin = io::stdin();
-    println!("Press Ctrl+D to exit");
+    println!("Butter Type Inference Repl");
+    println!("");
+    println!("Enter expression to infer type. Enter :q to exit.");
     loop {
         let mut input = String::new();
         print!("> ");
         stdout.flush()?;
         stdin.read_line(&mut input)?;
+        if &input[..2] == ":q" {
+            break;
+        }
         let ast = match expr_parser::<_, ()>().easy_parse(&input[..]) {
             Ok((ast, _)) => ast,
             Err(err) => {
@@ -41,4 +49,49 @@ fn repl() -> io::Result<()> {
         };
         println!("type: {}", ty);
     }
+    Ok(())
+}
+fn parser_repl() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    let stdin = io::stdin();
+    println!("Butter Parser Repl");
+    println!("");
+    println!("Enter expression to parse. Use :{{ and :}} to enter multiline block expression.");
+    println!("Enter :q to exit.");
+    let mut input = String::new();
+    let mut multiline_input = String::new();
+    loop {
+        input.clear();
+        print!("> ");
+        stdout.flush()?;
+        stdin.read_line(&mut input)?;
+        if &input[..2] == ":q" {
+            break;
+        } else if &input[..2] == ":{" {
+            input.clear();
+            input.extend("{\n".chars());
+            loop {
+                multiline_input.clear();
+                print!("... ");
+                stdout.flush()?;
+                stdin.read_line(&mut multiline_input)?;
+                if &multiline_input[..2] == ":}" {
+                    input.extend("}\n".chars());
+                    break;
+                } else {
+                    input.extend(multiline_input.chars());
+                }
+            }
+        }
+        match expr_parser::<_, ()>().easy_parse(&input[..]) {
+            Ok((ast, _)) => {
+                println!("{:#?}", ast);
+            }
+            Err(err) => {
+                eprintln!("{}", err);
+                continue;
+            }
+        };
+    }
+    Ok(())
 }
