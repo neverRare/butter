@@ -30,7 +30,7 @@ fn type_repl() -> io::Result<()> {
         print!("> ");
         stdout.flush()?;
         stdin.read_line(&mut input)?;
-        if &input[..2] == ":q" {
+        if input.is_empty() || input.starts_with(":q") {
             break;
         }
         let ast = match expr_parser::<_, ()>().easy_parse(&input[..]) {
@@ -65,9 +65,9 @@ fn parser_repl() -> io::Result<()> {
         print!("> ");
         stdout.flush()?;
         stdin.read_line(&mut input)?;
-        if &input[..2] == ":q" {
+        if input.is_empty() || input.starts_with(":q") {
             break;
-        } else if &input[..2] == ":{" {
+        } else if input.starts_with(":{") {
             input.clear();
             input.extend("{\n".chars());
             loop {
@@ -75,7 +75,7 @@ fn parser_repl() -> io::Result<()> {
                 print!("... ");
                 stdout.flush()?;
                 stdin.read_line(&mut multiline_input)?;
-                if &multiline_input[..2] == ":}" {
+                if multiline_input.starts_with(":}") {
                     input.extend("}\n".chars());
                     break;
                 } else {
