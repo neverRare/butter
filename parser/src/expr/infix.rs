@@ -101,8 +101,12 @@ where
                 expr(0),
             ))
             .map(PartialAst::SplatCall),
+
+            // #14
             tuple().map(PartialAst::TupleCall),
-            // record().map(PartialAst::RecordCall),
+
+            // attempt(tuple()).map(PartialAst::TupleCall),
+            // super::record::record().map(PartialAst::RecordCall),
         ))
         .expected("argument")
     };
