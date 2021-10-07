@@ -1,10 +1,59 @@
 # Contributing Guidelines
 
-Thank you for taking your time contributing 🎉🙏.
+Thank you for taking your time contributing. I'll address these contributions as soon as possible.
 
-If you have issues, questions, or suggestions, simply open an issue. If you know how to fix such issues, consider forking and opening a pull request. Before working on the fork, please open an issue or let us know in already existing issue page.
+## Opening an Issue
 
-I'll address these as soon as possible, you're my priority because you're awesome enough to contribute 😎.
+If you have an issue, question, or suggestion, you may open an issue. You may also [reach us via Discord].
+
+[reach us via Discord]: README.md#chat-with-us
+
+## Using REPL
+
+While the compiler is not yet fully implemented. We have repl for testing out the implemented features. As of writing, this includes parser and type inference.
+
+Before running the repl, you'll need to [install Cargo] first. Additionally, this requires knowledge of butter syntax of course: [read the documents].
+
+Unless it's an "not yet implemented" error, if you found any issue, please report it.
+
+[install Cargo]: https://www.rust-lang.org/tools/install
+[read the documents]: doc/README.md
+
+### Parser REPL
+
+Parser REPL can be started with `cargo run -- parser-repl` command. This REPL only parses expressions, you can use [blocks] to parse statements. Additionally, you can use `:{` `:}` to input multiline block expression.
+
+[blocks]: doc/language/block.md
+
+```txt
+> 10 + 20
+[ast will be printed here]
+
+> :{
+... a = 20;
+... a
+... :}
+[ast will be printed here]
+```
+
+This REPL will output verbose and sparsely formatted AST.
+
+### Type Inference REPL
+
+Type inference REPL can be started with `cargo run -- type-repl` command. This REPL parses an expression and outputs the inferred type.
+
+```txt
+> @some 10
+[inferred type will be printed here]
+```
+
+## Opening a fork
+
+If you know how to fix such issues, consider forking and opening a pull request. Any form of pull requests is welcome, this includes typographic fixes and code improvements.
+
+If such is a huge change especially to the codebase, please let us know by opening an issue or commenting in already existing issue page before working on the fork.
+
+<!--
 
 When opening a pull request, please make sure it follows the following conventions:
 
@@ -16,7 +65,9 @@ When opening a pull request, please make sure it follows the following conventio
 [Cargo]: https://github.com/rust-lang/cargo
 [DavidAnson/markdownlint]: https://github.com/DavidAnson/markdownlint
 
-Don't sweat this much though, sometimes the owner himself forget these 😅, you may instead allow me to modify your code before merging it so it comply with the conventions 🧐✏.
+You may instead allow me to modify your code before merging it so it comply with the conventions.
+
+-->
 
 ---
 
