@@ -23,11 +23,8 @@ struct TypedExpr<'a> {
     ty: Type<'a>,
     expr: Expr<'a, Type<'a>>,
 }
-fn void<'a>() -> Type<'a> {
-    Type::Cons(Cons::Record(Keyed {
-        fields: HashMap::new(),
-        rest: None,
-    }))
+fn unit<'a>() -> Type<'a> {
+    Type::Cons(Cons::RecordTuple(KeyedOrdered::NonRow(vec![].into())))
 }
 fn infer_literal<'a>(literal: Literal) -> Type<'a> {
     let cons = match literal {
@@ -157,7 +154,7 @@ fn infer_expr<'a>(
                     subs.compose_with(more_subs)?;
                     (Some(typed.expr), typed.ty)
                 }
-                None => (None, void()),
+                None => (None, unit()),
             };
             Ok((
                 subs,
@@ -244,7 +241,7 @@ fn infer_expr<'a>(
         Expr::Unit => Ok((
             Subs::new(),
             TypedExpr {
-                ty: Type::Cons(Cons::RecordTuple(KeyedOrdered::NonRow(vec![].into()))),
+                ty: unit(),
                 expr: Expr::Unit,
             },
         )),

@@ -342,11 +342,7 @@ impl<'a> Ordered<'a> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum KeyedOrdered<'a> {
     NonRow(Box<[(&'a str, Type<'a>)]>),
-    Row(
-        Vec<(&'a str, Type<'a>)>,
-        Var<'a>,
-        VecDeque<(&'a str, Type<'a>)>,
-    ),
+    Row(Vec<(&'a str, Type<'a>)>, Var<'a>, Vec<(&'a str, Type<'a>)>),
 }
 impl<'a> KeyedOrdered<'a> {
     fn into_keyed(self) -> Keyed<'a> {
