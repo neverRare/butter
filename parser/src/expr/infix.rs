@@ -1,5 +1,5 @@
 use crate::{
-    expr::{array::range, expr, tuple::tuple},
+    expr::{array::range, expr, record::record, tuple::tuple},
     ident_keyword::ident,
     lex,
 };
@@ -101,12 +101,8 @@ where
                 expr(0),
             ))
             .map(PartialAst::SplatCall),
-
-            // #14
-            tuple().map(PartialAst::TupleCall),
-
-            // attempt(tuple()).map(PartialAst::TupleCall),
-            // super::record::record().map(PartialAst::RecordCall),
+            attempt(tuple()).map(PartialAst::TupleCall),
+            record().map(PartialAst::RecordCall),
         ))
         .expected("argument")
     };
