@@ -2,7 +2,7 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use crate::ty::{Env, Subs, VarState};
+use crate::ty::{cons::KeyedOrdered, Env, Subs, VarState};
 use hir::{
     expr::{
         Bound, Element, ElementKind, Expr, Field, Literal, PlaceExpr, Range, Record,
@@ -241,6 +241,13 @@ fn infer_expr<'a>(
                 },
             ))
         }
+        Expr::Unit => Ok((
+            Subs::new(),
+            TypedExpr {
+                ty: Type::Cons(Cons::RecordTuple(KeyedOrdered::NonRow(vec![].into()))),
+                expr: Expr::Unit,
+            },
+        )),
         Expr::Assign(_) => todo!(),
         Expr::Unary(_) => todo!(),
         Expr::Binary(_) => todo!(),
@@ -248,7 +255,6 @@ fn infer_expr<'a>(
         Expr::ControlFlow(_) => todo!(),
         Expr::Fun(_) => todo!(),
         Expr::Jump(_) => todo!(),
-        Expr::Unit => todo!(),
         Expr::Splat(_) => todo!(),
         Expr::Tuple(_) => todo!(),
     }
