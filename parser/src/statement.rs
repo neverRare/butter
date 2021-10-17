@@ -1,8 +1,5 @@
 use crate::{
-    expr::{
-        control_flow::{block, control_flow},
-        expr,
-    },
+    expr::{control_flow::control_flow, expr},
     ident_keyword::ident,
     lex,
     pattern::{parameter, pattern},
@@ -17,7 +14,7 @@ use combine::{
     ParseError, Parser, RangeStream,
 };
 use hir::{
-    expr::{Assign, ControlFlow, Expr, Fun},
+    expr::{Assign, Expr, Fun},
     statement::{Declare, FunDeclare, Statement},
 };
 

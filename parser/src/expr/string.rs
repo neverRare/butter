@@ -64,14 +64,8 @@ combine::parser! {
             .expected("char")
     }
 }
-// TODO: this should be Vec<u8>
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Default)]
 struct StringLiteral(Vec<u8>);
-impl Default for StringLiteral {
-    fn default() -> Self {
-        Self(Vec::new())
-    }
-}
 impl Extend<Char> for StringLiteral {
     fn extend<I>(&mut self, iter: I)
     where
