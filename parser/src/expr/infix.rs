@@ -1,3 +1,5 @@
+use crate::size_of;
+
 use crate::{
     expr::{array::range, expr, record::record, tuple::tuple},
     ident_keyword::ident,
@@ -66,7 +68,7 @@ impl<'a, T> PartialAst<'a, T> {
         }
     }
 }
-fn infix_6<'a, I, T>() -> impl Parser<I, Output = PartialAst<'a, T>>
+fn infix_6_<'a, I, T>() -> impl Parser<I, Output = PartialAst<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -114,13 +116,23 @@ where
         lex(char('^')).map(|_| PartialAst::Deref),
     ))
 }
+combine::parser! {
+    fn infix_6['a, I, T]()(I) -> PartialAst<'a, T>
+    where [
+        I: RangeStream<Token = char, Range = &'a str>,
+        I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
+    ] {
+        infix_6_()
+    }
+}
 pub(crate) fn expr_6<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    (expr(7), many(infix_6())).map(|(prefix, infixes)| {
+    (expr(7), many(infix_6_())).map(|(prefix, infixes)| {
         let infixes: Vec<_> = infixes;
         let mut expr = prefix;
         for infix in infixes {
@@ -139,10 +151,13 @@ where
         match expr {
             Some(expr) => {
                 if let Expr::Place(place) = place {
-                    Ok(Expr::Assign(Assign {
-                        place: Box::new(place),
-                        expr: Box::new(expr),
-                    }))
+                    Ok(Expr::Assign(
+                        vec![Assign {
+                            place: Box::new(place),
+                            expr: Box::new(expr),
+                        }]
+                        .into(),
+                    ))
                 } else {
                     Err(<StreamErrorFor<I>>::message_static_message(
                         "non place expression",
@@ -249,4 +264,26 @@ where
                 })
             }
         })
+}
+pub(crate) fn print_infix_sizes() {
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::infix_6_"),
+        size_of(&infix_6_::<&str, ()>()),
+    );
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::expr_6"),
+        size_of(&expr_6::<&str, ()>()),
+    );
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::expr_0"),
+        size_of(&expr_0::<&str, ()>()),
+    );
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::infix_expr_op"),
+        size_of(&infix_expr_op::<&str, ()>(0)),
+    );
 }

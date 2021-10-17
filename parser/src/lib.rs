@@ -10,6 +10,7 @@ use combine::{
     },
     sep_end_by, skip_many, skip_many1, ParseError, Parser, RangeStream,
 };
+use expr::print_expr_sizes;
 use hir::{expr::Expr, statement::Statement};
 
 mod expr;
@@ -30,13 +31,15 @@ combine::parser! {
             .skip(eof())
     }
 }
-pub fn expr_parser<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
-where
-    I: RangeStream<Token = char, Range = &'a str>,
-    I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
-{
-    insignificants().with(expr::expr(0)).skip(eof())
+combine::parser! {
+    pub fn expr_parser['a, I, T]()(I) -> Expr<'a, T>
+    where [
+        I: RangeStream<Token = char, Range = &'a str>,
+        I::Error: ParseError<I::Token, I::Range, I::Position>,
+        T: Default,
+    ] {
+        insignificants().with(expr::expr(0)).skip(eof())
+    }
 }
 fn comments<'a, I>() -> impl Parser<I, Output = ()>
 where
@@ -84,6 +87,12 @@ where
         have_rest().map(|((left, rest), right)| (left, Some((rest, right)))),
         no_rest().map(|collection| (collection, None)),
     ))
+}
+fn size_of<T>(_: &T) -> usize {
+    std::mem::size_of::<T>()
+}
+pub fn print_sizes() {
+    print_expr_sizes();
 }
 #[cfg(test)]
 mod test {

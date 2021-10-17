@@ -1,4 +1,4 @@
-use crate::{expr::expr, lex, sep_optional_between};
+use crate::{expr::expr, lex, sep_optional_between, size_of};
 use combine::{between, parser::char::char, ParseError, Parser, RangeStream};
 use hir::expr::{Tuple, TupleWithSplat};
 
@@ -24,4 +24,11 @@ where
         )
     };
     between(lex(char('(')), lex(char(')')), fields()).expected("tuple")
+}
+pub(crate) fn print_tuple_sizes() {
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::tuple"),
+        size_of(&tuple::<&str, ()>()),
+    );
 }

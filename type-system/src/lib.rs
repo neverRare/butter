@@ -242,7 +242,6 @@ fn infer_expr<'a>(
             ))
         }
         Expr::Assign(_) => todo!(),
-        Expr::ParallelAssign(_) => todo!(),
         Expr::Unary(_) => todo!(),
         Expr::Binary(_) => todo!(),
         Expr::Call(_) => todo!(),

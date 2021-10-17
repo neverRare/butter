@@ -1,4 +1,4 @@
-use crate::{expr::expr, ident_keyword::ident, lex, sep_optional_between};
+use crate::{expr::expr, ident_keyword::ident, lex, sep_optional_between, size_of};
 use combine::{
     between, error::StreamError, optional, parser::char::char, stream::StreamErrorFor, ParseError,
     Parser, RangeStream,
@@ -38,4 +38,11 @@ where
         )
     };
     between(lex(char('(')), lex(char(')')), fields()).expected("record")
+}
+pub(crate) fn print_record_sizes() {
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::record"),
+        size_of(&record::<&str, ()>()),
+    );
 }

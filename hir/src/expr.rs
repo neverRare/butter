@@ -17,8 +17,7 @@ pub enum Expr<'a, T> {
 
     Tag(Tag<'a, T>),
 
-    Assign(Assign<'a, T>),
-    ParallelAssign(Box<[Assign<'a, T>]>),
+    Assign(Box<[Assign<'a, T>]>),
 
     Array(Box<[Element<'a, T>]>),
     ArrayRange(Range<'a, T>),

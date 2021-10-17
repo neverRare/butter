@@ -1,15 +1,16 @@
 use crate::{
     expr::{
         array::{array, range},
-        infix::{expr_0, expr_6, infix_expr_op},
+        infix::{expr_0, expr_6, infix_expr_op, print_infix_sizes},
         integer::integer_u64,
-        record::record,
+        record::{print_record_sizes, record},
         string::{char_literal, string_literal},
-        tuple::tuple,
+        tuple::{print_tuple_sizes, tuple},
     },
     ident_keyword::{ident, keyword},
     lex,
     pattern::parameter,
+    size_of,
 };
 use combine::{
     attempt, between, chainl1, choice, optional,
@@ -198,6 +199,21 @@ combine::parser! {
         expr_(*precedence)
     }
 }
+pub(crate) fn print_expr_sizes() {
+    print_infix_sizes();
+    print_record_sizes();
+    print_tuple_sizes();
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::prefix_expr_"),
+        size_of(&prefix_expr_::<&str, ()>()),
+    );
+    println!(
+        "{}: {}",
+        concat!(module_path!(), "::expr_"),
+        size_of(&expr_::<&str, ()>(0)),
+    );
+}
 #[cfg(test)]
 mod test {
     use crate::expr::{expr, Expr};
@@ -238,13 +254,19 @@ mod test {
     #[test]
     fn right_associative() {
         let src = "foo <- bar <- baz";
-        let expected: Expr<()> = Expr::Assign(Assign {
-            place: Box::new(PlaceExpr::Var("foo")),
-            expr: Box::new(Expr::Assign(Assign {
-                place: Box::new(PlaceExpr::Var("bar")),
-                expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
-            })),
-        });
+        let expected: Expr<()> = Expr::Assign(
+            vec![Assign {
+                place: Box::new(PlaceExpr::Var("foo")),
+                expr: Box::new(Expr::Assign(
+                    vec![Assign {
+                        place: Box::new(PlaceExpr::Var("bar")),
+                        expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+                    }]
+                    .into(),
+                )),
+            }]
+            .into(),
+        );
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
     }
     #[test]

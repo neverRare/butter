@@ -34,7 +34,7 @@ where
     P: Parser<I>,
     T: Default,
 {
-    let control_flow = || {
+    let control_flow_statement = || {
         (control_flow(), optional(lex(char(';')))).map(|(control_flow, semicolon)| {
             let expr = Expr::ControlFlow(control_flow);
             match semicolon {
@@ -45,9 +45,9 @@ where
     };
     let fun_body = || {
         choice((
-            block()
+            control_flow()
                 .skip(optional(lex(char(';'))))
-                .map(|block| Expr::ControlFlow(ControlFlow::Block(block))),
+                .map(|control_flow| Expr::ControlFlow(control_flow)),
             expr(0).skip(lex(char(';'))),
         ))
     };
@@ -78,32 +78,6 @@ where
             }
         })
     };
-    let parallel_assign = || {
-        attempt((
-            sep_by1(place(), lex(char(','))).skip(lex(string("<-"))),
-            sep_by1(expr(1), lex(char(','))).skip(lex(char(';'))), // TODO: don't enforce semicolon
-        ))
-        .and_then(|(place, expr)| {
-            let place: Vec<_> = place;
-            let expr: Vec<_> = expr;
-            if place.len() != expr.len() {
-                return Err(<StreamErrorFor<I>>::message_static_message(
-                    "mismatching count of place and value expressions",
-                ));
-            }
-            let assign = place
-                .into_iter()
-                .zip(expr.into_iter())
-                .map(|(place, expr)| Assign {
-                    place: Box::new(place),
-                    expr: Box::new(expr),
-                })
-                .collect();
-            Ok(StatementReturn::Statement(Statement::Expr(
-                Expr::ParallelAssign(assign),
-            )))
-        })
-    };
     let declare = || {
         (attempt(pattern().skip(lex(char('=')))), expr(0))
             .skip(lex(char(';')))
@@ -111,9 +85,33 @@ where
                 StatementReturn::Statement(Statement::Declare(Declare { pattern, expr }))
             })
     };
+    let parallel_assign = || {
+        (
+            attempt(sep_by1(place(), lex(char(','))).skip(lex(string("<-")))),
+            sep_by1(expr(0), lex(char(','))),
+        )
+            .and_then(|(place, expr)| {
+                let place: Vec<_> = place;
+                let expr: Vec<_> = expr;
+                if place.len() != expr.len() {
+                    return Err(<StreamErrorFor<I>>::message_static_message(
+                        "mismatching count of place and value expressions",
+                    ));
+                }
+                let assign = place
+                    .into_iter()
+                    .zip(expr.into_iter())
+                    .map(|(place, expr)| Assign {
+                        place: Box::new(place),
+                        expr: Box::new(expr),
+                    })
+                    .collect();
+                Ok(Expr::Assign(assign))
+            })
+    };
     let expr = || {
         (
-            expr(0),
+            choice((parallel_assign(), expr(0))),
             choice((
                 lex(char(';')).map(|_| true),
                 look_ahead(end_look_ahead).map(|_| false),
@@ -128,10 +126,9 @@ where
             })
     };
     choice((
-        control_flow(),
+        control_flow_statement(),
         declare(),
         fun_declare().map(StatementReturn::Statement),
-        parallel_assign(),
         expr(),
     ))
 }
@@ -173,7 +170,7 @@ mod test {
     #[test]
     fn parallel_assign() {
         let src = "foo, bar <- bar, foo;";
-        let expected: Statement<()> = Statement::Expr(Expr::ParallelAssign(
+        let expected: Statement<()> = Statement::Expr(Expr::Assign(
             vec![
                 Assign {
                     place: Box::new(PlaceExpr::Var("foo")),
@@ -191,13 +188,19 @@ mod test {
     #[test]
     fn chain_assign() {
         let src = "foo <- bar <- baz;";
-        let expected: Statement<()> = Statement::Expr(Expr::Assign(Assign {
-            place: Box::new(PlaceExpr::Var("foo")),
-            expr: Box::new(Expr::Assign(Assign {
-                place: Box::new(PlaceExpr::Var("bar")),
-                expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
-            })),
-        }));
+        let expected: Statement<()> = Statement::Expr(Expr::Assign(
+            vec![Assign {
+                place: Box::new(PlaceExpr::Var("foo")),
+                expr: Box::new(Expr::Assign(
+                    vec![Assign {
+                        place: Box::new(PlaceExpr::Var("bar")),
+                        expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+                    }]
+                    .into(),
+                )),
+            }]
+            .into(),
+        ));
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));
     }
     #[test]
