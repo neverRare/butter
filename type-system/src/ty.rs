@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
     hash::Hash,
-    iter::{once, FromIterator},
+    iter::once,
 };
 
 pub mod cons;

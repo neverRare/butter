@@ -81,7 +81,7 @@ impl Extend<Char> for StringLiteral {
                 Char::Char(ch) => {
                     let mut arr = [0; 4];
                     ch.encode_utf8(&mut arr);
-                    vec.extend(array::IntoIter::new(arr).take(ch.len_utf8()));
+                    vec.extend(arr.into_iter().take(ch.len_utf8()));
                 }
             }
         }

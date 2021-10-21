@@ -2,8 +2,7 @@ use crate::ty::{
     fmt_intersperse, Kind, KindedVar, MutType, Subs, Type, Type1, TypeError, Var, VarState,
 };
 use std::{
-    array,
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
     hash::Hash,
     iter::once,
@@ -27,13 +26,13 @@ impl<'a> Cons<'a> {
     pub(super) fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
             Self::Num | Self::Bool => HashSet::new(),
-            Self::Ref(mutability, ty) => {
-                array::IntoIter::new([mutability.free_vars(), ty.free_vars()])
-                    .flatten()
-                    .collect()
-            }
+            Self::Ref(mutability, ty) => [mutability.free_vars(), ty.free_vars()]
+                .into_iter()
+                .flatten()
+                .collect(),
             Self::Array(ty) => ty.free_vars(),
-            Self::Fun(param, ret) => array::IntoIter::new([param, ret])
+            Self::Fun(param, ret) => [param, ret]
+                .into_iter()
                 .map(AsRef::as_ref)
                 .flat_map(Type::free_vars)
                 .collect(),

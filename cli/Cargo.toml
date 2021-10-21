@@ -1,12 +1,12 @@
 [package]
 name = "butter"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 default-run = "butter"
 
 [dependencies]
-structopt = "0.3.22"
-combine = "4.6.0" # TODO: try remove this dependency
+structopt = "0.3.25"
+combine = "4.6.1" # TODO: try remove this dependency
 parser = { path = "../parser/" }
 hir = { path = "../hir/" }
 type-system = { path = "../type-system/" }

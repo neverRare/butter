@@ -2,8 +2,8 @@
 name = "parser"
 version = "0.1.0"
 authors = ["neverRare"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-combine = "4.6.0"
+combine = "4.6.1"
 hir = { path = "../hir" }

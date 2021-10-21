@@ -31,7 +31,7 @@ where
     I: RangeStream<Token = char, Range = &'a str>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    debug_assert!(array::IntoIter::new(KEYWORDS).any(|it| keyword == it));
+    debug_assert!(KEYWORDS.into_iter().any(|it| keyword == it));
     string(keyword).skip(not_followed_by(satisfy(rest)))
 }
 pub(crate) fn ident<'a, I>() -> impl Parser<I, Output = &'a str>
@@ -40,7 +40,7 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     ident_or_keyword::<'a>().and_then(|ident| {
-        if array::IntoIter::new(KEYWORDS).any(|it| ident == it) {
+        if KEYWORDS.into_iter().any(|it| ident == it) {
             Err(<StreamErrorFor<I>>::unexpected_static_message("keyword"))
         } else {
             Ok(ident)

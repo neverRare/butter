@@ -2,7 +2,7 @@
 name = "type-system"
 version = "0.1.0"
 authors = ["neverRare"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 hir = { path = "../hir" }
