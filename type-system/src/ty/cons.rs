@@ -9,7 +9,6 @@ use std::{
     mem::{replace, swap},
 };
 
-// TODO: add tuple, unit, and splat
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cons<'a> {
     Num,
