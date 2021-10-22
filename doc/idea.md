@@ -2,7 +2,12 @@
 
 ## Unicode support
 
-String and char literal are just syntactic sugar for array of bytes and bytes encoded in utf8. There should be a proper support for unicode but how?
+Currently, string and char literal are just syntactic sugar for array of bytes and bytes encoded in utf8. Unicode support shall be library features:
+
+- Uses UTF-8 encoding.
+- There shall be a string type that simply wraps array of numbers.
+- Validity of such type shall be enforced by refinement types. Unsure for this, might be a challenge or simply impossible.
+- Another type for Unicode bytes and scalar values.
 
 ## Equal to pattern
 
@@ -48,6 +53,12 @@ It won't be nestable. Intended for textual comments rather than disabling span o
 ```
 
 This can be nested, but the content must be lexable. Intended for disabling span of codes.
+
+## Raw identifier
+
+```butter
+`loop` = parser(...);
+```
 
 ## Dict and Set
 
@@ -283,11 +294,29 @@ impl Eq([a]) {
 ```butter
 derive Eq(_):
 pub newtype Point(
-    pub x: Num,
-    pub y: Num,
+    x: Num,
+    y: Num,
 );
 ```
 
-They won't have trait implementation by default and each field can have its own visibility (for structural record, every field is public).
+They won't have trait implementation by default and each field can have its own visibility (for structural record, every field is public). It can also have it's own refined types.
 
 Generics? How??
+
+## Effect system
+
+```butter
+message() => {
+    fx yield("hello");
+    fx yield("world");
+}
+collect_message() => {
+    mut arr = [];
+    do message() handling {
+        yield(msg) => arr <- >arr ++ [msg],
+    }
+    arr
+}
+```
+
+This is a very novel feature. Unsure about the implementation, the runtime impact, and many more. Need more study before implementing.
