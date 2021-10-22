@@ -307,13 +307,13 @@ Generics? How??
 
 ```butter
 message() => {
-    fx yield("hello");
-    fx yield("world");
+    yield item("hello");
+    yield item("world");
 }
 collect_message() => {
     mut arr = [];
     do message() handling {
-        yield(msg) => arr <- >arr ++ [msg],
+        item(item) => arr <- >arr ++ [item],
     }
     arr
 }
