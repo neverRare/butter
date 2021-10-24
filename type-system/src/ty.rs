@@ -40,12 +40,21 @@ struct KindedVar<'a> {
     kind: Kind,
     var: Var<'a>,
 }
+trait FreeVars<'a> {
+    fn free_vars(&self) -> HashSet<KindedVar<'a>>;
+}
+pub(super) trait Substitutable<'a> {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError>;
+}
+pub(super) trait Unifiable<'a> {
+    fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError>;
+}
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Type<'a> {
     Var(Var<'a>),
     Cons(Cons<'a>),
 }
-impl<'a> Type<'a> {
+impl<'a> FreeVars<'a> for Type<'a> {
     fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
             Self::Var(var) => once(KindedVar {
@@ -56,7 +65,9 @@ impl<'a> Type<'a> {
             Self::Cons(cons) => cons.free_vars(),
         }
     }
-    pub(super) fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
+}
+impl<'a> Substitutable<'a> for Type<'a> {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Var(var) => {
                 if let Some(ty) = subs.get(*var) {
@@ -70,11 +81,21 @@ impl<'a> Type<'a> {
         }
         Ok(())
     }
-    pub(super) fn unify_with(
-        self,
-        other: Self,
-        var_state: &mut VarState<'a>,
-    ) -> Result<Subs<'a>, TypeError> {
+}
+impl<'a> FreeVars<'a> for (&'a str, Type<'a>) {
+    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
+        let (_, ty) = self;
+        ty.free_vars()
+    }
+}
+impl<'a> Substitutable<'a> for (&'a str, Type<'a>) {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
+        let (_, ty) = self;
+        ty.substitute(subs)
+    }
+}
+impl<'a> Unifiable<'a> for Type<'a> {
+    fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
         let mut subs = Subs::new();
         match (self, other) {
             (Self::Cons(cons1), Self::Cons(cons2)) => {
@@ -96,13 +117,23 @@ impl<'a> Type<'a> {
         Ok(subs)
     }
 }
+impl<'a> Unifiable<'a> for (&'a str, Type<'a>) {
+    fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
+        let (name1, ty1) = self;
+        let (name2, ty2) = other;
+        if name1 != name2 {
+            return Err(TypeError::MismatchName);
+        }
+        ty1.unify_with(ty2, var_state)
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum MutType<'a> {
     Var(Var<'a>),
     Imm,
     Mut,
 }
-impl<'a> MutType<'a> {
+impl<'a> FreeVars<'a> for MutType<'a> {
     fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
             Self::Var(var) => once(KindedVar {
@@ -113,6 +144,8 @@ impl<'a> MutType<'a> {
             Self::Imm | Self::Mut => HashSet::new(),
         }
     }
+}
+impl<'a> Substitutable<'a> for MutType<'a> {
     fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         if let Self::Var(var) = self {
             if let Some(ty) = subs.get(*var) {
@@ -124,7 +157,9 @@ impl<'a> MutType<'a> {
         }
         Ok(())
     }
-    fn unify_with(self, other: Self) -> Result<Subs<'a>, TypeError> {
+}
+impl<'a> Unifiable<'a> for MutType<'a> {
+    fn unify_with(self, other: Self, _: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
         let mut subs = Subs::new();
         match (self, other) {
             (Self::Mut, Self::Mut) | (Self::Imm, Self::Imm) => (),
@@ -165,12 +200,16 @@ impl<'a> Type1<'a> {
             Self::MutType(_) => Kind::MutType,
         }
     }
+}
+impl<'a> FreeVars<'a> for Type1<'a> {
     fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
             Self::Type(ty) => ty.free_vars(),
             Self::MutType(ty) => ty.free_vars(),
         }
     }
+}
+impl<'a> Substitutable<'a> for Type1<'a> {
     fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Type(ty) => ty.substitute(subs),
@@ -183,7 +222,7 @@ pub(super) struct Scheme<'a> {
     for_all: HashSet<KindedVar<'a>>,
     ty: Type<'a>,
 }
-impl<'a> Scheme<'a> {
+impl<'a> FreeVars<'a> for Scheme<'a> {
     fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         self.ty
             .free_vars()
@@ -191,12 +230,16 @@ impl<'a> Scheme<'a> {
             .filter(|var| !self.for_all.contains(var))
             .collect()
     }
+}
+impl<'a> Substitutable<'a> for Scheme<'a> {
     fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         let mut subs = subs.clone();
         subs.filter_off(&self.for_all);
         self.ty.substitute(&subs)?;
         Ok(())
     }
+}
+impl<'a> Scheme<'a> {
     pub fn instantiate(self, var_state: &mut VarState<'a>) -> Result<Type<'a>, TypeError> {
         let subs = self
             .for_all

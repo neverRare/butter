@@ -1,4 +1,6 @@
-use crate::ty::{Kind, KindedVar, MutType, Subs, Type, Type1, TypeError, Var, VarState};
+use crate::ty::{
+    Kind, KindedVar, MutType, Subs, Substitutable, Type, Type1, TypeError, Unifiable, Var, VarState,
+};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -6,6 +8,7 @@ use std::{
     iter::once,
     mem::{replace, swap},
 };
+use super::FreeVars;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cons<'a> {
@@ -14,13 +17,13 @@ pub enum Cons<'a> {
     Ref(MutType<'a>, Box<Type<'a>>),
     Array(Box<Type<'a>>),
     Fun(Box<Type<'a>>, Box<Type<'a>>),
-    RecordTuple(KeyedOrdered<'a>),
+    RecordTuple(OrderedAnd<'a, (&'a str, Type<'a>)>),
     Record(Keyed<'a>),
-    Tuple(Ordered<'a>),
+    Tuple(OrderedAnd<'a, Type<'a>>),
     Union(Keyed<'a>),
 }
-impl<'a> Cons<'a> {
-    pub(super) fn free_vars(&self) -> HashSet<KindedVar<'a>> {
+impl<'a> FreeVars<'a> for Cons<'a> {
+    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
             Self::Num | Self::Bool => HashSet::new(),
             Self::Ref(mutability, ty) => [mutability.free_vars(), ty.free_vars()]
@@ -39,7 +42,9 @@ impl<'a> Cons<'a> {
             Self::Union(union) => union.free_vars(),
         }
     }
-    pub(super) fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
+}
+impl<'a> Substitutable<'a> for Cons<'a> {
+    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
         match self {
             Self::Num | Self::Bool => (),
             Self::Ref(mutability, ty) => {
@@ -62,12 +67,12 @@ impl<'a> Cons<'a> {
                 _ => None,
             })?,
             Self::RecordTuple(record_tuple) => match record_tuple {
-                KeyedOrdered::NonRow(record_tuple) => {
+                OrderedAnd::NonRow(record_tuple) => {
                     for (_, ty) in record_tuple.iter_mut() {
                         ty.substitute(subs)?;
                     }
                 }
-                KeyedOrdered::Row(left, rest, right) => {
+                OrderedAnd::Row(left, rest, right) => {
                     todo!();
                 }
             },
@@ -78,16 +83,14 @@ impl<'a> Cons<'a> {
         }
         Ok(())
     }
-    pub(super) fn unify_with(
-        self,
-        other: Self,
-        var_state: &mut VarState<'a>,
-    ) -> Result<Subs<'a>, TypeError> {
+}
+impl<'a> Unifiable<'a> for Cons<'a> {
+    fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
         let mut subs = Subs::new();
         match (self, other) {
             (Self::Bool, Self::Bool) | (Self::Num, Self::Num) => (),
             (Self::Ref(mut1, ty1), Self::Ref(mut2, ty2)) => {
-                subs.compose_with(mut1.unify_with(mut2)?)?;
+                subs.compose_with(mut1.unify_with(mut2, var_state)?)?;
                 subs.compose_with(ty1.unify_with(*ty2, var_state)?)?;
             }
             (Self::Array(ty1), Self::Array(ty2)) => {
@@ -127,7 +130,7 @@ pub struct Keyed<'a> {
     pub fields: HashMap<&'a str, Type<'a>>,
     pub rest: Option<Var<'a>>,
 }
-impl<'a> Keyed<'a> {
+impl<'a> FreeVars<'a> for Keyed<'a> {
     fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         self.fields
             .values()
@@ -138,6 +141,8 @@ impl<'a> Keyed<'a> {
             }))
             .collect()
     }
+}
+impl<'a> Keyed<'a> {
     fn substitute(
         &mut self,
         subs: &Subs<'a>,
@@ -230,30 +235,69 @@ impl<'a> Keyed<'a> {
 // TODO: combine Ordered and KeyedOrdered into a single struct, most of their
 // implementation are the same
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Ordered<'a> {
-    NonRow(Box<[Type<'a>]>),
-    Row(Vec<Type<'a>>, Var<'a>, Vec<Type<'a>>),
+pub enum OrderedAnd<'a, T> {
+    NonRow(Box<[T]>),
+    Row(Vec<T>, Var<'a>, Vec<T>),
 }
-impl<'a> Ordered<'a> {
+impl<'a> OrderedAnd<'a, (&'a str, Type<'a>)> {
+    fn into_keyed(self) -> Keyed<'a> {
+        match self {
+            Self::NonRow(record) => {
+                let record: Vec<_> = record.into();
+                Keyed {
+                    fields: record.into_iter().collect(),
+                    rest: None,
+                }
+            }
+            Self::Row(left, rest, right) => Keyed {
+                fields: left.into_iter().chain(right.into_iter()).collect(),
+                rest: Some(rest),
+            },
+        }
+    }
+    fn into_ordered(self) -> OrderedAnd<'a, Type<'a>> {
+        match self {
+            Self::NonRow(tuple) => {
+                let tuple: Vec<_> = tuple.into();
+                let tuple: Vec<_> = tuple.into_iter().map(|(_, ty)| ty).collect();
+                OrderedAnd::NonRow(tuple.into())
+            }
+            Self::Row(left, rest, right) => OrderedAnd::Row(
+                left.into_iter().map(|(_, ty)| ty).collect(),
+                rest,
+                right.into_iter().map(|(_, ty)| ty).collect(),
+            ),
+        }
+    }
+}
+impl<'a, T> FreeVars<'a> for OrderedAnd<'a, T>
+where
+    T: FreeVars<'a>,
+{
     fn free_vars(&self) -> HashSet<KindedVar<'a>> {
         match self {
-            Self::NonRow(tuple) => tuple.iter().flat_map(Type::free_vars).collect(),
+            Self::NonRow(tuple) => tuple.iter().flat_map(T::free_vars).collect(),
             Self::Row(left, rest, right) => left
                 .iter()
-                .flat_map(Type::free_vars)
+                .flat_map(T::free_vars)
                 .chain(once(KindedVar {
                     kind: Kind::Type,
                     var: *rest,
                 }))
-                .chain(right.iter().flat_map(Type::free_vars))
+                .chain(right.iter().flat_map(T::free_vars))
                 .collect(),
         }
     }
+}
+impl<'a, T> OrderedAnd<'a, T> {
     fn substitute(
         &mut self,
         subs: &Subs<'a>,
-        matcher: impl FnOnce(Cons) -> Option<Ordered>,
-    ) -> Result<(), TypeError> {
+        matcher: impl FnOnce(Cons<'a>) -> Option<Self>,
+    ) -> Result<(), TypeError>
+    where
+        T: Substitutable<'a>,
+    {
         match self {
             Self::NonRow(tuple) => {
                 for ty in tuple.iter_mut() {
@@ -309,8 +353,11 @@ impl<'a> Ordered<'a> {
         self,
         other: Self,
         var_state: &mut VarState<'a>,
-        mut cons: impl FnMut(Ordered) -> Cons,
-    ) -> Result<Subs<'a>, TypeError> {
+        mut cons: impl FnMut(Self) -> Cons<'a>,
+    ) -> Result<Subs<'a>, TypeError>
+    where
+        T: Unifiable<'a>,
+    {
         let mut subs = Subs::new();
         match (self, other) {
             (Self::NonRow(tup1), Self::NonRow(tup2)) => {
@@ -336,107 +383,6 @@ impl<'a> Ordered<'a> {
                     subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
                 }
                 for (ty1, ty2) in right.into_iter().zip(right2.into_iter()) {
-                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
-                }
-                subs.insert(
-                    rest,
-                    Type1::Type(Type::Cons(cons(Self::NonRow(rest2.into())))),
-                )
-            }
-            (Self::Row(left1, rest1, right1), Self::Row(left2, rest2, right2)) => todo!(),
-        }
-        Ok(subs)
-    }
-}
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum KeyedOrdered<'a> {
-    NonRow(Box<[(&'a str, Type<'a>)]>),
-    Row(Vec<(&'a str, Type<'a>)>, Var<'a>, Vec<(&'a str, Type<'a>)>),
-}
-impl<'a> KeyedOrdered<'a> {
-    fn into_keyed(self) -> Keyed<'a> {
-        match self {
-            Self::NonRow(record) => {
-                let record: Vec<_> = record.into();
-                Keyed {
-                    fields: record.into_iter().collect(),
-                    rest: None,
-                }
-            }
-            Self::Row(left, rest, right) => Keyed {
-                fields: left.into_iter().chain(right.into_iter()).collect(),
-                rest: Some(rest),
-            },
-        }
-    }
-    fn into_ordered(self) -> Ordered<'a> {
-        match self {
-            Self::NonRow(tuple) => {
-                let tuple: Vec<_> = tuple.into();
-                let tuple: Vec<_> = tuple.into_iter().map(|(_, ty)| ty).collect();
-                Ordered::NonRow(tuple.into())
-            }
-            Self::Row(left, rest, right) => Ordered::Row(
-                left.into_iter().map(|(_, ty)| ty).collect(),
-                rest,
-                right.into_iter().map(|(_, ty)| ty).collect(),
-            ),
-        }
-    }
-    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
-        match self {
-            Self::NonRow(record) => record.iter().flat_map(|(_, ty)| ty.free_vars()).collect(),
-            Self::Row(left, rest, right) => left
-                .iter()
-                .flat_map(|(_, ty)| ty.free_vars())
-                .chain(once(KindedVar {
-                    kind: Kind::Type,
-                    var: *rest,
-                }))
-                .chain(right.iter().flat_map(|(_, ty)| ty.free_vars()))
-                .collect(),
-        }
-    }
-    pub(super) fn unify_with(
-        self,
-        other: Self,
-        var_state: &mut VarState<'a>,
-        mut cons: impl FnMut(KeyedOrdered) -> Cons,
-    ) -> Result<Subs<'a>, TypeError> {
-        let mut subs = Subs::new();
-        match (self, other) {
-            (Self::NonRow(tup1), Self::NonRow(tup2)) => {
-                if tup1.len() != tup2.len() {
-                    return Err(TypeError::MismatchArity);
-                }
-                let tup1: Vec<_> = tup1.into();
-                let tup2: Vec<_> = tup2.into();
-                for ((name1, ty1), (name2, ty2)) in tup1.into_iter().zip(tup2.into_iter()) {
-                    if name1 != name2 {
-                        return Err(TypeError::MismatchName);
-                    }
-                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
-                }
-            }
-            (Self::NonRow(tup), Self::Row(left, rest, right))
-            | (Self::Row(left, rest, right), Self::NonRow(tup)) => {
-                let tup: Vec<_> = tup.into();
-                if left.len() + right.len() > tup.len() {
-                    return Err(TypeError::MismatchArity);
-                }
-                let mut left2 = tup;
-                let mut rest2 = left2.split_off(left.len());
-                let right2 = rest2.split_off(rest2.len() - right.len());
-                for ((name1, ty1), (name2, ty2)) in left.into_iter().zip(left2.into_iter()) {
-                    if name1 != name2 {
-                        return Err(TypeError::MismatchName);
-                    }
-                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
-                }
-                for ((name1, ty1), (name2, ty2)) in right.into_iter().zip(right2.into_iter()) {
-                    if name1 != name2 {
-                        return Err(TypeError::MismatchName);
-                    }
                     subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
                 }
                 subs.insert(
@@ -488,12 +434,12 @@ impl<'a> Display for Cons<'a> {
             Self::Tuple(tuple) => {
                 write!(fmt, "(")?;
                 match tuple {
-                    Ordered::NonRow(tuple) => {
+                    OrderedAnd::NonRow(tuple) => {
                         for ty in &tuple[..] {
                             write!(fmt, "{}, ", ty)?;
                         }
                     }
-                    Ordered::Row(left, rest, right) => {
+                    OrderedAnd::Row(left, rest, right) => {
                         for ty in left {
                             write!(fmt, "{}, ", ty)?;
                         }
@@ -509,12 +455,12 @@ impl<'a> Display for Cons<'a> {
             Self::RecordTuple(record_tuple) => {
                 write!(fmt, "(")?;
                 match record_tuple {
-                    KeyedOrdered::NonRow(record_tuple) => {
+                    OrderedAnd::NonRow(record_tuple) => {
                         for (name, ty) in &record_tuple[..] {
                             write!(fmt, "{} = {}, ", name, ty)?;
                         }
                     }
-                    KeyedOrdered::Row(left, rest, right) => {
+                    OrderedAnd::Row(left, rest, right) => {
                         for (name, ty) in left {
                             write!(fmt, "{} = {}, ", name, ty)?;
                         }

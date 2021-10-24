@@ -2,7 +2,7 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use crate::ty::{cons::KeyedOrdered, Env, Subs, VarState};
+use crate::ty::{cons::OrderedAnd, Env, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
         Bound, Element, ElementKind, Expr, Field, Literal, PlaceExpr, Range, Record,
@@ -24,7 +24,7 @@ struct TypedExpr<'a> {
     expr: Expr<'a, Type<'a>>,
 }
 fn unit<'a>() -> Type<'a> {
-    Type::Cons(Cons::RecordTuple(KeyedOrdered::NonRow(vec![].into())))
+    Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(vec![].into())))
 }
 fn infer_literal<'a>(literal: Literal) -> Type<'a> {
     let cons = match literal {
