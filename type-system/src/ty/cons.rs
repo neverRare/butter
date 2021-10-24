@@ -1,6 +1,4 @@
-use crate::ty::{
-    fmt_intersperse, Kind, KindedVar, MutType, Subs, Type, Type1, TypeError, Var, VarState,
-};
+use crate::ty::{Kind, KindedVar, MutType, Subs, Type, Type1, TypeError, Var, VarState};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -414,25 +412,67 @@ impl<'a> Display for Cons<'a> {
             Self::Array(ty) => write!(fmt, "[{}]", ty),
             Self::Record(record) => {
                 write!(fmt, "(")?;
-                fmt_intersperse(fmt, &record.fields, ", ", |(name, ty), fmt| {
-                    write!(fmt, "{} = {}", name, ty)
-                })?;
+                for (name, ty) in &record.fields {
+                    write!(fmt, "{} = {}, ", name, ty)?
+                }
                 if let Some(rest) = &record.rest {
-                    write!(fmt, ", *{}", rest)?;
+                    write!(fmt, "*{}", rest)?;
                 }
                 write!(fmt, ")")?;
                 Ok(())
             }
-            Self::Tuple(tuple) => todo!(),
-            Self::RecordTuple(record_tuple) => todo!(),
-            Self::Fun(param, ret) => write!(fmt, "{} => {}", param, ret),
-            Self::Union(union) => {
-                fmt_intersperse(fmt, union.fields.iter(), " | ", |(tag, assoc), fmt| {
-                    write!(fmt, "@{} {}", tag, assoc)
-                })?;
-                if let Some(rest) = &union.rest {
-                    write!(fmt, " | {}", rest)?;
+            Self::Tuple(tuple) => {
+                write!(fmt, "(")?;
+                match tuple {
+                    Ordered::NonRow(tuple) => {
+                        for ty in &tuple[..] {
+                            write!(fmt, "{}, ", ty)?;
+                        }
+                    }
+                    Ordered::Row(left, rest, right) => {
+                        for ty in left {
+                            write!(fmt, "{}, ", ty)?;
+                        }
+                        write!(fmt, "*{}, ", rest)?;
+                        for ty in right {
+                            write!(fmt, "{}, ", ty)?;
+                        }
+                    }
                 }
+                write!(fmt, ")")?;
+                Ok(())
+            }
+            Self::RecordTuple(record_tuple) => {
+                write!(fmt, "(")?;
+                match record_tuple {
+                    KeyedOrdered::NonRow(record_tuple) => {
+                        for (name, ty) in &record_tuple[..] {
+                            write!(fmt, "{} = {}, ", name, ty)?;
+                        }
+                    }
+                    KeyedOrdered::Row(left, rest, right) => {
+                        for (name, ty) in left {
+                            write!(fmt, "{} = {}, ", name, ty)?;
+                        }
+                        write!(fmt, "*{}, ", rest)?;
+                        for (name, ty) in right {
+                            write!(fmt, "{} = {}, ", name, ty)?;
+                        }
+                    }
+                }
+                write!(fmt, ")")?;
+                Ok(())
+            }
+            Self::Fun(param, ret) => write!(fmt, "{} -> {}", param, ret),
+            Self::Union(union) => {
+                write!(fmt, "union(")?;
+                for (tag, assoc) in union.fields.iter() {
+                    write!(fmt, "@{} {}, ", tag, assoc)?;
+                }
+                if let Some(rest) = &union.rest {
+                    write!(fmt, "*{}, ", rest)?;
+                }
+                write!(fmt, ")")?;
                 Ok(())
             }
         }

@@ -316,7 +316,7 @@ pub enum TypeError {
 }
 impl Display for TypeError {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        "Type Error".fmt(fmt)
+        write!(fmt, "TypeError")
     }
 }
 impl<'a> Display for Var<'a> {
@@ -326,21 +326,21 @@ impl<'a> Display for Var<'a> {
 }
 impl<'a> Display for KindedVar<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        self.var.fmt(fmt)
+        write!(fmt, "{}", self.var)
     }
 }
 impl<'a> Display for Type<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match &self {
-            Type::Var(var) => var.fmt(fmt),
-            Type::Cons(cons) => cons.fmt(fmt),
+            Type::Var(var) => write!(fmt, "{}", var),
+            Type::Cons(cons) => write!(fmt, "{}", cons),
         }
     }
 }
 impl<'a> Display for MutType<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match &self {
-            Self::Var(var) => var.fmt(fmt),
+            Self::Var(var) => write!(fmt, "{}", var),
             Self::Imm => write!(fmt, "imm"),
             Self::Mut => write!(fmt, "mut"),
         }
@@ -348,30 +348,11 @@ impl<'a> Display for MutType<'a> {
 }
 impl<'a> Display for Scheme<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        write!(fmt, "<")?;
-        fmt_intersperse(fmt, &self.for_all, ", ", KindedVar::fmt)?;
-        write!(fmt, ">")?;
-        self.ty.fmt(fmt)?;
+        write!(fmt, "forall ")?;
+        for var in &self.for_all {
+            write!(fmt, "{}, ", var)?;
+        }
+        write!(fmt, ": {}", &self.ty)?;
         Ok(())
     }
-}
-// replace this with `Iterator::intersperse` after
-// https://github.com/rust-lang/rust/issues/79524 is resolved
-fn fmt_intersperse<I>(
-    fmt: &mut Formatter,
-    iter: I,
-    intersperse: &'static str,
-    mut fmt_mapper: impl FnMut(I::Item, &mut Formatter) -> fmt::Result,
-) -> fmt::Result
-where
-    I: IntoIterator,
-{
-    let mut iter = iter.into_iter().peekable();
-    while let Some(item) = iter.next() {
-        fmt_mapper(item, fmt)?;
-        if iter.peek().is_some() {
-            intersperse.fmt(fmt)?;
-        }
-    }
-    Ok(())
 }
