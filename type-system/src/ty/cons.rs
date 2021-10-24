@@ -61,7 +61,16 @@ impl<'a> Cons<'a> {
                 Cons::RecordTuple(ty) => Some(ty.into_ordered()),
                 _ => None,
             })?,
-            Self::RecordTuple(record_tuple) => todo!(),
+            Self::RecordTuple(record_tuple) => match record_tuple {
+                KeyedOrdered::NonRow(record_tuple) => {
+                    for (_, ty) in record_tuple.iter_mut() {
+                        ty.substitute(subs)?;
+                    }
+                }
+                KeyedOrdered::Row(left, rest, right) => {
+                    todo!();
+                }
+            },
             Self::Union(union) => union.substitute(subs, |cons| match cons {
                 Cons::Union(ty) => Some(ty),
                 _ => None,
@@ -102,7 +111,9 @@ impl<'a> Cons<'a> {
             | (Self::RecordTuple(rec_tup), Self::Tuple(tup)) => subs.compose_with(
                 tup.unify_with(rec_tup.into_ordered(), var_state, |ty| Cons::Tuple(ty))?,
             )?,
-            (Self::RecordTuple(rec_tup1), Self::RecordTuple(rec_tup2)) => todo!(),
+            (Self::RecordTuple(rec_tup1), Self::RecordTuple(rec_tup2)) => subs.compose_with(
+                rec_tup1.unify_with(rec_tup2, var_state, |ty| Cons::RecordTuple(ty))?,
+            )?,
             (Self::Union(union1), Self::Union(union2)) => {
                 subs.compose_with(union1.unify_with(union2, var_state, |ty| Cons::Union(ty))?)?
             }
@@ -216,6 +227,8 @@ impl<'a> Keyed<'a> {
         Ok(subs)
     }
 }
+// TODO: combine Ordered and KeyedOrdered into a single struct, most of their
+// implementation are the same
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Ordered<'a> {
     NonRow(Box<[Type<'a>]>),
@@ -383,6 +396,57 @@ impl<'a> KeyedOrdered<'a> {
                 .chain(right.iter().flat_map(|(_, ty)| ty.free_vars()))
                 .collect(),
         }
+    }
+    pub(super) fn unify_with(
+        self,
+        other: Self,
+        var_state: &mut VarState<'a>,
+        mut cons: impl FnMut(KeyedOrdered) -> Cons,
+    ) -> Result<Subs<'a>, TypeError> {
+        let mut subs = Subs::new();
+        match (self, other) {
+            (Self::NonRow(tup1), Self::NonRow(tup2)) => {
+                if tup1.len() != tup2.len() {
+                    return Err(TypeError::MismatchArity);
+                }
+                let tup1: Vec<_> = tup1.into();
+                let tup2: Vec<_> = tup2.into();
+                for ((name1, ty1), (name2, ty2)) in tup1.into_iter().zip(tup2.into_iter()) {
+                    if name1 != name2 {
+                        return Err(TypeError::MismatchName);
+                    }
+                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                }
+            }
+            (Self::NonRow(tup), Self::Row(left, rest, right))
+            | (Self::Row(left, rest, right), Self::NonRow(tup)) => {
+                let tup: Vec<_> = tup.into();
+                if left.len() + right.len() > tup.len() {
+                    return Err(TypeError::MismatchArity);
+                }
+                let mut left2 = tup;
+                let mut rest2 = left2.split_off(left.len());
+                let right2 = rest2.split_off(rest2.len() - right.len());
+                for ((name1, ty1), (name2, ty2)) in left.into_iter().zip(left2.into_iter()) {
+                    if name1 != name2 {
+                        return Err(TypeError::MismatchName);
+                    }
+                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                }
+                for ((name1, ty1), (name2, ty2)) in right.into_iter().zip(right2.into_iter()) {
+                    if name1 != name2 {
+                        return Err(TypeError::MismatchName);
+                    }
+                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                }
+                subs.insert(
+                    rest,
+                    Type1::Type(Type::Cons(cons(Self::NonRow(rest2.into())))),
+                )
+            }
+            (Self::Row(left1, rest1, right1), Self::Row(left2, rest2, right2)) => todo!(),
+        }
+        Ok(subs)
     }
 }
 fn intersection<K, A, B>(a: &mut HashMap<K, A>, b: &mut HashMap<K, B>) -> HashMap<K, (A, B)>

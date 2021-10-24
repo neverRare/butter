@@ -310,6 +310,7 @@ pub enum TypeError {
     MismatchCons,
     MismatchKind,
     MismatchArity,
+    MismatchName,
     InfiniteOccurrence,
     Overlap,
     UnboundVar,
