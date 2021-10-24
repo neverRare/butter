@@ -8,7 +8,6 @@ use combine::{
     stream::StreamErrorFor,
     ParseError, Parser, RangeStream,
 };
-use std::array;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Char {

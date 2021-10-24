@@ -9,7 +9,6 @@ use combine::{
     stream::StreamErrorFor,
     ParseError, Parser, RangeStream,
 };
-use std::array;
 
 static KEYWORDS: [&str; 17] = [
     "_", "break", "clone", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut",
