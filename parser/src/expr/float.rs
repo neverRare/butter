@@ -132,6 +132,13 @@ mod test {
         assert!(float().easy_parse(src).is_err());
     }
     #[test]
+    fn float_0() {
+        let src = "1.2";
+        let expected = 1.2;
+        let (result, _) = float().easy_parse(src).unwrap();
+        assert!((expected - result).abs() <= <f64>::EPSILON);
+    }
+    #[test]
     fn float_1() {
         let src = "01.2e3";
         let expected = 1.2e3;
