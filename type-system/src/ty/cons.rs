@@ -232,8 +232,6 @@ impl<'a> Keyed<'a> {
         Ok(subs)
     }
 }
-// TODO: combine Ordered and KeyedOrdered into a single struct, most of their
-// implementation are the same
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum OrderedAnd<'a, T> {
     NonRow(Box<[T]>),
@@ -342,7 +340,7 @@ impl<'a, T> OrderedAnd<'a, T> {
                             }
                         }
                     }
-                    _ => return Err(TypeError::MismatchCons),
+                    Some(_) => return Err(TypeError::MismatchCons),
                     None => (),
                 }
             }
