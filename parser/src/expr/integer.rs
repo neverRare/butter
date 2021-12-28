@@ -31,14 +31,9 @@ macro_rules! gen_integer_decoder {
             let mut result: $type = 0;
             for ch in src.chars().filter(|ch| *ch != '_') {
                 let digit = parse_digit(ch, base as u8).unwrap() as $type;
-                let new_result = result
+                result = result
                     .checked_mul(base)
-                    .and_then(|result| result.checked_add(digit));
-                if let Some(new_result) = new_result {
-                    result = new_result;
-                } else {
-                    return None;
-                }
+                    .and_then(|result| result.checked_add(digit))?;
             }
             Some(result)
         }

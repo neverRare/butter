@@ -39,24 +39,21 @@ struct FloatSrc<'a> {
 }
 impl<'a> FloatSrc<'a> {
     fn parse(self) -> Option<f64> {
+        // TODO: use more accurate float parser
         let whole = self.whole.trim_start_matches(&['_', '0'] as &[_]);
-        let digit_count: Option<i32> = self
+        let digit_count: i32 = self
             .whole
             .chars()
             .filter(|ch| *ch != '_')
             .count()
             .try_into()
-            .ok();
-        let exp = match (digit_count, parse_i32(self.exp, 10)) {
-            (Some(digit_count), Some(exp)) => exp
-                .checked_mul(self.exp_sign.into_i32())
-                .and_then(|exp| exp.checked_add(digit_count - 1)),
-            _ => None,
-        };
-        let exp = match exp {
-            Some(exp) if exp <= <f64>::MAX_10_EXP => exp,
-            _ => return None,
-        };
+            .ok()?;
+        let exp = parse_i32(self.exp, 10)?
+            .checked_mul(self.exp_sign.into_i32())
+            .and_then(|exp| exp.checked_add(digit_count - 1))?;
+        if exp > <f64>::MAX_10_EXP {
+            return None;
+        }
         let mantissa_iter = whole
             .chars()
             .chain(self.decimal.chars())
