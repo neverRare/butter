@@ -95,11 +95,11 @@ where
     )
         .skip(not_followed_by(alpha_num()))
         .map(|(whole, decimal, exp)| {
-            let (exp_sign, exp) = exp.unwrap_or_else(Default::default);
+            let (exp_sign, exp) = exp.unwrap_or_default();
             FloatSrc {
-                whole: whole.unwrap_or_else(Default::default),
-                decimal: decimal.unwrap_or_else(Default::default),
-                exp_sign: exp_sign.unwrap_or_else(Default::default),
+                whole: whole.unwrap_or_default(),
+                decimal: decimal.unwrap_or_default(),
+                exp_sign: exp_sign.unwrap_or_default(),
                 exp,
             }
         })

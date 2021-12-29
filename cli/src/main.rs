@@ -22,7 +22,7 @@ fn type_repl() -> io::Result<()> {
     let mut stdout = io::stdout();
     let stdin = io::stdin();
     println!("Butter Type Inference Repl");
-    println!("");
+    println!();
     println!("Enter expression to infer type. Enter :q to exit.");
     loop {
         let mut input = String::new();
@@ -54,7 +54,7 @@ fn parser_repl() -> io::Result<()> {
     let mut stdout = io::stdout();
     let stdin = io::stdin();
     println!("Butter Parser Repl");
-    println!("");
+    println!();
     println!("Enter expression to parse. Use :{{ and :}} to enter multiline block expression.");
     println!("Enter :q to exit.");
     let mut input = String::new();
@@ -68,17 +68,17 @@ fn parser_repl() -> io::Result<()> {
             break;
         } else if input.starts_with(":{") {
             input.clear();
-            input.extend("{\n".chars());
+            input.push_str("{\n");
             loop {
                 multiline_input.clear();
                 print!("... ");
                 stdout.flush()?;
                 stdin.read_line(&mut multiline_input)?;
                 if multiline_input.starts_with(":}") {
-                    input.extend("}\n".chars());
+                    input.push_str("}\n");
                     break;
                 } else {
-                    input.extend(multiline_input.chars());
+                    input.push_str(&multiline_input);
                 }
             }
         }

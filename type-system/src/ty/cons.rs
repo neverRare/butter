@@ -148,7 +148,7 @@ impl<'a> Keyed<'a> {
         subs: &Subs<'a>,
         matcher: impl FnOnce(Cons) -> Option<Keyed>,
     ) -> Result<(), TypeError> {
-        for (_, ty) in &mut self.fields {
+        for ty in self.fields.values_mut() {
             ty.substitute(subs)?;
         }
         if let Some(var) = &self.rest {
@@ -212,7 +212,7 @@ impl<'a> Keyed<'a> {
                 );
             }
             (Some(rest1), map1, None, map2) | (None, map2, Some(rest1), map1) => {
-                if map1.len() != 0 {
+                if map1.is_empty() {
                     return Err(TypeError::MismatchArity);
                 }
                 subs.insert(
@@ -224,7 +224,7 @@ impl<'a> Keyed<'a> {
                 );
             }
             (None, map1, None, map2) => {
-                if map1.len() != 0 || map2.len() != 0 {
+                if map1.is_empty() || map2.is_empty() {
                     return Err(TypeError::MismatchArity);
                 }
             }

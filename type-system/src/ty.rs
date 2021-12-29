@@ -333,7 +333,7 @@ impl<'a> Env<'a> {
             .collect()
     }
     fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
-        for (_, ty) in self.hashmap_mut() {
+        for ty in self.hashmap_mut().values_mut() {
             ty.substitute(subs)?;
         }
         Ok(())
