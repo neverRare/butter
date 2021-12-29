@@ -1,5 +1,4 @@
-use combine::EasyParser;
-use parser::expr_parser;
+use parser::{expr_parser, EasyParser};
 use std::io::{self, Write};
 use structopt::StructOpt;
 use type_system::test_infer;

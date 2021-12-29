@@ -6,7 +6,6 @@ default-run = "butter"
 
 [dependencies]
 structopt = "0.3.25"
-combine = "4.6.1" # TODO: try remove this dependency
 parser = { path = "../parser/" }
 hir = { path = "../hir/" }
 type-system = { path = "../type-system/" }

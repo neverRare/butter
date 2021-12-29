@@ -8,10 +8,12 @@ use combine::{
         char::{space, string},
         range::take_while,
     },
-    sep_end_by, skip_many, skip_many1, ParseError, Parser, RangeStream,
+    sep_end_by, skip_many, skip_many1, ParseError, RangeStream,
 };
 use expr::print_expr_sizes;
 use hir::{expr::Expr, statement::Statement};
+
+pub use combine::{EasyParser, Parser};
 
 mod expr;
 mod ident_keyword;

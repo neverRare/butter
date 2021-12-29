@@ -1,3 +1,4 @@
+use super::FreeVars;
 use crate::ty::{
     Kind, KindedVar, MutType, Subs, Substitutable, Type, Type1, TypeError, Unifiable, Var, VarState,
 };
@@ -8,7 +9,6 @@ use std::{
     iter::once,
     mem::{replace, swap},
 };
-use super::FreeVars;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cons<'a> {
