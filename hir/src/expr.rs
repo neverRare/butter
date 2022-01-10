@@ -1,4 +1,5 @@
 use crate::{
+    all_unique,
     pattern::{Pattern, Var},
     statement::Statement,
 };
@@ -146,6 +147,20 @@ pub struct TupleWithSplat<'a, T> {
 pub enum Record<'a, T> {
     Record(Box<[Field<'a, T>]>),
     RecordWithSplat(RecordWithSplat<'a, T>),
+}
+impl<'a, T> Record<'a, T> {
+    pub fn all_name_unique(&self) -> bool {
+        match self {
+            Self::Record(record) => all_unique(record.iter().map(|field| field.name)),
+            Self::RecordWithSplat(record) => all_unique(
+                record
+                    .left
+                    .iter()
+                    .chain(record.right.iter())
+                    .map(|field| field.name),
+            ),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct RecordWithSplat<'a, T> {

@@ -23,8 +23,8 @@ where
         })
     };
     let fields = || {
-        sep_optional_between(field, lex(char('*')).with(expr(0)), || lex(char(','))).map(
-            |(left, rest_right)| {
+        sep_optional_between(field, lex(char('*')).with(expr(0)), || lex(char(',')))
+            .map(|(left, rest_right)| {
                 let left: Vec<_> = left;
                 match rest_right {
                     Some((rest, right)) => Record::RecordWithSplat(RecordWithSplat {
@@ -34,8 +34,16 @@ where
                     }),
                     None => Record::Record(left.into()),
                 }
-            },
-        )
+            })
+            .and_then(|record| {
+                if record.all_name_unique() {
+                    Ok(record)
+                } else {
+                    Err(<StreamErrorFor<I>>::message_static_message(
+                        "duplicate field name",
+                    ))
+                }
+            })
     };
     between(lex(char('(')), lex(char(')')), fields()).expected("record")
 }
