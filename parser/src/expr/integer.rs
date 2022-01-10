@@ -41,7 +41,6 @@ macro_rules! gen_integer_decoder {
 }
 gen_integer_decoder!(parse_u64, u64);
 gen_integer_decoder!(parse_i64, i64);
-gen_integer_decoder!(parse_i32, i32);
 pub(crate) fn integer_str<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
 where
     I: RangeStream<Token = char, Range = &'a str>,

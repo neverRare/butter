@@ -1,4 +1,4 @@
-use crate::expr::integer::{integer_str, integer_str_allow_underscore, parse_digit, parse_i32};
+use crate::expr::integer::{integer_str, integer_str_allow_underscore};
 use combine::{
     attempt, choice,
     error::StreamError,
