@@ -10,7 +10,6 @@ use combine::{
     stream::StreamErrorFor,
     ParseError, Parser, RangeStream,
 };
-use std::convert::TryInto;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Sign {
@@ -18,16 +17,11 @@ enum Sign {
     Minus,
 }
 impl Sign {
-    fn into_i32(self) -> i32 {
+    fn into_char(self) -> char {
         match self {
-            Self::Plus => 1,
-            Self::Minus => -1,
+            Self::Plus => '+',
+            Self::Minus => '-',
         }
-    }
-}
-impl Default for Sign {
-    fn default() -> Self {
-        Self::Plus
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -39,34 +33,23 @@ struct FloatSrc<'a> {
 }
 impl<'a> FloatSrc<'a> {
     fn parse(self) -> Option<f64> {
-        // TODO: use more accurate float parser
-        let whole = self.whole.trim_start_matches(&['_', '0'] as &[_]);
-        let digit_count: i32 = self
-            .whole
-            .chars()
-            .filter(|ch| *ch != '_')
-            .count()
-            .try_into()
-            .ok()?;
-        let exp = parse_i32(self.exp, 10)?
-            .checked_mul(self.exp_sign.into_i32())
-            .and_then(|exp| exp.checked_add(digit_count - 1))?;
-        if exp > <f64>::MAX_10_EXP {
-            return None;
+        // TODO: avoid string allocation, precision must be kept
+        let src: String = format!(
+            "0{}.{}0e{}0{}",
+            self.whole,
+            self.decimal,
+            self.exp_sign.into_char(),
+            self.exp,
+        )
+        .chars()
+        .filter(|ch| *ch != '_')
+        .collect();
+        let float: f64 = src.parse().unwrap();
+        if float.is_finite() {
+            Some(float)
+        } else {
+            None
         }
-        let mantissa_iter = whole
-            .chars()
-            .chain(self.decimal.chars())
-            .filter(|ch| *ch != '_')
-            .take(<f64>::DIGITS as usize);
-        let mut result = 0.;
-        for (digit, place) in mantissa_iter.zip(1..) {
-            let magnitude = exp - place;
-            let digit = parse_digit(digit, 10).unwrap() as f64;
-            result += digit * 10_f64.powi(magnitude);
-        }
-        assert!(result.is_finite());
-        Some(result)
     }
 }
 fn float_src<'a, I>() -> impl Parser<I, Output = FloatSrc<'a>>
@@ -85,23 +68,25 @@ where
             char('.').skip(digit()),
             char('e'),
             char('E'),
-        ))))),
-        optional(char('.').with(integer_str(10))),
+        )))))
+        .map(Option::unwrap_or_default),
+        optional(char('.').with(integer_str(10))).map(Option::unwrap_or_default),
         optional(
             choice([char('e'), char('E')])
                 .skip(take_while(|ch: char| ch == '_'))
-                .with((optional(sign()), integer_str_allow_underscore(10))),
-        ),
+                .with((
+                    optional(sign()).map(|sign| sign.unwrap_or(Sign::Plus)),
+                    integer_str_allow_underscore(10),
+                )),
+        )
+        .map(|sign_exp| sign_exp.unwrap_or((Sign::Plus, ""))),
     )
         .skip(not_followed_by(alpha_num()))
-        .map(|(whole, decimal, exp)| {
-            let (exp_sign, exp) = exp.unwrap_or_default();
-            FloatSrc {
-                whole: whole.unwrap_or_default(),
-                decimal: decimal.unwrap_or_default(),
-                exp_sign: exp_sign.unwrap_or_default(),
-                exp,
-            }
+        .map(|(whole, decimal, (exp_sign, exp))| FloatSrc {
+            whole,
+            decimal,
+            exp_sign,
+            exp,
         })
 }
 combine::parser! {
