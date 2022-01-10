@@ -5,7 +5,6 @@ use combine::{
 };
 use hir::expr::{Field, Record, RecordWithSplat};
 
-// TODO: handle duplicate name
 pub(crate) fn record<'a, I, T>() -> impl Parser<I, Output = Record<'a, T>>
 where
     I: RangeStream<Token = char, Range = &'a str>,
