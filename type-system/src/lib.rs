@@ -200,24 +200,16 @@ fn infer_expr<'a>(
             let mut typed_left = Vec::with_capacity(left.len());
             let mut typed_right = Vec::with_capacity(right.len());
             let mut fields = HashMap::new();
-            // TODO: this is mostly copy-pasted
-            for field in left {
-                let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
-                subs.compose_with(more_subs)?;
-                fields.insert(field.name, expr.ty);
-                typed_left.push(Field {
-                    name: field.name,
-                    expr: expr.expr,
-                });
-            }
-            for field in right {
-                let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
-                subs.compose_with(more_subs)?;
-                fields.insert(field.name, expr.ty);
-                typed_right.push(Field {
-                    name: field.name,
-                    expr: expr.expr,
-                });
+            for (typed, untyped) in [(&mut typed_left, left), (&mut typed_right, right)] {
+                for field in untyped {
+                    let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
+                    subs.compose_with(more_subs)?;
+                    fields.insert(field.name, expr.ty);
+                    typed.push(Field {
+                        name: field.name,
+                        expr: expr.expr,
+                    });
+                }
             }
             let (more_subs, rest) = infer_expr(*splat, var_state, env)?;
             subs.compose_with(more_subs)?;
