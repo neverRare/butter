@@ -69,8 +69,8 @@ where
             if let Expr::Place(place) = expr {
                 Ok(place)
             } else {
-                Err(<StreamErrorFor<I>>::message_static_message(
-                    "non place expression",
+                Err(<StreamErrorFor<I>>::expected_static_message(
+                    "place expression",
                 ))
             }
         })

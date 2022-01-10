@@ -159,8 +159,8 @@ where
                         .into(),
                     ))
                 } else {
-                    Err(<StreamErrorFor<I>>::message_static_message(
-                        "non place expression",
+                    Err(<StreamErrorFor<I>>::expected_static_message(
+                        "place expression",
                     ))
                 }
             }
@@ -228,7 +228,7 @@ where
             Some(this_precedence) if this_precedence == precedence => Ok(token),
             // TODO: these errors are made for attempt combinator outside, it
             // should be silent
-            Some(_) => Err(<StreamErrorFor<I>>::unexpected_static_message(
+            Some(_) => Err(<StreamErrorFor<I>>::message_static_message(
                 "operator with equal precedence",
             )),
             None => Err(<StreamErrorFor<I>>::expected_static_message(

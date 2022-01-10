@@ -16,7 +16,7 @@ where
         (optional(lex(ident())), lex(char('=')).with(expr(0))).and_then(|(name, expr)| {
             match name.or_else(|| expr.field_name()) {
                 Some(name) => Ok(Field { name, expr }),
-                None => Err(<StreamErrorFor<I>>::unexpected_static_message(
+                None => Err(<StreamErrorFor<I>>::message_static_message(
                     "couldn't infer field name",
                 )),
             }

@@ -88,7 +88,7 @@ where
         (optional(lex(ident())), lex(char('=')).with(pattern())).and_then(|(name, pattern)| {
             match name.or_else(|| pattern.field_name()) {
                 Some(name) => Ok((name, pattern)),
-                None => Err(<StreamErrorFor<I>>::unexpected_static_message(
+                None => Err(<StreamErrorFor<I>>::message_static_message(
                     "couldn't infer field name",
                 )),
             }
