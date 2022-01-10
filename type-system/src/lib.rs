@@ -245,6 +245,24 @@ fn infer_expr<'a>(
                 expr: Expr::Unit,
             },
         )),
+        Expr::Splat(splat) => {
+            let mut subs = Subs::new();
+            let (more_subs, splat) = infer_expr(*splat, var_state, env)?;
+            subs.compose_with(more_subs)?;
+            let var = var_state.new_var();
+            subs.compose_with(Type::Var(var).unify_with(splat.ty, var_state)?)?;
+            Ok((
+                subs,
+                TypedExpr {
+                    ty: Type::Cons(Cons::RecordTuple(OrderedAnd::Row(
+                        Vec::new(),
+                        var,
+                        Vec::new(),
+                    ))),
+                    expr: Expr::Splat(Box::new(splat.expr)),
+                },
+            ))
+        }
         Expr::Assign(_) => todo!(),
         Expr::Unary(_) => todo!(),
         Expr::Binary(_) => todo!(),
@@ -252,7 +270,6 @@ fn infer_expr<'a>(
         Expr::ControlFlow(_) => todo!(),
         Expr::Fun(_) => todo!(),
         Expr::Jump(_) => todo!(),
-        Expr::Splat(_) => todo!(),
         Expr::Tuple(_) => todo!(),
     }
 }

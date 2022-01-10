@@ -72,8 +72,31 @@ impl<'a> Substitutable<'a> for Cons<'a> {
                         ty.substitute(subs)?;
                     }
                 }
-                OrderedAnd::Row(left, rest, right) => {
-                    todo!();
+                OrderedAnd::Row(_, rest, _) => {
+                    let rest = *rest;
+                    match subs.get(rest) {
+                        Some(Type1::Type(Type::Var(_) | Type::Cons(Cons::RecordTuple(_)))) => {
+                            record_tuple.substitute(subs, |cons| match cons {
+                                Cons::RecordTuple(record_tuple) => Some(record_tuple),
+                                _ => unreachable!(),
+                            })?;
+                        }
+                        Some(Type1::Type(Type::Cons(
+                            other @ (Cons::Record(_) | Cons::Tuple(_)),
+                        ))) => {
+                            let record_tuple = match replace(self, Cons::Num) {
+                                Cons::RecordTuple(record_tuple) => record_tuple,
+                                _ => unreachable!(),
+                            };
+                            *self = match other {
+                                Cons::Record(_) => Cons::Record(record_tuple.into_keyed()),
+                                Cons::Tuple(_) => Cons::Tuple(record_tuple.into_ordered()),
+                                _ => unreachable!(),
+                            };
+                            self.substitute(subs)?;
+                        }
+                        _ => return Err(TypeError::MismatchCons),
+                    }
                 }
             },
             Self::Union(union) => union.substitute(subs, |cons| match cons {
