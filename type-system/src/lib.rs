@@ -38,26 +38,20 @@ fn infer_expr<'a>(
     var_state: &mut VarState<'a>,
     env: &Env<'a>,
 ) -> Result<(Subs<'a>, TypedExpr<'a>), TypeError> {
-    match expr {
-        Expr::Literal(literal) => Ok((
-            Subs::new(),
-            TypedExpr {
-                ty: infer_literal(literal),
-                expr: Expr::Literal(literal),
-            },
-        )),
+    let mut subs = Subs::new();
+    let ty_expr = match expr {
+        Expr::Literal(literal) => TypedExpr {
+            ty: infer_literal(literal),
+            expr: Expr::Literal(literal),
+        },
         Expr::Place(PlaceExpr::Var(var)) => match env.get(Var { name: var, id: 0 }) {
-            Some(scheme) => Ok((
-                Subs::new(),
-                TypedExpr {
-                    ty: scheme.instantiate(var_state)?,
-                    expr: Expr::Place(PlaceExpr::Var(var)),
-                },
-            )),
-            None => Err(TypeError::UnboundVar),
+            Some(scheme) => TypedExpr {
+                ty: scheme.instantiate(var_state)?,
+                expr: Expr::Place(PlaceExpr::Var(var)),
+            },
+            None => return Err(TypeError::UnboundVar),
         },
         Expr::Place(PlaceExpr::FieldAccess(expr)) => {
-            let mut subs = Subs::new();
             let name = expr.name;
             let (more_subs, typed_expr) = infer_expr(*expr.expr, var_state, env)?;
             subs.compose_with(more_subs)?;
@@ -69,20 +63,16 @@ fn infer_expr<'a>(
             .unify_with(typed_expr.ty, var_state)?;
             let mut ty = Type::Var(var);
             ty.substitute(&more_subs)?;
-            Ok((
-                subs,
-                TypedExpr {
-                    ty,
-                    expr: typed_expr.expr,
-                },
-            ))
+            TypedExpr {
+                ty,
+                expr: typed_expr.expr,
+            }
         }
         Expr::Place(PlaceExpr::Index(_)) => todo!(),
         Expr::Place(PlaceExpr::Slice(_)) => todo!(),
         Expr::Place(PlaceExpr::Deref(_)) => todo!(),
         Expr::Place(PlaceExpr::Len(_)) => todo!(),
         Expr::Array(elements) => {
-            let mut subs = Subs::new();
             let mut typed_elements = Vec::new();
             let mut ty_var = Type::Var(var_state.new_var());
             let mut arr_ty = Type::Cons(Cons::Array(Box::new(ty_var.clone())));
@@ -102,16 +92,12 @@ fn infer_expr<'a>(
                 arr_ty.substitute(&arr_subs)?;
                 // subs.compose_with(arr_subs)?;
             }
-            Ok((
-                subs,
-                TypedExpr {
-                    ty: arr_ty,
-                    expr: Expr::Array(typed_elements.into()),
-                },
-            ))
+            TypedExpr {
+                ty: arr_ty,
+                expr: Expr::Array(typed_elements.into()),
+            }
         }
         Expr::ArrayRange(range) => {
-            let mut subs = Subs::new();
             let left = match range.left {
                 Some(bound) => {
                     let (more_subs, typed) = infer_expr(*bound.expr, var_state, env)?;
@@ -138,16 +124,12 @@ fn infer_expr<'a>(
                 }
                 None => None,
             };
-            Ok((
-                subs,
-                TypedExpr {
-                    ty: Type::Cons(Cons::Array(Box::new(Type::Cons(Cons::Num)))),
-                    expr: Expr::ArrayRange(Range { left, right }),
-                },
-            ))
+            TypedExpr {
+                ty: Type::Cons(Cons::Array(Box::new(Type::Cons(Cons::Num)))),
+                expr: Expr::ArrayRange(Range { left, right }),
+            }
         }
         Expr::Tag(tag) => {
-            let mut subs = Subs::new();
             let (expr, ty) = match tag.expr {
                 Some(expr) => {
                     let (more_subs, typed) = infer_expr(*expr, var_state, env)?;
@@ -156,23 +138,19 @@ fn infer_expr<'a>(
                 }
                 None => (None, unit()),
             };
-            Ok((
-                subs,
-                TypedExpr {
-                    ty: Type::Cons(Cons::Union(Keyed {
-                        fields: once((tag.tag, ty)).collect(),
-                        rest: None,
-                    })),
-                    expr: Expr::Tag(Tag {
-                        tag: tag.tag,
-                        expr: expr.map(Box::new),
-                    }),
-                },
-            ))
+            TypedExpr {
+                ty: Type::Cons(Cons::Union(Keyed {
+                    fields: once((tag.tag, ty)).collect(),
+                    rest: None,
+                })),
+                expr: Expr::Tag(Tag {
+                    tag: tag.tag,
+                    expr: expr.map(Box::new),
+                }),
+            }
         }
         Expr::Record(Record::Record(record)) => {
             let record: Vec<_> = record.into();
-            let mut subs = Subs::new();
             let mut typed = Vec::with_capacity(record.len());
             let mut fields = HashMap::new();
             for field in record {
@@ -184,19 +162,15 @@ fn infer_expr<'a>(
                     expr: expr.expr,
                 });
             }
-            Ok((
-                subs,
-                TypedExpr {
-                    ty: Type::Cons(Cons::Record(Keyed { fields, rest: None })),
-                    expr: Expr::Record(Record::Record(typed.into())),
-                },
-            ))
+            TypedExpr {
+                ty: Type::Cons(Cons::Record(Keyed { fields, rest: None })),
+                expr: Expr::Record(Record::Record(typed.into())),
+            }
         }
         Expr::Record(Record::RecordWithSplat(record)) => {
             let left: Vec<_> = record.left.into();
             let splat = record.splat;
             let right: Vec<_> = record.right.into();
-            let mut subs = Subs::new();
             let mut typed_left = Vec::with_capacity(left.len());
             let mut typed_right = Vec::with_capacity(right.len());
             let mut fields = HashMap::new();
@@ -215,45 +189,35 @@ fn infer_expr<'a>(
             subs.compose_with(more_subs)?;
             let var = var_state.new_var();
             subs.compose_with(Type::Var(var).unify_with(rest.ty, var_state)?)?;
-            Ok((
-                subs,
-                TypedExpr {
-                    ty: Type::Cons(Cons::Record(Keyed {
-                        fields,
-                        rest: Some(var),
-                    })),
-                    expr: Expr::Record(Record::RecordWithSplat(RecordWithSplat {
-                        left: typed_left.into(),
-                        splat: Box::new(rest.expr),
-                        right: typed_right.into(),
-                    })),
-                },
-            ))
-        }
-        Expr::Unit => Ok((
-            Subs::new(),
             TypedExpr {
-                ty: unit(),
-                expr: Expr::Unit,
-            },
-        )),
+                ty: Type::Cons(Cons::Record(Keyed {
+                    fields,
+                    rest: Some(var),
+                })),
+                expr: Expr::Record(Record::RecordWithSplat(RecordWithSplat {
+                    left: typed_left.into(),
+                    splat: Box::new(rest.expr),
+                    right: typed_right.into(),
+                })),
+            }
+        }
+        Expr::Unit => TypedExpr {
+            ty: unit(),
+            expr: Expr::Unit,
+        },
         Expr::Splat(splat) => {
-            let mut subs = Subs::new();
             let (more_subs, splat) = infer_expr(*splat, var_state, env)?;
             subs.compose_with(more_subs)?;
             let var = var_state.new_var();
             subs.compose_with(Type::Var(var).unify_with(splat.ty, var_state)?)?;
-            Ok((
-                subs,
-                TypedExpr {
-                    ty: Type::Cons(Cons::RecordTuple(OrderedAnd::Row(
-                        Vec::new(),
-                        var,
-                        Vec::new(),
-                    ))),
-                    expr: Expr::Splat(Box::new(splat.expr)),
-                },
-            ))
+            TypedExpr {
+                ty: Type::Cons(Cons::RecordTuple(OrderedAnd::Row(
+                    Vec::new(),
+                    var,
+                    Vec::new(),
+                ))),
+                expr: Expr::Splat(Box::new(splat.expr)),
+            }
         }
         Expr::Assign(_) => todo!(),
         Expr::Unary(_) => todo!(),
@@ -263,7 +227,8 @@ fn infer_expr<'a>(
         Expr::Fun(_) => todo!(),
         Expr::Jump(_) => todo!(),
         Expr::Tuple(_) => todo!(),
-    }
+    };
+    Ok((subs, ty_expr))
 }
 pub fn infer(statements: Vec<Statement<()>>) -> Result<Vec<Statement<Type>>, TypeError> {
     todo!()
