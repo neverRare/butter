@@ -76,7 +76,7 @@ impl Substitutable for Type {
             Self::Var(var) => {
                 if let Some(ty) = subs.get(var) {
                     match ty {
-                        Type1::Type(ty) => *self = ty.clone(),
+                        Type1::Type(ty) => *self = ty,
                         Type1::MutType(_) => return Err(TypeError::MismatchKind),
                     }
                 }

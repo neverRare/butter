@@ -125,24 +125,24 @@ impl Unifiable for Cons {
                 subs.compose_with(ret1.unify_with(*ret2, var_state)?)?;
             }
             (Self::Record(rec1), Self::Record(rec2)) => {
-                subs.compose_with(rec1.unify_with(rec2, var_state, |ty| Cons::Record(ty))?)?
+                subs.compose_with(rec1.unify_with(rec2, var_state, Cons::Record)?)?
             }
             (Self::Record(rec), Self::RecordTuple(rec_tup))
             | (Self::RecordTuple(rec_tup), Self::Record(rec)) => subs.compose_with(
-                rec.unify_with(rec_tup.into_keyed(), var_state, |ty| Cons::Record(ty))?,
+                rec.unify_with(rec_tup.into_keyed(), var_state, Cons::Record)?,
             )?,
             (Self::Tuple(tup1), Self::Tuple(tup2)) => {
-                subs.compose_with(tup1.unify_with(tup2, var_state, |ty| Cons::Tuple(ty))?)?
+                subs.compose_with(tup1.unify_with(tup2, var_state, Cons::Tuple)?)?
             }
             (Self::Tuple(tup), Self::RecordTuple(rec_tup))
             | (Self::RecordTuple(rec_tup), Self::Tuple(tup)) => subs.compose_with(
-                tup.unify_with(rec_tup.into_ordered(), var_state, |ty| Cons::Tuple(ty))?,
+                tup.unify_with(rec_tup.into_ordered(), var_state, Cons::Tuple)?,
             )?,
             (Self::RecordTuple(rec_tup1), Self::RecordTuple(rec_tup2)) => subs.compose_with(
-                rec_tup1.unify_with(rec_tup2, var_state, |ty| Cons::RecordTuple(ty))?,
+                rec_tup1.unify_with(rec_tup2, var_state, Cons::RecordTuple)?,
             )?,
             (Self::Union(union1), Self::Union(union2)) => {
-                subs.compose_with(union1.unify_with(union2, var_state, |ty| Cons::Union(ty))?)?
+                subs.compose_with(union1.unify_with(union2, var_state, Cons::Union)?)?
             }
             _ => return Err(TypeError::MismatchCons),
         }

@@ -19,7 +19,7 @@ where
             if set.contains(&item) {
                 None
             } else {
-                set.insert(item.clone());
+                set.insert(item);
                 Some(set)
             }
         })
