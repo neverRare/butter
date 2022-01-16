@@ -1,15 +1,14 @@
 use combine::{
     error::StreamError,
     not_followed_by,
-    parser::{
-        char::string,
-        range::{recognize, take_while},
-    },
-    satisfy,
+    parser::{char::string, combinator::recognize},
+    satisfy, skip_many,
     stream::StreamErrorFor,
-    ParseError, Parser, RangeStream,
+    ParseError, Parser, Stream,
 };
+use string_cache::DefaultAtom;
 
+// TODO: maybe intern these
 static KEYWORDS: [&str; 17] = [
     "_", "break", "clone", "continue", "else", "false", "for", "if", "in", "loop", "match", "mut",
     "ref", "return", "true", "void", "while",
@@ -17,32 +16,39 @@ static KEYWORDS: [&str; 17] = [
 fn rest(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'
 }
-pub(crate) fn ident_or_keyword<'a, I>() -> impl Parser<I, Output = &'a str>
+pub(crate) fn ident_or_keyword<I>() -> impl Parser<I, Output = DefaultAtom>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let start = move |ch: char| rest(ch) && !('0'..='9').contains(&ch);
-    recognize((satisfy(start), take_while(rest))).expected("identifier")
+    recognize((satisfy(start), skip_many(satisfy(rest))))
+        .map(|ident: String| DefaultAtom::from(ident))
+        .expected("identifier")
 }
-pub(crate) fn keyword<'a, I>(keyword: &'static str) -> impl Parser<I, Output = &'a str>
+pub(crate) fn keyword<I>(keyword: &'static str) -> impl Parser<I, Output = ()>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     debug_assert!(KEYWORDS.into_iter().any(|it| keyword == it));
-    string(keyword).skip(not_followed_by(satisfy(rest)))
+    string(keyword)
+        .skip(not_followed_by(satisfy(rest)))
+        .map(|_| ())
 }
-pub(crate) fn ident<'a, I>() -> impl Parser<I, Output = &'a str>
+pub(crate) fn ident<I>() -> impl Parser<I, Output = DefaultAtom>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    ident_or_keyword::<'a>().and_then(|ident| {
-        if KEYWORDS.into_iter().any(|it| ident == it) {
+    ident_or_keyword().and_then(|ident| {
+        if KEYWORDS
+            .into_iter()
+            .any(|it| ident == DefaultAtom::from(it))
+        {
             Err(<StreamErrorFor<I>>::unexpected_static_message("keyword"))
         } else {
-            Ok(ident)
+            Ok(DefaultAtom::from(ident))
         }
     })
 }
@@ -50,10 +56,11 @@ where
 mod test {
     use crate::ident_keyword::{ident, ident_or_keyword, keyword};
     use combine::EasyParser;
+    use string_cache::DefaultAtom;
 
     #[test]
     fn test_keyword() {
-        assert_eq!(keyword("true").easy_parse("true"), Ok(("true", "")));
+        assert_eq!(keyword("true").easy_parse("true"), Ok(((), "")));
     }
     #[test]
     fn non_keyword() {
@@ -61,7 +68,10 @@ mod test {
     }
     #[test]
     fn test_ident_or_keyword() {
-        assert_eq!(ident_or_keyword().easy_parse("foo"), Ok(("foo", "")));
+        assert_eq!(
+            ident_or_keyword().easy_parse("foo"),
+            Ok((DefaultAtom::from("foo"), ""))
+        );
     }
     #[test]
     fn non_ident() {

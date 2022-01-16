@@ -1,15 +1,16 @@
 use combine::{
     attempt, choice,
     error::StreamError,
-    not_followed_by,
+    many1, not_followed_by,
     parser::{
         char::{alpha_num, char},
-        range::{recognize, take_while, take_while1},
+        combinator::recognize,
     },
-    satisfy,
+    satisfy, skip_many,
     stream::StreamErrorFor,
-    ParseError, Parser, RangeStream,
+    ParseError, Parser, Stream,
 };
+use string_cache::DefaultAtom;
 
 pub(crate) fn parse_digit(ch: char, base: u8) -> Option<u8> {
     let (lower_ch, lower_bound) = match ch {
@@ -41,42 +42,48 @@ macro_rules! gen_integer_decoder {
 }
 gen_integer_decoder!(parse_u64, u64);
 gen_integer_decoder!(parse_i64, i64);
-pub(crate) fn integer_str<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
+pub(crate) fn integer_str<I>(base: u8) -> impl Parser<I, Output = DefaultAtom>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     recognize((
         satisfy(move |ch| parse_digit(ch, base).is_some()),
-        take_while(move |ch| parse_digit(ch, base).is_some() || ch == '_'),
+        skip_many(satisfy(move |ch| {
+            parse_digit(ch, base).is_some() || ch == '_'
+        })),
     ))
+    .map(|int: String| DefaultAtom::from(int))
 }
-pub(crate) fn integer_str_allow_underscore<'a, I>(base: u8) -> impl Parser<I, Output = &'a str>
+pub(crate) fn integer_str_allow_underscore<I>(base: u8) -> impl Parser<I, Output = DefaultAtom>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    take_while1(move |ch| parse_digit(ch, base).is_some() || ch == '_')
+    many1(satisfy(move |ch| {
+        parse_digit(ch, base).is_some() || ch == '_'
+    }))
+    .map(|int: String| DefaultAtom::from(int))
 }
 // TODO: clean this up, it looks ugly
 macro_rules! gen_integer_parser {
     ($ident:ident, $parser:expr, $type:ty) => {
         combine::parser! {
-            pub(crate) fn $ident['a, I]()(I) -> $type
+            pub(crate) fn $ident[I]()(I) -> $type
             where [
-                I: RangeStream<Token = char, Range = &'a str>,
+                I: Stream<Token = char>,
                 I::Error: ParseError<I::Token, I::Range, I::Position>,
             ] {
                 combine::parser! {
-                    fn integer['a, I, P](num_parser: P, base: $type)(I) -> $type
+                    fn integer[I, P](num_parser: P, base: $type)(I) -> $type
                     where [
-                        I: RangeStream<Token = char, Range = &'a str>,
+                        I: Stream<Token = char>,
                         I::Error: ParseError<I::Token, I::Range, I::Position>,
-                        P: Parser<I, Output = &'a str>
+                        P: Parser<I, Output = DefaultAtom>
                     ] {
                         num_parser
-                            .and_then(|src: &str| {
-                                match $parser(src, *base) {
+                            .and_then(|src: DefaultAtom| {
+                                match $parser(src.as_ref(), *base) {
                                     Some(result) => Ok(result),
                                     None => Err(<StreamErrorFor<I>>::message_static_message("integer overflow")),
                                 }

@@ -3,13 +3,12 @@ use combine::{
     attempt, choice,
     error::StreamError,
     look_ahead, not_followed_by, optional,
-    parser::{
-        char::{alpha_num, char, digit},
-        range::take_while,
-    },
+    parser::char::{alpha_num, char, digit},
+    skip_many,
     stream::StreamErrorFor,
-    ParseError, Parser, RangeStream,
+    ParseError, Parser, Stream,
 };
+use string_cache::DefaultAtom;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Sign {
@@ -24,22 +23,22 @@ impl Sign {
         }
     }
 }
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct FloatSrc<'a> {
-    whole: &'a str,
-    decimal: &'a str,
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct FloatSrc {
+    whole: DefaultAtom,
+    decimal: DefaultAtom,
     exp_sign: Sign,
-    exp: &'a str,
+    exp: DefaultAtom,
 }
-impl<'a> FloatSrc<'a> {
+impl FloatSrc {
     fn parse(self) -> Option<f64> {
         // TODO: avoid string allocation, precision must be kept
         let src: String = format!(
             "0{}.{}0e{}0{}",
-            self.whole,
-            self.decimal,
+            self.whole.as_ref(),
+            self.decimal.as_ref(),
             self.exp_sign.into_char(),
-            self.exp,
+            self.exp.as_ref(),
         )
         .chars()
         .filter(|ch| *ch != '_')
@@ -52,9 +51,9 @@ impl<'a> FloatSrc<'a> {
         }
     }
 }
-fn float_src<'a, I>() -> impl Parser<I, Output = FloatSrc<'a>>
+fn float_src<I>() -> impl Parser<I, Output = FloatSrc>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let sign = || {
@@ -73,13 +72,13 @@ where
         optional(char('.').with(integer_str(10))).map(Option::unwrap_or_default),
         optional(
             choice([char('e'), char('E')])
-                .skip(take_while(|ch: char| ch == '_'))
+                .skip(skip_many(char('_')))
                 .with((
                     optional(sign()).map(|sign| sign.unwrap_or(Sign::Plus)),
                     integer_str_allow_underscore(10),
                 )),
         )
-        .map(|sign_exp| sign_exp.unwrap_or((Sign::Plus, ""))),
+        .map(|sign_exp| sign_exp.unwrap_or((Sign::Plus, DefaultAtom::from("")))),
     )
         .skip(not_followed_by(alpha_num()))
         .map(|(whole, decimal, (exp_sign, exp))| FloatSrc {
@@ -90,9 +89,9 @@ where
         })
 }
 combine::parser! {
-    pub(crate) fn float['a, I]()(I) -> f64
+    pub(crate) fn float[I]()(I) -> f64
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
         float_src()

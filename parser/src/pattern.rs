@@ -5,14 +5,15 @@ use crate::{
 };
 use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
-    stream::StreamErrorFor, ParseError, Parser, RangeStream,
+    stream::StreamErrorFor, ParseError, Parser, Stream,
 };
 use hir::pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPattern, Var};
 use std::collections::HashMap;
+use string_cache::DefaultAtom;
 
-fn var<'a, I, T>() -> impl Parser<I, Output = Var<'a, T>>
+fn var<I, T>() -> impl Parser<I, Output = Var<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -22,15 +23,15 @@ where
         lex(ident()),
     )
         .map(|(bind_to_ref, mutability, ident)| Var {
-            ident,
+            ident: DefaultAtom::from(ident),
             mutable: mutability.is_some(),
             bind_to_ref: bind_to_ref.is_some(),
             ty: T::default(),
         })
 }
-fn list<'a, I, T>() -> impl Parser<I, Output = ListPattern<'a, T>>
+fn list<I, T>() -> impl Parser<I, Output = ListPattern<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -48,25 +49,25 @@ where
         },
     )
 }
-fn array<'a, I, T>() -> impl Parser<I, Output = ListPattern<'a, T>>
+fn array<I, T>() -> impl Parser<I, Output = ListPattern<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     between(lex(char('[')), lex(char(']')), list()).expected("array pattern")
 }
-fn tuple<'a, I, T>() -> impl Parser<I, Output = ListPattern<'a, T>>
+fn tuple<I, T>() -> impl Parser<I, Output = ListPattern<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     between(lex(char('(')), lex(char(')')), list()).expected("tuple pattern")
 }
-pub(crate) fn parameter<'a, I, T>() -> impl Parser<I, Output = Box<[Var<'a, T>]>>
+pub(crate) fn parameter<I, T>() -> impl Parser<I, Output = Box<[Var<T>]>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -78,16 +79,16 @@ where
     .map(Vec::into)
     .expected("parameter")
 }
-fn record<'a, I, T>() -> impl Parser<I, Output = RecordPattern<'a, T>>
+fn record<I, T>() -> impl Parser<I, Output = RecordPattern<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(pattern())).and_then(|(name, pattern)| {
-            match name.or_else(|| pattern.field_name()) {
-                Some(name) => Ok((name, pattern)),
+            match name.map(DefaultAtom::from).or_else(|| pattern.field_name()) {
+                Some(name) => Ok((DefaultAtom::from(name), pattern)),
                 None => Err(<StreamErrorFor<I>>::message_static_message(
                     "couldn't infer field name",
                 )),
@@ -116,9 +117,9 @@ where
     })
     .expected("record pattern")
 }
-fn pattern_<'a, I, T>() -> impl Parser<I, Output = Pattern<'a, T>>
+fn pattern_<I, T>() -> impl Parser<I, Output = Pattern<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -127,7 +128,7 @@ where
             .with((lex(ident()), optional(pattern())))
             .map(|(tag, pattern)| {
                 Pattern::Tag(TaggedPattern {
-                    tag,
+                    tag: DefaultAtom::from(tag),
                     pattern: pattern.map(Box::new),
                 })
             }),
@@ -150,9 +151,9 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn pattern['a, I, T]()(I) -> Pattern<'a, T>
+    pub(crate) fn pattern[I, T]()(I) -> Pattern< T>
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         T: Default,
     ] {

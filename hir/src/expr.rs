@@ -3,6 +3,7 @@ use crate::{
     pattern::{Pattern, Var},
     statement::Statement,
 };
+use string_cache::DefaultAtom;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
@@ -13,33 +14,33 @@ pub enum Literal {
     Float(f64),
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Expr<'a, T> {
+pub enum Expr<T> {
     Literal(Literal),
 
-    Tag(Tag<'a, T>),
+    Tag(Tag<T>),
 
-    Assign(Box<[Assign<'a, T>]>),
+    Assign(Box<[Assign<T>]>),
 
-    Array(Box<[Element<'a, T>]>),
-    ArrayRange(Range<'a, T>),
+    Array(Box<[Element<T>]>),
+    ArrayRange(Range<T>),
 
     Unit,
-    Splat(Box<Expr<'a, T>>),
-    Record(Record<'a, T>),
-    Tuple(Tuple<'a, T>),
+    Splat(Box<Expr<T>>),
+    Record(Record<T>),
+    Tuple(Tuple<T>),
 
-    Unary(Unary<'a, T>),
-    Binary(Binary<'a, T>),
-    Place(PlaceExpr<'a, T>),
+    Unary(Unary<T>),
+    Binary(Binary<T>),
+    Place(PlaceExpr<T>),
 
-    Call(Call<'a, T>),
+    Call(Call<T>),
 
-    ControlFlow(ControlFlow<'a, T>),
-    Fun(Fun<'a, T>),
-    Jump(Jump<'a, T>),
+    ControlFlow(ControlFlow<T>),
+    Fun(Fun<T>),
+    Jump(Jump<T>),
 }
-impl<'a, T> Expr<'a, T> {
-    pub fn field_name(&self) -> Option<&'a str> {
+impl<T> Expr<T> {
+    pub fn field_name(&self) -> Option<DefaultAtom> {
         match self {
             Self::Tag(tag) => tag.expr.as_ref().and_then(|expr| Expr::field_name(expr)),
             Self::Unary(unary) => unary.expr.field_name(),
@@ -49,18 +50,18 @@ impl<'a, T> Expr<'a, T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum PlaceExpr<'a, T> {
-    Var(&'a str),
-    FieldAccess(FieldAccess<'a, T>),
-    Index(Index<'a, T>),
-    Slice(Slice<'a, T>),
-    Deref(Box<Expr<'a, T>>),
-    Len(Box<Expr<'a, T>>),
+pub enum PlaceExpr<T> {
+    Var(DefaultAtom),
+    FieldAccess(FieldAccess<T>),
+    Index(Index<T>),
+    Slice(Slice<T>),
+    Deref(Box<Expr<T>>),
+    Len(Box<Expr<T>>),
 }
-impl<'a, T> PlaceExpr<'a, T> {
-    pub fn field_name(&self) -> Option<&'a str> {
+impl<T> PlaceExpr<T> {
+    pub fn field_name(&self) -> Option<DefaultAtom> {
         match self {
-            Self::Var(var) => Some(var),
+            Self::Var(var) => Some(var.clone()),
             Self::FieldAccess(field) => field.field_name(),
             Self::Deref(deref) => deref.field_name(),
             _ => None,
@@ -68,20 +69,20 @@ impl<'a, T> PlaceExpr<'a, T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Fun<'a, T> {
-    pub param: Box<[Var<'a, T>]>,
-    pub body: Box<Expr<'a, T>>,
+pub struct Fun<T> {
+    pub param: Box<[Var<T>]>,
+    pub body: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Jump<'a, T> {
-    Break(Option<Box<Expr<'a, T>>>),
+pub enum Jump<T> {
+    Break(Option<Box<Expr<T>>>),
     Continue,
-    Return(Option<Box<Expr<'a, T>>>),
+    Return(Option<Box<Expr<T>>>),
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Unary<'a, T> {
+pub struct Unary<T> {
     pub kind: UnaryType,
-    pub expr: Box<Expr<'a, T>>,
+    pub expr: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UnaryType {
@@ -92,10 +93,10 @@ pub enum UnaryType {
     Clone,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Binary<'a, T> {
+pub struct Binary<T> {
     pub kind: BinaryType,
-    pub left: Box<Expr<'a, T>>,
-    pub right: Box<Expr<'a, T>>,
+    pub left: Box<Expr<T>>,
+    pub right: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BinaryType {
@@ -118,13 +119,13 @@ pub enum BinaryType {
     Concatenate,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Index<'a, T> {
-    pub expr: Box<Expr<'a, T>>,
-    pub index: Box<Expr<'a, T>>,
+pub struct Index<T> {
+    pub expr: Box<Expr<T>>,
+    pub index: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Element<'a, T> {
-    pub expr: Expr<'a, T>,
+pub struct Element<T> {
+    pub expr: Expr<T>,
     pub kind: ElementKind,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -133,123 +134,123 @@ pub enum ElementKind {
     Splat,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Tuple<'a, T> {
-    Tuple(Box<[Expr<'a, T>]>),
-    TupleWithSplat(TupleWithSplat<'a, T>),
+pub enum Tuple<T> {
+    Tuple(Box<[Expr<T>]>),
+    TupleWithSplat(TupleWithSplat<T>),
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct TupleWithSplat<'a, T> {
-    pub left: Box<[Expr<'a, T>]>,
-    pub splat: Box<Expr<'a, T>>,
-    pub right: Box<[Expr<'a, T>]>,
+pub struct TupleWithSplat<T> {
+    pub left: Box<[Expr<T>]>,
+    pub splat: Box<Expr<T>>,
+    pub right: Box<[Expr<T>]>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Record<'a, T> {
-    Record(Box<[Field<'a, T>]>),
-    RecordWithSplat(RecordWithSplat<'a, T>),
+pub enum Record<T> {
+    Record(Box<[Field<T>]>),
+    RecordWithSplat(RecordWithSplat<T>),
 }
-impl<'a, T> Record<'a, T> {
+impl<T> Record<T> {
     pub fn all_name_unique(&self) -> bool {
         match self {
-            Self::Record(record) => all_unique(record.iter().map(|field| field.name)),
+            Self::Record(record) => all_unique(record.iter().map(|field| field.name.clone())),
             Self::RecordWithSplat(record) => all_unique(
                 record
                     .left
                     .iter()
                     .chain(record.right.iter())
-                    .map(|field| field.name),
+                    .map(|field| field.name.clone()),
             ),
         }
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct RecordWithSplat<'a, T> {
-    pub left: Box<[Field<'a, T>]>,
-    pub splat: Box<Expr<'a, T>>,
-    pub right: Box<[Field<'a, T>]>,
+pub struct RecordWithSplat<T> {
+    pub left: Box<[Field<T>]>,
+    pub splat: Box<Expr<T>>,
+    pub right: Box<[Field<T>]>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Field<'a, T> {
-    pub name: &'a str,
-    pub expr: Expr<'a, T>,
+pub struct Field<T> {
+    pub name: DefaultAtom,
+    pub expr: Expr<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum ControlFlow<'a, T> {
-    Block(Block<'a, T>),
-    If(If<'a, T>),
-    For(For<'a, T>),
-    While(While<'a, T>),
-    Loop(Block<'a, T>),
-    Match(Match<'a, T>),
+pub enum ControlFlow<T> {
+    Block(Block<T>),
+    If(If<T>),
+    For(For<T>),
+    While(While<T>),
+    Loop(Block<T>),
+    Match(Match<T>),
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Block<'a, T> {
-    pub statement: Box<[Statement<'a, T>]>,
-    pub expr: Option<Box<Expr<'a, T>>>,
+pub struct Block<T> {
+    pub statement: Box<[Statement<T>]>,
+    pub expr: Option<Box<Expr<T>>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct If<'a, T> {
-    pub condition: Box<Expr<'a, T>>,
-    pub body: Block<'a, T>,
-    pub else_part: Option<Box<ControlFlow<'a, T>>>,
+pub struct If<T> {
+    pub condition: Box<Expr<T>>,
+    pub body: Block<T>,
+    pub else_part: Option<Box<ControlFlow<T>>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct For<'a, T> {
-    pub pattern: Pattern<'a, T>,
-    pub expr: Box<Expr<'a, T>>,
-    pub body: Block<'a, T>,
+pub struct For<T> {
+    pub pattern: Pattern<T>,
+    pub expr: Box<Expr<T>>,
+    pub body: Block<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct While<'a, T> {
-    pub condition: Box<Expr<'a, T>>,
-    pub body: Block<'a, T>,
+pub struct While<T> {
+    pub condition: Box<Expr<T>>,
+    pub body: Block<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Match<'a, T> {
-    pub expr: Box<Expr<'a, T>>,
-    pub arm: Box<[MatchArm<'a, T>]>,
+pub struct Match<T> {
+    pub expr: Box<Expr<T>>,
+    pub arm: Box<[MatchArm<T>]>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct MatchArm<'a, T> {
-    pub pattern: Pattern<'a, T>,
-    pub expr: Box<Expr<'a, T>>,
+pub struct MatchArm<T> {
+    pub pattern: Pattern<T>,
+    pub expr: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Assign<'a, T> {
-    pub place: Box<PlaceExpr<'a, T>>,
-    pub expr: Box<Expr<'a, T>>,
+pub struct Assign<T> {
+    pub place: Box<PlaceExpr<T>>,
+    pub expr: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct FieldAccess<'a, T> {
-    pub expr: Box<Expr<'a, T>>,
-    pub name: &'a str,
+pub struct FieldAccess<T> {
+    pub expr: Box<Expr<T>>,
+    pub name: DefaultAtom,
 }
-impl<'a, T> FieldAccess<'a, T> {
-    pub fn field_name(&self) -> Option<&'a str> {
-        Some(self.name)
+impl<T> FieldAccess<T> {
+    pub fn field_name(&self) -> Option<DefaultAtom> {
+        Some(self.name.clone())
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Slice<'a, T> {
-    pub expr: Box<Expr<'a, T>>,
-    pub range: Range<'a, T>,
+pub struct Slice<T> {
+    pub expr: Box<Expr<T>>,
+    pub range: Range<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Call<'a, T> {
-    pub expr: Box<Expr<'a, T>>,
-    pub arg: Arg<'a, T>,
+pub struct Call<T> {
+    pub expr: Box<Expr<T>>,
+    pub arg: Arg<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Arg<'a, T> {
+pub enum Arg<T> {
     Unit,
-    Splat(Box<Expr<'a, T>>),
-    Record(Record<'a, T>),
-    Tuple(Tuple<'a, T>),
+    Splat(Box<Expr<T>>),
+    Record(Record<T>),
+    Tuple(Tuple<T>),
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Tag<'a, T> {
-    pub tag: &'a str,
-    pub expr: Option<Box<Expr<'a, T>>>,
+pub struct Tag<T> {
+    pub tag: DefaultAtom,
+    pub expr: Option<Box<Expr<T>>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BoundType {
@@ -257,12 +258,12 @@ pub enum BoundType {
     Exclusive,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Bound<'a, T> {
+pub struct Bound<T> {
     pub kind: BoundType,
-    pub expr: Box<Expr<'a, T>>,
+    pub expr: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Range<'a, T> {
-    pub left: Option<Bound<'a, T>>,
-    pub right: Option<Bound<'a, T>>,
+pub struct Range<T> {
+    pub left: Option<Bound<T>>,
+    pub right: Option<Bound<T>>,
 }

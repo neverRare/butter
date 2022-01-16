@@ -6,7 +6,7 @@ use combine::{
     parser::char::{char, hex_digit},
     satisfy,
     stream::StreamErrorFor,
-    ParseError, Parser, RangeStream,
+    ParseError, Parser, Stream,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -14,9 +14,9 @@ enum Char {
     Char(char),
     Byte(u8),
 }
-fn char_inside<'a, I>(delimiter: char) -> impl Parser<I, Output = Char>
+fn char_inside<I>(delimiter: char) -> impl Parser<I, Output = Char>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     let simple_escape = || {
@@ -43,9 +43,9 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn char_literal['a, I]()(I) -> u64
+    pub(crate) fn char_literal[I]()(I) -> u64
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
         between(char('\''), char('\''), char_inside('\'')).and_then(|ch| match ch {
@@ -86,9 +86,9 @@ impl Extend<Char> for StringLiteral {
         }
     }
 }
-pub(crate) fn string_literal<'a, I>() -> impl Parser<I, Output = Vec<u8>>
+pub(crate) fn string_literal<I>() -> impl Parser<I, Output = Vec<u8>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     between(char('"'), char('"'), many(char_inside('"')))

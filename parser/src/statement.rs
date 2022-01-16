@@ -11,22 +11,20 @@ use combine::{
     parser::char::{char, string},
     sep_by1,
     stream::StreamErrorFor,
-    ParseError, Parser, RangeStream,
+    ParseError, Parser, Stream,
 };
 use hir::{
     expr::{Assign, Expr, Fun},
     statement::{Declare, FunDeclare, Statement},
 };
 
-pub(crate) enum StatementReturn<'a, T> {
-    Statement(Statement<'a, T>),
-    Return(Expr<'a, T>),
+pub(crate) enum StatementReturn<T> {
+    Statement(Statement<T>),
+    Return(Expr<T>),
 }
-fn statement_return_<'a, I, P, T>(
-    end_look_ahead: P,
-) -> impl Parser<I, Output = StatementReturn<'a, T>>
+fn statement_return_<I, P, T>(end_look_ahead: P) -> impl Parser<I, Output = StatementReturn<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     P: Parser<I>,
     T: Default,
@@ -130,9 +128,9 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn statement_return['a, I, P, T](end_look_ahead: P)(I) -> StatementReturn<'a, T>
+    pub(crate) fn statement_return[I, P, T](end_look_ahead: P)(I) -> StatementReturn< T>
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         P: Parser<I>,
         T: Default,
@@ -140,9 +138,9 @@ combine::parser! {
         statement_return_(end_look_ahead)
     }
 }
-pub(crate) fn statement<'a, I, T>() -> impl Parser<I, Output = Statement<'a, T>>
+pub(crate) fn statement<I, T>() -> impl Parser<I, Output = Statement<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -155,14 +153,15 @@ where
 mod test {
     use crate::{
         statement::{statement, Assign, Expr},
-        Statement,
+        var_expr, var_place, Statement,
     };
     use combine::EasyParser;
     use hir::{
-        expr::{Literal, PlaceExpr},
+        expr::Literal,
         pattern::{Pattern, Var},
         statement::Declare,
     };
+    use string_cache::DefaultAtom;
 
     #[test]
     fn parallel_assign() {
@@ -170,12 +169,12 @@ mod test {
         let expected: Statement<()> = Statement::Expr(Expr::Assign(
             vec![
                 Assign {
-                    place: Box::new(PlaceExpr::Var("foo")),
-                    expr: Box::new(Expr::Place(PlaceExpr::Var("bar"))),
+                    place: Box::new(var_place("foo")),
+                    expr: Box::new(var_expr("bar")),
                 },
                 Assign {
-                    place: Box::new(PlaceExpr::Var("bar")),
-                    expr: Box::new(Expr::Place(PlaceExpr::Var("foo"))),
+                    place: Box::new(var_place("bar")),
+                    expr: Box::new(var_expr("foo")),
                 },
             ]
             .into(),
@@ -187,11 +186,11 @@ mod test {
         let src = "foo <- bar <- baz;";
         let expected: Statement<()> = Statement::Expr(Expr::Assign(
             vec![Assign {
-                place: Box::new(PlaceExpr::Var("foo")),
+                place: Box::new(var_place("foo")),
                 expr: Box::new(Expr::Assign(
                     vec![Assign {
-                        place: Box::new(PlaceExpr::Var("bar")),
-                        expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+                        place: Box::new(var_place("bar")),
+                        expr: Box::new(var_expr("baz")),
                     }]
                     .into(),
                 )),
@@ -205,7 +204,7 @@ mod test {
         let src = "foo = 10;";
         let expected: Statement<()> = Statement::Declare(Declare {
             pattern: Pattern::Var(Var {
-                ident: "foo",
+                ident: DefaultAtom::from("foo"),
                 mutable: false,
                 bind_to_ref: false,
                 ty: (),

@@ -1,10 +1,10 @@
 use crate::{expr::expr, lex, sep_optional_between, size_of};
-use combine::{between, parser::char::char, ParseError, Parser, RangeStream};
+use combine::{between, parser::char::char, ParseError, Parser, Stream};
 use hir::expr::{Tuple, TupleWithSplat};
 
-pub(crate) fn tuple<'a, I, T>() -> impl Parser<I, Output = Tuple<'a, T>>
+pub(crate) fn tuple<I, T>() -> impl Parser<I, Output = Tuple<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {

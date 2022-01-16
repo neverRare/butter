@@ -9,21 +9,22 @@ use std::{
     iter::once,
     mem::{replace, swap},
 };
+use string_cache::DefaultAtom;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Cons<'a> {
+pub enum Cons {
     Num,
     Bool,
-    Ref(MutType<'a>, Box<Type<'a>>),
-    Array(Box<Type<'a>>),
-    Fun(Box<Type<'a>>, Box<Type<'a>>),
-    RecordTuple(OrderedAnd<'a, (&'a str, Type<'a>)>),
-    Record(Keyed<'a>),
-    Tuple(OrderedAnd<'a, Type<'a>>),
-    Union(Keyed<'a>),
+    Ref(MutType, Box<Type>),
+    Array(Box<Type>),
+    Fun(Box<Type>, Box<Type>),
+    RecordTuple(OrderedAnd<(DefaultAtom, Type)>),
+    Record(Keyed),
+    Tuple(OrderedAnd<Type>),
+    Union(Keyed),
 }
-impl<'a> FreeVars<'a> for Cons<'a> {
-    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
+impl FreeVars for Cons {
+    fn free_vars(&self) -> HashSet<KindedVar> {
         match self {
             Self::Num | Self::Bool => HashSet::new(),
             Self::Ref(mutability, ty) => [mutability.free_vars(), ty.free_vars()]
@@ -43,8 +44,8 @@ impl<'a> FreeVars<'a> for Cons<'a> {
         }
     }
 }
-impl<'a> Substitutable<'a> for Cons<'a> {
-    fn substitute(&mut self, subs: &Subs<'a>) -> Result<(), TypeError> {
+impl Substitutable for Cons {
+    fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
         match self {
             Self::Num | Self::Bool => (),
             Self::Ref(mutability, ty) => {
@@ -73,7 +74,7 @@ impl<'a> Substitutable<'a> for Cons<'a> {
                     }
                 }
                 OrderedAnd::Row(_, rest, _) => {
-                    let rest = *rest;
+                    // let rest = rest.clone();
                     match subs.get(rest) {
                         Some(Type1::Type(Type::Var(_) | Type::Cons(Cons::RecordTuple(_)))) => {
                             record_tuple.substitute(subs, |cons| match cons {
@@ -107,8 +108,8 @@ impl<'a> Substitutable<'a> for Cons<'a> {
         Ok(())
     }
 }
-impl<'a> Unifiable<'a> for Cons<'a> {
-    fn unify_with(self, other: Self, var_state: &mut VarState<'a>) -> Result<Subs<'a>, TypeError> {
+impl Unifiable for Cons {
+    fn unify_with(self, other: Self, var_state: &mut VarState) -> Result<Subs, TypeError> {
         let mut subs = Subs::new();
         match (self, other) {
             (Self::Bool, Self::Bool) | (Self::Num, Self::Num) => (),
@@ -149,33 +150,33 @@ impl<'a> Unifiable<'a> for Cons<'a> {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub struct Keyed<'a> {
-    pub fields: HashMap<&'a str, Type<'a>>,
-    pub rest: Option<Var<'a>>,
+pub struct Keyed {
+    pub fields: HashMap<DefaultAtom, Type>,
+    pub rest: Option<Var>,
 }
-impl<'a> FreeVars<'a> for Keyed<'a> {
-    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
+impl FreeVars for Keyed {
+    fn free_vars(&self) -> HashSet<KindedVar> {
         self.fields
             .values()
             .flat_map(Type::free_vars)
             .chain(self.rest.iter().map(|var| KindedVar {
                 kind: Kind::Type,
-                var: *var,
+                var: var.clone(),
             }))
             .collect()
     }
 }
-impl<'a> Keyed<'a> {
+impl Keyed {
     fn substitute(
         &mut self,
-        subs: &Subs<'a>,
+        subs: &Subs,
         matcher: impl FnOnce(Cons) -> Option<Keyed>,
     ) -> Result<(), TypeError> {
         for ty in self.fields.values_mut() {
             ty.substitute(subs)?;
         }
         if let Some(var) = &self.rest {
-            let var = *var;
+            // let var = var.clone();
             match subs.get(var) {
                 Some(Type1::Type(Type::Var(new_var))) => {
                     self.rest = Some(new_var);
@@ -189,7 +190,7 @@ impl<'a> Keyed<'a> {
                         if fields.contains_key(key) {
                             return Err(TypeError::Overlap);
                         } else {
-                            fields.insert(key, ty.clone());
+                            fields.insert(key.clone(), ty.clone());
                         }
                     }
                     // NOTE: why there's no HashMap::reserve_exact??
@@ -207,9 +208,9 @@ impl<'a> Keyed<'a> {
     pub(super) fn unify_with(
         self,
         other: Self,
-        var_state: &mut VarState<'a>,
+        var_state: &mut VarState,
         mut cons: impl FnMut(Keyed) -> Cons,
-    ) -> Result<Subs<'a>, TypeError> {
+    ) -> Result<Subs, TypeError> {
         let mut subs = Subs::new();
         let mut map1 = self.fields;
         let mut map2 = other.fields;
@@ -223,7 +224,7 @@ impl<'a> Keyed<'a> {
                     rest1,
                     Type1::Type(Type::Cons(cons(Keyed {
                         fields: map2,
-                        rest: Some(new_var),
+                        rest: Some(new_var.clone()),
                     }))),
                 );
                 subs.insert(
@@ -256,12 +257,12 @@ impl<'a> Keyed<'a> {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum OrderedAnd<'a, T> {
+pub enum OrderedAnd<T> {
     NonRow(Box<[T]>),
-    Row(Vec<T>, Var<'a>, Vec<T>),
+    Row(Vec<T>, Var, Vec<T>),
 }
-impl<'a> OrderedAnd<'a, (&'a str, Type<'a>)> {
-    fn into_keyed(self) -> Keyed<'a> {
+impl OrderedAnd<(DefaultAtom, Type)> {
+    fn into_keyed(self) -> Keyed {
         match self {
             Self::NonRow(record) => {
                 let record: Vec<_> = record.into();
@@ -276,7 +277,7 @@ impl<'a> OrderedAnd<'a, (&'a str, Type<'a>)> {
             },
         }
     }
-    fn into_ordered(self) -> OrderedAnd<'a, Type<'a>> {
+    fn into_ordered(self) -> OrderedAnd<Type> {
         match self {
             Self::NonRow(tuple) => {
                 let tuple: Vec<_> = tuple.into();
@@ -291,11 +292,11 @@ impl<'a> OrderedAnd<'a, (&'a str, Type<'a>)> {
         }
     }
 }
-impl<'a, T> FreeVars<'a> for OrderedAnd<'a, T>
+impl<T> FreeVars for OrderedAnd<T>
 where
-    T: FreeVars<'a>,
+    T: FreeVars,
 {
-    fn free_vars(&self) -> HashSet<KindedVar<'a>> {
+    fn free_vars(&self) -> HashSet<KindedVar> {
         match self {
             Self::NonRow(tuple) => tuple.iter().flat_map(T::free_vars).collect(),
             Self::Row(left, rest, right) => left
@@ -303,21 +304,21 @@ where
                 .flat_map(T::free_vars)
                 .chain(once(KindedVar {
                     kind: Kind::Type,
-                    var: *rest,
+                    var: rest.clone(),
                 }))
                 .chain(right.iter().flat_map(T::free_vars))
                 .collect(),
         }
     }
 }
-impl<'a, T> OrderedAnd<'a, T> {
+impl<T> OrderedAnd<T> {
     fn substitute(
         &mut self,
-        subs: &Subs<'a>,
-        matcher: impl FnOnce(Cons<'a>) -> Option<Self>,
+        subs: &Subs,
+        matcher: impl FnOnce(Cons) -> Option<Self>,
     ) -> Result<(), TypeError>
     where
-        T: Substitutable<'a>,
+        T: Substitutable,
     {
         match self {
             Self::NonRow(tuple) => {
@@ -332,7 +333,7 @@ impl<'a, T> OrderedAnd<'a, T> {
                 for ty in right.iter_mut() {
                     ty.substitute(subs)?
                 }
-                match subs.get(*rest) {
+                match subs.get(rest) {
                     Some(Type1::Type(Type::Var(var))) => {
                         *rest = var;
                     }
@@ -373,11 +374,11 @@ impl<'a, T> OrderedAnd<'a, T> {
     pub(super) fn unify_with(
         self,
         other: Self,
-        var_state: &mut VarState<'a>,
-        mut cons: impl FnMut(Self) -> Cons<'a>,
-    ) -> Result<Subs<'a>, TypeError>
+        var_state: &mut VarState,
+        mut cons: impl FnMut(Self) -> Cons,
+    ) -> Result<Subs, TypeError>
     where
-        T: Unifiable<'a>,
+        T: Unifiable,
     {
         let mut subs = Subs::new();
         match (self, other) {
@@ -434,7 +435,7 @@ where
         })
         .collect()
 }
-impl<'a> Display for Cons<'a> {
+impl<'a> Display for Cons {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
             Self::Num => write!(fmt, "number"),

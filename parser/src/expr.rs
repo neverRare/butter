@@ -15,9 +15,10 @@ use crate::{
 use combine::{
     attempt, between, chainl1, choice, optional,
     parser::char::{char, string},
-    value, ParseError, Parser, RangeStream,
+    value, ParseError, Parser, Stream,
 };
 use hir::expr::{Element, ElementKind, Expr, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType};
+use string_cache::DefaultAtom;
 
 mod array;
 pub(crate) mod control_flow;
@@ -29,9 +30,9 @@ mod string;
 mod tuple;
 
 combine::parser! {
-    fn literal['a, I]()(I) -> Literal
+    fn literal[I]()(I) -> Literal
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
     ] {
         choice((
@@ -43,9 +44,9 @@ combine::parser! {
         ))
     }
 }
-fn jump<'a, I, T>() -> impl Parser<I, Output = Jump<'a, T>>
+fn jump<I, T>() -> impl Parser<I, Output = Jump<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -59,9 +60,9 @@ where
             .map(|expr| Jump::Return(expr.map(Box::new))),
     ))
 }
-fn unary<'a, I, T>() -> impl Parser<I, Output = Unary<'a, T>>
+fn unary<I, T>() -> impl Parser<I, Output = Unary<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -79,22 +80,22 @@ where
         expr: Box::new(expr),
     })
 }
-fn tag<'a, I, T>() -> impl Parser<I, Output = Tag<'a, T>>
+fn tag<I, T>() -> impl Parser<I, Output = Tag<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     lex(char('@'))
         .with((lex(ident()), optional(expr(6))))
         .map(|(tag, expr)| Tag {
-            tag,
+            tag: DefaultAtom::from(tag),
             expr: expr.map(Box::new),
         })
 }
-fn fun<'a, I, T>() -> impl Parser<I, Output = Fun<'a, T>>
+fn fun<I, T>() -> impl Parser<I, Output = Fun<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -103,9 +104,9 @@ where
         body: Box::new(body),
     })
 }
-fn array_range<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+fn array_range<I, T>() -> impl Parser<I, Output = Expr<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -114,9 +115,9 @@ where
         array().map(Expr::Array),
     ))
 }
-fn tuple_record_group<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+fn tuple_record_group<I, T>() -> impl Parser<I, Output = Expr<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -136,9 +137,9 @@ where
         record().map(Expr::Record),
     ))
 }
-fn prefix_expr_<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+fn prefix_expr_<I, T>() -> impl Parser<I, Output = Expr<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -158,25 +159,25 @@ where
         }),
         unary().map(Expr::Unary),
         tag().map(Expr::Tag),
-        attempt(lex(ident())).map(|ident| Expr::Place(PlaceExpr::Var(ident))),
+        attempt(lex(ident())).map(|ident| Expr::Place(PlaceExpr::Var(DefaultAtom::from(ident)))),
         control_flow::control_flow().map(Expr::ControlFlow),
         lex(literal()).map(Expr::Literal),
         jump().map(Expr::Jump),
     ))
 }
 combine::parser! {
-    fn prefix_expr['a, I, T]()(I) -> Expr<'a, T>
+    fn prefix_expr[I, T]()(I) -> Expr< T>
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         T: Default,
     ] {
         prefix_expr_()
     }
 }
-fn expr_<'a, I, T>(precedence: u8) -> impl Parser<I, Output = Expr<'a, T>>
+fn expr_<I, T>(precedence: u8) -> impl Parser<I, Output = Expr<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -190,9 +191,9 @@ where
     }
 }
 combine::parser! {
-    pub(crate) fn expr['a, I, T](precedence: u8)(I) -> Expr<'a, T>
+    pub(crate) fn expr[I, T](precedence: u8)(I) -> Expr< T>
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         T: Default,
     ] {
@@ -216,51 +217,54 @@ pub(crate) fn print_expr_sizes() {
 }
 #[cfg(test)]
 mod test {
-    use crate::expr::{expr, Expr};
+    use crate::{
+        expr::{expr, Expr},
+        var_expr, var_place,
+    };
     use combine::EasyParser;
-    use hir::expr::{Assign, Binary, BinaryType, PlaceExpr};
+    use hir::expr::{Assign, Binary, BinaryType};
 
     #[test]
     fn group() {
         let src = "(foo)";
-        let expected: Expr<()> = Expr::Place(PlaceExpr::Var("foo"));
+        let expected = var_expr("foo");
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn precedence() {
         let src = "foo + bar * baz";
-        let expected: Expr<()> = Expr::Binary(Binary {
+        let expected = Expr::Binary(Binary {
             kind: BinaryType::Add,
-            left: Box::new(Expr::Place(PlaceExpr::Var("foo"))),
+            left: Box::new(var_expr("foo")),
             right: Box::new(Expr::Binary(Binary {
                 kind: BinaryType::Multiply,
-                left: Box::new(Expr::Place(PlaceExpr::Var("bar"))),
-                right: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+                left: Box::new(var_expr("bar")),
+                right: Box::new(var_expr("baz")),
             })),
         });
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
         let src = "foo * bar + baz";
-        let expected: Expr<()> = Expr::Binary(Binary {
+        let expected = Expr::Binary(Binary {
             kind: BinaryType::Add,
             left: Box::new(Expr::Binary(Binary {
                 kind: BinaryType::Multiply,
-                left: Box::new(Expr::Place(PlaceExpr::Var("foo"))),
-                right: Box::new(Expr::Place(PlaceExpr::Var("bar"))),
+                left: Box::new(var_expr("foo")),
+                right: Box::new(var_expr("bar")),
             })),
-            right: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+            right: Box::new(var_expr("baz")),
         });
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn right_associative() {
         let src = "foo <- bar <- baz";
-        let expected: Expr<()> = Expr::Assign(
+        let expected = Expr::Assign(
             vec![Assign {
-                place: Box::new(PlaceExpr::Var("foo")),
+                place: Box::new(var_place("foo")),
                 expr: Box::new(Expr::Assign(
                     vec![Assign {
-                        place: Box::new(PlaceExpr::Var("bar")),
-                        expr: Box::new(Expr::Place(PlaceExpr::Var("baz"))),
+                        place: Box::new(var_place("bar")),
+                        expr: Box::new(var_expr("baz")),
                     }]
                     .into(),
                 )),
@@ -272,14 +276,14 @@ mod test {
     #[test]
     fn ignore_higher_precedence() {
         let src = "foo + bar";
-        let expected: Expr<()> = Expr::Place(PlaceExpr::Var("foo"));
+        let expected: Expr<()> = var_expr("foo");
         let left = "+ bar";
         assert_eq!(expr(6).easy_parse(src), Ok((expected, left)));
     }
     #[test]
     fn ignore_range() {
         let src = "foo..";
-        let expected: Expr<()> = Expr::Place(PlaceExpr::Var("foo"));
+        let expected: Expr<()> = var_expr("foo");
         let left = "..";
         assert_eq!(expr(0).easy_parse(src), Ok((expected, left)));
     }

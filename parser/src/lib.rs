@@ -3,17 +3,18 @@
 #![forbid(unsafe_code)]
 
 use combine::{
-    attempt, choice, eof, many, optional,
-    parser::{
-        char::{space, string},
-        range::take_while,
-    },
-    sep_end_by, skip_many, skip_many1, ParseError, RangeStream,
+    attempt, choice, eof, many, none_of, optional,
+    parser::char::{space, string},
+    sep_end_by, skip_many, skip_many1, ParseError, Stream,
 };
 use expr::print_expr_sizes;
-use hir::{expr::Expr, statement::Statement};
+use hir::{
+    expr::{Expr, PlaceExpr},
+    statement::Statement,
+};
 
 pub use combine::{EasyParser, Parser};
+use string_cache::DefaultAtom;
 
 mod expr;
 mod ident_keyword;
@@ -21,57 +22,57 @@ mod pattern;
 mod statement;
 
 combine::parser! {
-    pub fn ast['a, I, T]()(I) -> Vec<Statement<'a, T>>
+    pub fn ast[I, T]()(I) -> Vec<Statement< T>>
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         T: Default,
     ] {
-        optional(attempt(string("#!")).with(take_while(|ch| ch != '\n')))
+        optional(attempt(string("#!")).with(skip_many(none_of(['\n']))))
             .with(insignificants())
             .with(many(statement::statement()))
             .skip(eof())
     }
 }
 combine::parser! {
-    pub fn expr_parser['a, I, T]()(I) -> Expr<'a, T>
+    pub fn expr_parser[I, T]()(I) -> Expr< T>
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         T: Default,
     ] {
         insignificants().with(expr::expr(0)).skip(eof())
     }
 }
-fn comments<'a, I>() -> impl Parser<I, Output = ()>
+fn comments<I>() -> impl Parser<I, Output = ()>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    skip_many1((attempt(string("--")), take_while(|ch: char| ch != '\n')).expected("comment"))
+    skip_many1((attempt(string("--")), skip_many(none_of(['\n']))))
 }
-pub fn insignificants<'a, I>() -> impl Parser<I, Output = ()>
+pub fn insignificants<I>() -> impl Parser<I, Output = ()>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     skip_many(skip_many1(space()).or(comments())).silent()
 }
-fn lex<'a, I, P>(parser: P) -> impl Parser<I, Output = P::Output>
+fn lex<I, P>(parser: P) -> impl Parser<I, Output = P::Output>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     P: Parser<I>,
 {
     parser.skip(insignificants())
 }
-fn sep_optional_between<'a, I, EP, RP, SP, C>(
+fn sep_optional_between<I, EP, RP, SP, C>(
     element: fn() -> EP,
     rest: RP,
     sep: fn() -> SP,
 ) -> impl Parser<I, Output = (C, Option<(RP::Output, C)>)>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     EP: Parser<I>,
     RP: Parser<I>,
@@ -89,6 +90,12 @@ where
         have_rest().map(|((left, rest), right)| (left, Some((rest, right)))),
         no_rest().map(|collection| (collection, None)),
     ))
+}
+fn var_expr(var: &str) -> Expr<()> {
+    Expr::Place(var_place(var))
+}
+fn var_place(var: &str) -> PlaceExpr<()> {
+    PlaceExpr::Var(DefaultAtom::from(var))
 }
 fn size_of<T>(_: &T) -> usize {
     std::mem::size_of::<T>()

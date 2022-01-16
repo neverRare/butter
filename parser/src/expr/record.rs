@@ -1,19 +1,20 @@
 use crate::{expr::expr, ident_keyword::ident, lex, sep_optional_between, size_of};
 use combine::{
     between, error::StreamError, optional, parser::char::char, stream::StreamErrorFor, ParseError,
-    Parser, RangeStream,
+    Parser, Stream,
 };
 use hir::expr::{Field, Record, RecordWithSplat};
+use string_cache::DefaultAtom;
 
-pub(crate) fn record<'a, I, T>() -> impl Parser<I, Output = Record<'a, T>>
+pub(crate) fn record<I, T>() -> impl Parser<I, Output = Record<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(expr(0))).and_then(|(name, expr)| {
-            match name.or_else(|| expr.field_name()) {
+            match name.map(DefaultAtom::from).or_else(|| expr.field_name()) {
                 Some(name) => Ok(Field { name, expr }),
                 None => Err(<StreamErrorFor<I>>::message_static_message(
                     "couldn't infer field name",

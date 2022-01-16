@@ -7,3 +7,4 @@ edition = "2021"
 [dependencies]
 combine = "4.6.2"
 hir = { path = "../hir" }
+string_cache = "0.8.2"

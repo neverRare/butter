@@ -1,39 +1,35 @@
-use crate::size_of;
-
 use crate::{
     expr::{array::range, expr, record::record, tuple::tuple},
     ident_keyword::ident,
-    lex,
+    lex, size_of,
 };
 use combine::{
     attempt, between, choice,
     error::StreamError,
     many, not_followed_by, optional,
-    parser::{
-        char::{char, string},
-        range::recognize,
-    },
+    parser::char::{char, string},
     stream::StreamErrorFor,
-    ParseError, Parser, RangeStream,
+    value, ParseError, Parser, Stream,
 };
 use hir::expr::{
     Arg, Assign, Binary, BinaryType, Call, Expr, FieldAccess, Index, PlaceExpr, Range, Record,
     Slice, Tuple,
 };
+use string_cache::DefaultAtom;
 
-pub(crate) enum PartialAst<'a, T> {
-    Property(&'a str),
-    Index(Expr<'a, T>),
-    Slice(Range<'a, T>),
+pub(crate) enum PartialAst<T> {
+    Property(DefaultAtom),
+    Index(Expr<T>),
+    Slice(Range<T>),
     UnitCall,
-    SplatCall(Expr<'a, T>),
-    RecordCall(Record<'a, T>),
-    TupleCall(Tuple<'a, T>),
+    SplatCall(Expr<T>),
+    RecordCall(Record<T>),
+    TupleCall(Tuple<T>),
     Deref,
     Len,
 }
-impl<'a, T> PartialAst<'a, T> {
-    pub(crate) fn combine_from(self, left: Expr<'a, T>) -> Expr<'a, T> {
+impl<T> PartialAst<T> {
+    pub(crate) fn combine_from(self, left: Expr<T>) -> Expr<T> {
         match self {
             Self::Property(name) => Expr::Place(PlaceExpr::FieldAccess(FieldAccess {
                 expr: Box::new(left),
@@ -68,9 +64,9 @@ impl<'a, T> PartialAst<'a, T> {
         }
     }
 }
-fn infix_6_<'a, I, T>() -> impl Parser<I, Output = PartialAst<'a, T>>
+fn infix_6_<I, T>() -> impl Parser<I, Output = PartialAst<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -82,10 +78,10 @@ where
         ))
         .with(lex(ident()))
         .map(|prop| {
-            if prop == "len" {
+            if prop == DefaultAtom::from("len") {
                 PartialAst::Len
             } else {
-                PartialAst::Property(prop)
+                PartialAst::Property(DefaultAtom::from(prop))
             }
         })
     };
@@ -117,18 +113,18 @@ where
     ))
 }
 combine::parser! {
-    fn infix_6['a, I, T]()(I) -> PartialAst<'a, T>
+    fn infix_6[I, T]()(I) -> PartialAst< T>
     where [
-        I: RangeStream<Token = char, Range = &'a str>,
+        I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
         T: Default,
     ] {
         infix_6_()
     }
 }
-pub(crate) fn expr_6<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+pub(crate) fn expr_6<I, T>() -> impl Parser<I, Output = Expr<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -141,9 +137,9 @@ where
         expr
     })
 }
-pub(crate) fn expr_0<'a, I, T>() -> impl Parser<I, Output = Expr<'a, T>>
+pub(crate) fn expr_0<I, T>() -> impl Parser<I, Output = Expr<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -180,11 +176,11 @@ fn precedence_of(token: &str) -> Option<u8> {
         _ => None,
     }
 }
-pub(crate) fn infix_expr_op<'a, I, T>(
+pub(crate) fn infix_expr_op<I, T>(
     precedence: u8,
-) -> impl Parser<I, Output = impl Fn(Expr<'a, T>, Expr<'a, T>) -> Expr<'a, T>>
+) -> impl Parser<I, Output = impl Fn(Expr<T>, Expr<T>) -> Expr<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     // TODO: instead of testing every possible operator, just output a parser of
@@ -208,22 +204,22 @@ where
     };
     let single_ops = || {
         choice([
-            char('.'),
-            char('['),
-            char('('),
-            char('^'),
-            char('*'),
-            char('/'),
-            char('%'),
-            char('+'),
-            char('-'),
-            char('<'),
-            char('>'),
-            char('&'),
-            char('|'),
+            char('.').with(value(".")),
+            char('[').with(value("[")),
+            char('(').with(value("(")),
+            char('^').with(value("^")),
+            char('*').with(value("*")),
+            char('/').with(value("/")),
+            char('%').with(value("%")),
+            char('+').with(value("+")),
+            char('-').with(value("-")),
+            char('<').with(value("<")),
+            char('>').with(value(">")),
+            char('&').with(value("&")),
+            char('|').with(value("|")),
         ])
     };
-    lex(choice((double_ops(), recognize(single_ops()))))
+    lex(choice((double_ops(), single_ops())))
         .and_then(move |token| match precedence_of(token) {
             Some(this_precedence) if this_precedence == precedence => Ok(token),
             // TODO: these errors are made for attempt combinator outside, it

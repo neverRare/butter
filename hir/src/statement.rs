@@ -2,21 +2,22 @@ use crate::{
     expr::{Expr, Fun},
     pattern::Pattern,
 };
+use string_cache::DefaultAtom;
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum Statement<'a, T> {
-    Declare(Declare<'a, T>),
-    FunDeclare(FunDeclare<'a, T>),
-    Expr(Expr<'a, T>),
+pub enum Statement<T> {
+    Declare(Declare<T>),
+    FunDeclare(FunDeclare<T>),
+    Expr(Expr<T>),
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Declare<'a, T> {
-    pub pattern: Pattern<'a, T>,
-    pub expr: Expr<'a, T>,
+pub struct Declare<T> {
+    pub pattern: Pattern<T>,
+    pub expr: Expr<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct FunDeclare<'a, T> {
-    pub ident: &'a str,
-    pub fun: Fun<'a, T>,
+pub struct FunDeclare<T> {
+    pub ident: DefaultAtom,
+    pub fun: Fun<T>,
     pub ty: T,
 }

@@ -1,13 +1,12 @@
 use crate::{expr::expr, lex};
 use combine::{
-    between, choice, optional, parser::char::char, sep_end_by, value, ParseError, Parser,
-    RangeStream,
+    between, choice, optional, parser::char::char, sep_end_by, value, ParseError, Parser, Stream,
 };
 use hir::expr::{Bound, BoundType, Element, ElementKind, Range};
 
-pub(crate) fn range_operator<'a, I>() -> impl Parser<I, Output = (BoundType, BoundType)>
+pub(crate) fn range_operator<I>() -> impl Parser<I, Output = (BoundType, BoundType)>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     (
@@ -22,9 +21,9 @@ where
     )
         .expected("range operator")
 }
-pub(crate) fn range<'a, I, T>() -> impl Parser<I, Output = Range<'a, T>>
+pub(crate) fn range<I, T>() -> impl Parser<I, Output = Range<T>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
@@ -45,9 +44,9 @@ where
     };
     between(lex(char('[')), lex(char(']')), range()).expected("range array")
 }
-pub(crate) fn array<'a, I, T>() -> impl Parser<I, Output = Box<[Element<'a, T>]>>
+pub(crate) fn array<I, T>() -> impl Parser<I, Output = Box<[Element<T>]>>
 where
-    I: RangeStream<Token = char, Range = &'a str>,
+    I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {

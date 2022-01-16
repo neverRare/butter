@@ -19,32 +19,35 @@ pub use crate::ty::{
     MutType, Type, TypeError, Var,
 };
 
-struct TypedExpr<'a> {
-    ty: Type<'a>,
-    expr: Expr<'a, Type<'a>>,
+struct TypedExpr {
+    ty: Type,
+    expr: Expr<Type>,
 }
-fn unit<'a>() -> Type<'a> {
+fn unit() -> Type {
     Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(vec![].into())))
 }
-fn infer_literal<'a>(literal: Literal) -> Type<'a> {
+fn infer_literal(literal: Literal) -> Type {
     let cons = match literal {
         Literal::True | Literal::False => Cons::Bool,
         Literal::UInt(_) | Literal::Float(_) => Cons::Num,
     };
     Type::Cons(cons)
 }
-fn infer_expr<'a>(
-    expr: Expr<'a, ()>,
-    var_state: &mut VarState<'a>,
-    env: &Env<'a>,
-) -> Result<(Subs<'a>, TypedExpr<'a>), TypeError> {
+fn infer_expr(
+    expr: Expr<()>,
+    var_state: &mut VarState,
+    env: &Env,
+) -> Result<(Subs, TypedExpr), TypeError> {
     let mut subs = Subs::new();
     let ty_expr = match expr {
         Expr::Literal(literal) => TypedExpr {
             ty: infer_literal(literal),
             expr: Expr::Literal(literal),
         },
-        Expr::Place(PlaceExpr::Var(var)) => match env.get(Var { name: var, id: 0 }) {
+        Expr::Place(PlaceExpr::Var(var)) => match env.get(&Var {
+            name: var.clone(),
+            id: 0,
+        }) {
             Some(scheme) => TypedExpr {
                 ty: scheme.instantiate(var_state)?,
                 expr: Expr::Place(PlaceExpr::Var(var)),
@@ -57,7 +60,7 @@ fn infer_expr<'a>(
             subs.compose_with(more_subs)?;
             let var = var_state.new_var();
             let more_subs = Type::Cons(Cons::Record(Keyed {
-                fields: once((name, Type::Var(var))).collect(),
+                fields: once((name, Type::Var(var.clone()))).collect(),
                 rest: Some(var_state.new_var()),
             }))
             .unify_with(typed_expr.ty, var_state)?;
@@ -140,7 +143,7 @@ fn infer_expr<'a>(
             };
             TypedExpr {
                 ty: Type::Cons(Cons::Union(Keyed {
-                    fields: once((tag.tag, ty)).collect(),
+                    fields: once((tag.tag.clone(), ty)).collect(),
                     rest: None,
                 })),
                 expr: Expr::Tag(Tag {
@@ -156,7 +159,7 @@ fn infer_expr<'a>(
             for field in record {
                 let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
                 subs.compose_with(more_subs)?;
-                fields.insert(field.name, expr.ty);
+                fields.insert(field.name.clone(), expr.ty);
                 typed.push(Field {
                     name: field.name,
                     expr: expr.expr,
@@ -178,7 +181,7 @@ fn infer_expr<'a>(
                 for field in untyped {
                     let (more_subs, expr) = infer_expr(field.expr, var_state, env)?;
                     subs.compose_with(more_subs)?;
-                    fields.insert(field.name, expr.ty);
+                    fields.insert(field.name.clone(), expr.ty);
                     typed.push(Field {
                         name: field.name,
                         expr: expr.expr,
@@ -188,7 +191,7 @@ fn infer_expr<'a>(
             let (more_subs, rest) = infer_expr(*splat, var_state, env)?;
             subs.compose_with(more_subs)?;
             let var = var_state.new_var();
-            subs.compose_with(Type::Var(var).unify_with(rest.ty, var_state)?)?;
+            subs.compose_with(Type::Var(var.clone()).unify_with(rest.ty, var_state)?)?;
             TypedExpr {
                 ty: Type::Cons(Cons::Record(Keyed {
                     fields,
@@ -209,7 +212,7 @@ fn infer_expr<'a>(
             let (more_subs, splat) = infer_expr(*splat, var_state, env)?;
             subs.compose_with(more_subs)?;
             let var = var_state.new_var();
-            subs.compose_with(Type::Var(var).unify_with(splat.ty, var_state)?)?;
+            subs.compose_with(Type::Var(var.clone()).unify_with(splat.ty, var_state)?)?;
             TypedExpr {
                 ty: Type::Cons(Cons::RecordTuple(OrderedAnd::Row(
                     Vec::new(),
