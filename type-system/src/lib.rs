@@ -27,6 +27,14 @@ struct Typed<T> {
     ty: Type,
     expr: T,
 }
+impl<T> Typed<T> {
+    fn map<U>(self, mapper: impl FnOnce(T) -> U) -> Typed<U> {
+        Typed {
+            ty: self.ty,
+            expr: mapper(self.expr),
+        }
+    }
+}
 trait Inferable {
     type TypedSelf;
     fn partial_infer(
@@ -55,6 +63,56 @@ impl Inferable for Literal {
         })
     }
 }
+impl Inferable for DefaultAtom {
+    type TypedSelf = DefaultAtom;
+
+    fn partial_infer(
+        self,
+        _: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        match env.get(&Var {
+            name: self.clone(),
+            id: 0,
+        }) {
+            Some(scheme) => Ok(Typed {
+                ty: scheme.instantiate(var_state)?,
+                expr: self,
+            }),
+            None => Err(TypeError::UnboundVar),
+        }
+    }
+}
+impl Inferable for FieldAccess<()> {
+    type TypedSelf = FieldAccess<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let name = self.name;
+        let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
+        let var = var_state.new_var();
+        let mut ty = Type::Var(var.clone());
+        ty.substitute(
+            &Type::Cons(Cons::Record(Keyed {
+                fields: once((name.clone(), Type::Var(var))).collect(),
+                rest: Some(var_state.new_var()),
+            }))
+            .unify_with(typed_expr.ty, var_state)?,
+        )?;
+        Ok(Typed {
+            ty,
+            expr: FieldAccess {
+                expr: Box::new(typed_expr.expr),
+                name,
+            },
+        })
+    }
+}
 impl Inferable for PlaceExpr<()> {
     type TypedSelf = PlaceExpr<Type>;
 
@@ -65,36 +123,10 @@ impl Inferable for PlaceExpr<()> {
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
-            Self::Var(var) => match env.get(&Var {
-                name: var.clone(),
-                id: 0,
-            }) {
-                Some(scheme) => Typed {
-                    ty: scheme.instantiate(var_state)?,
-                    expr: PlaceExpr::Var(var),
-                },
-                None => return Err(TypeError::UnboundVar),
-            },
-            Self::FieldAccess(expr) => {
-                let name = expr.name;
-                let typed_expr = expr.expr.partial_infer(subs, var_state, env)?;
-                let var = var_state.new_var();
-                let mut ty = Type::Var(var.clone());
-                ty.substitute(
-                    &Type::Cons(Cons::Record(Keyed {
-                        fields: once((name.clone(), Type::Var(var))).collect(),
-                        rest: Some(var_state.new_var()),
-                    }))
-                    .unify_with(typed_expr.ty, var_state)?,
-                )?;
-                Typed {
-                    ty,
-                    expr: PlaceExpr::FieldAccess(FieldAccess {
-                        expr: Box::new(typed_expr.expr),
-                        name,
-                    }),
-                }
-            }
+            Self::Var(var) => var.partial_infer(subs, var_state, env)?.map(PlaceExpr::Var),
+            Self::FieldAccess(expr) => expr
+                .partial_infer(subs, var_state, env)?
+                .map(PlaceExpr::FieldAccess),
             Self::Index(_) => todo!(),
             Self::Slice(_) => todo!(),
             Self::Deref(_) => todo!(),
@@ -276,20 +308,12 @@ impl Inferable for Record<()> {
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
-            Self::Record(record) => {
-                let typed = record.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Record::Record(typed.expr),
-                }
-            }
-            Self::RecordWithSplat(record) => {
-                let typed = record.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Record::RecordWithSplat(typed.expr),
-                }
-            }
+            Self::Record(record) => record
+                .partial_infer(subs, var_state, env)?
+                .map(Record::Record),
+            Self::RecordWithSplat(record) => record
+                .partial_infer(subs, var_state, env)?
+                .map(Record::RecordWithSplat),
         };
         Ok(typed)
     }
@@ -304,48 +328,20 @@ impl Inferable for Expr<()> {
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let ty_expr = match self {
-            Self::Literal(literal) => {
-                let typed = literal.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Expr::Literal(typed.expr),
-                }
-            }
-            Self::Place(place) => {
-                let typed = place.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Expr::Place(typed.expr),
-                }
-            }
-            Self::Array(elements) => {
-                let typed = elements.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Expr::Array(typed.expr),
-                }
-            }
-            Self::ArrayRange(range) => {
-                let typed = range.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Expr::ArrayRange(typed.expr),
-                }
-            }
-            Self::Tag(tag) => {
-                let typed = tag.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Expr::Tag(typed.expr),
-                }
-            }
-            Self::Record(record) => {
-                let typed = record.partial_infer(subs, var_state, env)?;
-                Typed {
-                    ty: typed.ty,
-                    expr: Expr::Record(typed.expr),
-                }
-            }
+            Self::Literal(literal) => literal
+                .partial_infer(subs, var_state, env)?
+                .map(Expr::Literal),
+            Self::Place(place) => place.partial_infer(subs, var_state, env)?.map(Expr::Place),
+            Self::Array(elements) => elements
+                .partial_infer(subs, var_state, env)?
+                .map(Expr::Array),
+            Self::ArrayRange(range) => range
+                .partial_infer(subs, var_state, env)?
+                .map(Expr::ArrayRange),
+            Self::Tag(tag) => tag.partial_infer(subs, var_state, env)?.map(Expr::Tag),
+            Self::Record(record) => record
+                .partial_infer(subs, var_state, env)?
+                .map(Expr::Record),
             Self::Unit => Typed {
                 ty: unit(),
                 expr: Expr::Unit,
