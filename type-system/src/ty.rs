@@ -282,6 +282,9 @@ impl Subs {
         let Self(map) = self;
         map
     }
+    fn is_empty(&self) -> bool {
+        self.hashmap().is_empty()
+    }
     fn get(&self, var: &Var) -> Option<Type1> {
         self.hashmap().get(var).map(Type1::clone)
     }
@@ -294,11 +297,15 @@ impl Subs {
         }
     }
     pub fn compose_with(&mut self, other: Self) -> Result<(), TypeError> {
-        let map = self.hashmap_mut();
-        for (_, ty) in map.iter_mut() {
-            ty.substitute(&other)?;
+        if self.is_empty() {
+            *self = other;
+        } else {
+            let map = self.hashmap_mut();
+            for (_, ty) in map.iter_mut() {
+                ty.substitute(&other)?;
+            }
+            map.extend(other.into_hashmap());
         }
-        map.extend(other.into_hashmap());
         Ok(())
     }
 }
