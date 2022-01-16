@@ -5,8 +5,8 @@
 use crate::ty::{cons::OrderedAnd, Env, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
-        Bound, Element, ElementKind, Expr, Field, FieldAccess, Literal, PlaceExpr, Range, Record,
-        RecordWithSplat, Tag,
+        Bound, Element, ElementKind, Expr, Field, FieldAccess, Index, Literal, PlaceExpr, Range,
+        Record, RecordWithSplat, Tag,
     },
     statement::Statement,
 };
@@ -96,19 +96,44 @@ impl Inferable for FieldAccess<()> {
         let name = self.name;
         let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
         let var = var_state.new_var();
-        let mut ty = Type::Var(var.clone());
-        ty.substitute(
-            &Type::Cons(Cons::Record(Keyed {
-                fields: once((name.clone(), Type::Var(var))).collect(),
+        subs.compose_with(
+            Type::Cons(Cons::Record(Keyed {
+                fields: once((name.clone(), Type::Var(var.clone()))).collect(),
                 rest: Some(var_state.new_var()),
             }))
             .unify_with(typed_expr.ty, var_state)?,
         )?;
         Ok(Typed {
-            ty,
+            ty: Type::Var(var),
             expr: FieldAccess {
                 expr: Box::new(typed_expr.expr),
                 name,
+            },
+        })
+    }
+}
+impl Inferable for Index<()> {
+    type TypedSelf = Index<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
+        let var = var_state.new_var();
+        subs.compose_with(
+            Type::Cons(Cons::Array(Box::new(Type::Var(var.clone()))))
+                .unify_with(typed_expr.ty, var_state)?,
+        )?;
+        let typed_index = self.index.partial_infer(subs, var_state, env)?;
+        subs.compose_with(Type::Cons(Cons::Num).unify_with(typed_index.ty, var_state)?)?;
+        Ok(Typed {
+            ty: Type::Var(var),
+            expr: Index {
+                expr: Box::new(typed_expr.expr),
+                index: Box::new(typed_index.expr),
             },
         })
     }
@@ -127,7 +152,9 @@ impl Inferable for PlaceExpr<()> {
             Self::FieldAccess(expr) => expr
                 .partial_infer(subs, var_state, env)?
                 .map(PlaceExpr::FieldAccess),
-            Self::Index(_) => todo!(),
+            Self::Index(index) => index
+                .partial_infer(subs, var_state, env)?
+                .map(PlaceExpr::Index),
             Self::Slice(_) => todo!(),
             Self::Deref(_) => todo!(),
             Self::Len(_) => todo!(),
