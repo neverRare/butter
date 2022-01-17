@@ -282,7 +282,7 @@ impl Inferable for Tag<()> {
         Ok(Typed {
             ty: Type::Cons(Cons::Union(Keyed {
                 fields: once((self.tag.clone(), ty)).collect(),
-                rest: None,
+                rest: Some(var_state.new_var()),
             })),
             expr: Tag {
                 tag: self.tag,
