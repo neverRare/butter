@@ -337,18 +337,6 @@ impl Env {
     fn remove(&mut self, var: Var) {
         self.hashmap_mut().remove(&var);
     }
-    fn free_vars(&self) -> HashSet<KindedVar> {
-        self.hashmap()
-            .values()
-            .flat_map(Scheme::free_vars)
-            .collect()
-    }
-    fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
-        for ty in self.hashmap_mut().values_mut() {
-            ty.substitute(subs)?;
-        }
-        Ok(())
-    }
     fn generalize(&self, ty: Type) -> Scheme {
         let env_free_vars = self.free_vars();
         let for_all = ty
@@ -357,6 +345,22 @@ impl Env {
             .filter(|var| !env_free_vars.contains(var))
             .collect();
         Scheme { for_all, ty }
+    }
+}
+impl FreeVars for Env {
+    fn free_vars(&self) -> HashSet<KindedVar> {
+        self.hashmap()
+            .values()
+            .flat_map(Scheme::free_vars)
+            .collect()
+    }
+}
+impl Substitutable for Env {
+    fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
+        for ty in self.hashmap_mut().values_mut() {
+            ty.substitute(subs)?;
+        }
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]

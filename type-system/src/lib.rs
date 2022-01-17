@@ -195,8 +195,8 @@ impl Inferable for Box<[Element<()>]> {
         })
     }
 }
-impl Inferable for Range<()> {
-    type TypedSelf = Range<Type>;
+impl Inferable for Option<Bound<()>> {
+    type TypedSelf = Option<Bound<Type>>;
 
     fn partial_infer(
         self,
@@ -204,7 +204,7 @@ impl Inferable for Range<()> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        let left = match self.left {
+        let expr = match self {
             Some(bound) => {
                 let typed = bound.expr.partial_infer(subs, var_state, env)?;
                 let more_subs = Type::Cons(Cons::Num).unify_with(typed.ty, var_state)?;
@@ -216,17 +216,20 @@ impl Inferable for Range<()> {
             }
             None => None,
         };
-        let right = match self.right {
-            Some(bound) => {
-                let typed = bound.expr.partial_infer(subs, var_state, env)?;
-                subs.compose_with(Type::Cons(Cons::Num).unify_with(typed.ty, var_state)?)?;
-                Some(Bound {
-                    kind: bound.kind,
-                    expr: Box::new(typed.expr),
-                })
-            }
-            None => None,
-        };
+        Ok(Typed { ty: unit(), expr })
+    }
+}
+impl Inferable for Range<()> {
+    type TypedSelf = Range<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let left = self.left.partial_infer(subs, var_state, env)?.expr;
+        let right = self.right.partial_infer(subs, var_state, env)?.expr;
         Ok(Typed {
             ty: Type::Cons(Cons::Array(Box::new(Type::Cons(Cons::Num)))),
             expr: (Range { left, right }),
