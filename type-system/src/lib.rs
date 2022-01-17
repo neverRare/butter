@@ -6,7 +6,7 @@ use crate::ty::{cons::OrderedAnd, Env, Subs, Substitutable, Unifiable, VarState}
 use hir::{
     expr::{
         Bound, Element, ElementKind, Expr, Field, FieldAccess, Index, Literal, PlaceExpr, Range,
-        Record, RecordWithSplat, Tag,
+        Record, RecordWithSplat, Slice, Tag,
     },
     statement::Statement,
 };
@@ -138,6 +138,31 @@ impl Inferable for Index<()> {
         })
     }
 }
+impl Inferable for Slice<()> {
+    type TypedSelf = Slice<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
+        let var = var_state.new_var();
+        subs.compose_with(
+            Type::Cons(Cons::Array(Box::new(Type::Var(var.clone()))))
+                .unify_with(typed_expr.ty, var_state)?,
+        )?;
+        let typed_range = self.range.partial_infer(subs, var_state, env)?;
+        Ok(Typed {
+            ty: Type::Cons(Cons::Array(Box::new(Type::Var(var)))),
+            expr: Slice {
+                expr: Box::new(typed_expr.expr),
+                range: typed_range.expr,
+            },
+        })
+    }
+}
 impl Inferable for PlaceExpr<()> {
     type TypedSelf = PlaceExpr<Type>;
 
@@ -155,7 +180,9 @@ impl Inferable for PlaceExpr<()> {
             Self::Index(index) => index
                 .partial_infer(subs, var_state, env)?
                 .map(PlaceExpr::Index),
-            Self::Slice(_) => todo!(),
+            Self::Slice(slice) => slice
+                .partial_infer(subs, var_state, env)?
+                .map(PlaceExpr::Slice),
             Self::Deref(_) => todo!(),
             Self::Len(_) => todo!(),
         };
