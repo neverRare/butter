@@ -4,9 +4,7 @@ Thank you for taking your time contributing. I'll address these contributions as
 
 ## Opening an Issue
 
-If you have an issue, question, or suggestion, you may open an issue. You may also [reach us via Discord].
-
-[reach us via Discord]: README.md#chat-with-us
+If you have an issue, question, or suggestion, you may open an issue.
 
 ## Using REPL
 

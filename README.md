@@ -1,6 +1,6 @@
 # ![Butter](butter_text_only.svg)
 
-[Documents](doc/README.md) | [Contributing Guidelines](CONTRIBUTING.md) | [Discord server](https://discord.gg/U75vxW5scB)
+[Documents](doc/README.md) | [Contributing Guidelines](CONTRIBUTING.md)
 
 A tasty language for building efficient software.
 
@@ -34,9 +34,7 @@ Butter is a personal and experimental language that seeks balance for these aspe
 
 I also to want to experiment with novel features deemed necessary for these goals such refinement types.
 
-Being my personal project, designs and features are ultimately up for my decision and taste. Some features can help with some aspect while also hurt other, this is where I weigh in the pros and cons. Of course, that doesn't mean I won't listen to suggestions, I'd be happy to hear your thoughts about Butter's design by opening an issue or [chatting with us] through Discord.
-
-[chatting with us]: #chat-with-us
+Being my personal project, designs and features are ultimately up for my decision and taste. Some features can help with some aspect while also hurt other, this is where I weigh in the pros and cons. Of course, that doesn't mean I won't listen to suggestions, I'd be happy to hear your thoughts about Butter's design by opening an issue.
 
 ## Road map
 
@@ -63,7 +61,3 @@ Features to be implemented later on
 - Module and visibility system
 - Shareable mutable containers &mdash; those are also interiorly mutable
 - Low-level representation heuristics &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
-
-## Chat with us
-
-You may join and reach us at [the official Discord server](https://discord.gg/U75vxW5scB). You may also join the [/r/ProgrammingLanguages Discord server](https://discord.gg/4Kjt3ZE), it have a dedicated #butter channel.
