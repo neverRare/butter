@@ -23,7 +23,7 @@ where
         lex(ident()),
     )
         .map(|(bind_to_ref, mutability, ident)| Var {
-            ident: DefaultAtom::from(ident),
+            ident,
             mutable: mutability.is_some(),
             bind_to_ref: bind_to_ref.is_some(),
             ty: T::default(),
@@ -88,7 +88,7 @@ where
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(pattern())).and_then(|(name, pattern)| {
             match name.map(DefaultAtom::from).or_else(|| pattern.field_name()) {
-                Some(name) => Ok((DefaultAtom::from(name), pattern)),
+                Some(name) => Ok((name, pattern)),
                 None => Err(<StreamErrorFor<I>>::message_static_message(
                     "couldn't infer field name",
                 )),
@@ -128,7 +128,7 @@ where
             .with((lex(ident()), optional(pattern())))
             .map(|(tag, pattern)| {
                 Pattern::Tag(TaggedPattern {
-                    tag: DefaultAtom::from(tag),
+                    tag,
                     pattern: pattern.map(Box::new),
                 })
             }),

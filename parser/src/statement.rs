@@ -153,7 +153,8 @@ where
 mod test {
     use crate::{
         statement::{statement, Assign, Expr},
-        var_expr, var_place, Statement,
+        test::{var_expr, var_place},
+        Statement,
     };
     use combine::EasyParser;
     use hir::{

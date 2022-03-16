@@ -42,13 +42,10 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     ident_or_keyword().and_then(|ident| {
-        if KEYWORDS
-            .into_iter()
-            .any(|it| ident == DefaultAtom::from(it))
-        {
+        if KEYWORDS.into_iter().any(|it| ident.as_ref() == it) {
             Err(<StreamErrorFor<I>>::unexpected_static_message("keyword"))
         } else {
-            Ok(DefaultAtom::from(ident))
+            Ok(ident)
         }
     })
 }

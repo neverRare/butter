@@ -18,7 +18,6 @@ use combine::{
     value, ParseError, Parser, Stream,
 };
 use hir::expr::{Element, ElementKind, Expr, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType};
-use string_cache::DefaultAtom;
 
 mod array;
 pub(crate) mod control_flow;
@@ -89,7 +88,7 @@ where
     lex(char('@'))
         .with((lex(ident()), optional(expr(6))))
         .map(|(tag, expr)| Tag {
-            tag: DefaultAtom::from(tag),
+            tag,
             expr: expr.map(Box::new),
         })
 }
@@ -159,7 +158,7 @@ where
         }),
         unary().map(Expr::Unary),
         tag().map(Expr::Tag),
-        attempt(lex(ident())).map(|ident| Expr::Place(PlaceExpr::Var(DefaultAtom::from(ident)))),
+        attempt(lex(ident())).map(|ident| Expr::Place(PlaceExpr::Var(ident))),
         control_flow::control_flow().map(Expr::ControlFlow),
         lex(literal()).map(Expr::Literal),
         jump().map(Expr::Jump),
@@ -219,7 +218,7 @@ pub(crate) fn print_expr_sizes() {
 mod test {
     use crate::{
         expr::{expr, Expr},
-        var_expr, var_place,
+        test::{var_expr, var_place},
     };
     use combine::EasyParser;
     use hir::expr::{Assign, Binary, BinaryType};

@@ -8,13 +8,9 @@ use combine::{
     sep_end_by, skip_many, skip_many1, ParseError, Stream,
 };
 use expr::print_expr_sizes;
-use hir::{
-    expr::{Expr, PlaceExpr},
-    statement::Statement,
-};
+use hir::{expr::Expr, statement::Statement};
 
 pub use combine::{EasyParser, Parser};
-use string_cache::DefaultAtom;
 
 mod expr;
 mod ident_keyword;
@@ -83,19 +79,13 @@ where
     let have_rest = move || {
         (
             attempt((many(element().skip(sep())), rest)),
-            optional(sep().with(no_rest())).map(|right| right.unwrap_or_else(Default::default)),
+            optional(sep().with(no_rest())).map(|right| right.unwrap_or_default()),
         )
     };
     choice((
         have_rest().map(|((left, rest), right)| (left, Some((rest, right)))),
         no_rest().map(|collection| (collection, None)),
     ))
-}
-fn var_expr(var: &str) -> Expr<()> {
-    Expr::Place(var_place(var))
-}
-fn var_place(var: &str) -> PlaceExpr<()> {
-    PlaceExpr::Var(DefaultAtom::from(var))
 }
 fn size_of<T>(_: &T) -> usize {
     std::mem::size_of::<T>()
@@ -107,7 +97,15 @@ pub fn print_sizes() {
 mod test {
     use crate::insignificants;
     use combine::Parser;
+    use hir::expr::{Expr, PlaceExpr};
+    use string_cache::DefaultAtom;
 
+    pub(super) fn var_expr(var: &str) -> Expr<()> {
+        Expr::Place(var_place(var))
+    }
+    pub(super) fn var_place(var: &str) -> PlaceExpr<()> {
+        PlaceExpr::Var(DefaultAtom::from(var))
+    }
     #[test]
     fn insignificant() {
         assert_eq!(

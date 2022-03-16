@@ -348,9 +348,9 @@ impl Inferable for RecordWithSplat<()> {
                 rest: Some(var),
             })),
             expr: RecordWithSplat {
-                left: typed_left.into(),
+                left: typed_left,
                 splat: Box::new(typed_splat.expr),
-                right: typed_right.into(),
+                right: typed_right,
             },
         })
     }

@@ -78,10 +78,10 @@ where
         ))
         .with(lex(ident()))
         .map(|prop| {
-            if prop == DefaultAtom::from("len") {
+            if prop.as_ref() == "len" {
                 PartialAst::Len
             } else {
-                PartialAst::Property(DefaultAtom::from(prop))
+                PartialAst::Property(prop)
             }
         })
     };
