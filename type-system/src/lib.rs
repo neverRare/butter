@@ -6,7 +6,7 @@ use crate::ty::{cons::OrderedAnd, Env, Subs, Substitutable, Unifiable, VarState}
 use hir::{
     expr::{
         Bound, Element, ElementKind, Expr, Field, FieldAccess, Index, Literal, PlaceExpr, Range,
-        Record, RecordWithSplat, Slice, Tag,
+        Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat,
     },
     statement::Statement,
 };
@@ -375,6 +375,83 @@ impl Inferable for Record<()> {
         Ok(typed)
     }
 }
+fn infer_tuple(
+    tuple: Box<[Expr<()>]>,
+    subs: &mut Subs,
+    var_state: &mut VarState,
+    env: &Env,
+) -> Result<(Vec<Type>, Vec<Expr<Type>>), TypeError> {
+    let tuple: Vec<_> = tuple.into();
+    let len = tuple.len();
+    let tuple = tuple.into_iter().try_fold(
+        (Vec::with_capacity(len), Vec::with_capacity(len)),
+        |(mut ty, mut typed), expr| {
+            let inferred = expr.partial_infer(subs, var_state, env)?;
+            ty.push(inferred.ty);
+            typed.push(inferred.expr);
+            Ok((ty, typed))
+        },
+    )?;
+    Ok(tuple)
+}
+impl Inferable for Box<[Expr<()>]> {
+    type TypedSelf = Box<[Expr<Type>]>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let (ty, expr) = infer_tuple(self, subs, var_state, env)?;
+        Ok(Typed {
+            ty: Type::Cons(Cons::Tuple(OrderedAnd::NonRow(ty.into()))),
+            expr: expr.into(),
+        })
+    }
+}
+impl Inferable for TupleWithSplat<()> {
+    type TypedSelf = TupleWithSplat<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let (left_type, left_expr) = infer_tuple(self.left, subs, var_state, env)?;
+        let splat = self.splat.partial_infer(subs, var_state, env)?;
+        let (right_type, right_expr) = infer_tuple(self.right, subs, var_state, env)?;
+        let var = var_state.new_var();
+        subs.compose_with(Type::Var(var.clone()).unify_with(splat.ty, var_state)?)?;
+        Ok(Typed {
+            ty: Type::Cons(Cons::Tuple(OrderedAnd::Row(left_type, var, right_type))),
+            expr: TupleWithSplat {
+                left: left_expr.into(),
+                splat: Box::new(splat.expr),
+                right: right_expr.into(),
+            },
+        })
+    }
+}
+impl Inferable for Tuple<()> {
+    type TypedSelf = Tuple<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed = match self {
+            Self::Tuple(tuple) => tuple.partial_infer(subs, var_state, env)?.map(Tuple::Tuple),
+            Self::TupleWithSplat(tuple) => tuple
+                .partial_infer(subs, var_state, env)?
+                .map(Tuple::TupleWithSplat),
+        };
+        Ok(typed)
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -399,6 +476,7 @@ impl Inferable for Expr<()> {
             Self::Record(record) => record
                 .partial_infer(subs, var_state, env)?
                 .map(Expr::Record),
+            Self::Tuple(tuple) => tuple.partial_infer(subs, var_state, env)?.map(Expr::Tuple),
             Self::Unit => Typed {
                 ty: unit(),
                 expr: Expr::Unit,
@@ -423,7 +501,6 @@ impl Inferable for Expr<()> {
             Self::ControlFlow(_) => todo!(),
             Self::Fun(_) => todo!(),
             Self::Jump(_) => todo!(),
-            Self::Tuple(_) => todo!(),
         };
         Ok(ty_expr)
     }
