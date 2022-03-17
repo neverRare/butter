@@ -183,8 +183,20 @@ impl Inferable for PlaceExpr<()> {
             Self::Slice(slice) => slice
                 .partial_infer(subs, var_state, env)?
                 .map(PlaceExpr::Slice),
+            Self::Len(expr) => {
+                let typed = expr.partial_infer(subs, var_state, env)?;
+                let var = var_state.new_var();
+                subs.compose_with(
+                    typed
+                        .ty
+                        .unify_with(Type::Cons(Cons::Array(Box::new(Type::Var(var)))), var_state)?,
+                )?;
+                Typed {
+                    ty: Type::Cons(Cons::Num),
+                    expr: PlaceExpr::Len(Box::new(typed.expr)),
+                }
+            }
             Self::Deref(_) => todo!(),
-            Self::Len(_) => todo!(),
         };
         Ok(typed)
     }
