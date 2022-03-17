@@ -6,7 +6,7 @@ use crate::ty::{cons::OrderedAnd, Env, Subs, Substitutable, Unifiable, VarState}
 use hir::{
     expr::{
         Bound, Element, ElementKind, Expr, Field, FieldAccess, Index, Literal, PlaceExpr, Range,
-        Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat,
+        Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
     statement::Statement,
 };
@@ -464,6 +464,31 @@ impl Inferable for Tuple<()> {
         Ok(typed)
     }
 }
+impl Inferable for Unary<()> {
+    type TypedSelf = Unary<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed = match self.kind {
+            // TODO: implement error when cloning function and mutable reference
+            kind @ (UnaryType::Move | UnaryType::Clone) => self
+                .expr
+                .partial_infer(subs, var_state, env)?
+                .map(|expr| Unary {
+                    kind,
+                    expr: Box::new(expr),
+                }),
+            UnaryType::Minus => todo!(),
+            UnaryType::Ref => todo!(),
+            UnaryType::Not => todo!(),
+        };
+        Ok(typed)
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -506,8 +531,8 @@ impl Inferable for Expr<()> {
                     expr: Expr::Splat(Box::new(splat.expr)),
                 }
             }
+            Self::Unary(unary) => unary.partial_infer(subs, var_state, env)?.map(Expr::Unary),
             Self::Assign(_) => todo!(),
-            Self::Unary(_) => todo!(),
             Self::Binary(_) => todo!(),
             Self::Call(_) => todo!(),
             Self::ControlFlow(_) => todo!(),
