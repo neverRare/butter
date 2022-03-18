@@ -473,18 +473,29 @@ impl Inferable for Unary<()> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed = self.expr.partial_infer(subs, var_state, env)?;
         let typed = match self.kind {
             // TODO: implement error when cloning function and mutable reference
-            kind @ (UnaryType::Move | UnaryType::Clone) => self
-                .expr
-                .partial_infer(subs, var_state, env)?
-                .map(|expr| Unary {
-                    kind,
-                    expr: Box::new(expr),
-                }),
-            UnaryType::Minus => todo!(),
+            kind @ (UnaryType::Move | UnaryType::Clone) => typed.map(|expr| Unary {
+                kind,
+                expr: Box::new(expr),
+            }),
+            kind @ (UnaryType::Minus | UnaryType::Not) => {
+                let ty = match kind {
+                    UnaryType::Minus => Type::Cons(Cons::Num),
+                    UnaryType::Not => Type::Cons(Cons::Bool),
+                    _ => unreachable!(),
+                };
+                subs.compose_with(typed.ty.unify_with(ty.clone(), var_state)?)?;
+                Typed {
+                    ty,
+                    expr: Unary {
+                        kind,
+                        expr: Box::new(typed.expr),
+                    },
+                }
+            }
             UnaryType::Ref => todo!(),
-            UnaryType::Not => todo!(),
         };
         Ok(typed)
     }
