@@ -5,8 +5,9 @@
 use crate::ty::{cons::OrderedAnd, Env, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
-        Bound, Element, ElementKind, Expr, Field, FieldAccess, Index, Literal, PlaceExpr, Range,
-        Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
+        Binary, BinaryType, Bound, Element, ElementKind, Expr, Field, FieldAccess, Index, Literal,
+        PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary,
+        UnaryType,
     },
     statement::Statement,
 };
@@ -500,6 +501,82 @@ impl Inferable for Unary<()> {
         Ok(typed)
     }
 }
+impl Inferable for Binary<()> {
+    type TypedSelf = Binary<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let left = self.left.partial_infer(subs, var_state, env)?;
+        let right = self.right.partial_infer(subs, var_state, env)?;
+        if self.kind == BinaryType::Concatenate {
+            let var = var_state.new_var();
+            let mut ty = Type::Cons(Cons::Array(Box::new(Type::Var(var))));
+            let left_subs = ty.clone().unify_with(left.ty, var_state)?;
+            ty.substitute(&left_subs)?;
+            let right_subs = ty.clone().unify_with(right.ty, var_state)?;
+            ty.substitute(&right_subs)?;
+            return Ok(Typed {
+                ty,
+                expr: Binary {
+                    kind: BinaryType::Concatenate,
+                    left: Box::new(left.expr),
+                    right: Box::new(right.expr),
+                },
+            });
+        }
+        let op_type = match self.kind {
+            BinaryType::Concatenate => unreachable!(),
+            BinaryType::Add
+            | BinaryType::Sub
+            | BinaryType::Multiply
+            | BinaryType::Div
+            | BinaryType::FloorDiv
+            | BinaryType::Mod
+            | BinaryType::Equal
+            | BinaryType::NotEqual
+            | BinaryType::Greater
+            | BinaryType::GreaterEqual
+            | BinaryType::Less
+            | BinaryType::LessEqual => Type::Cons(Cons::Num),
+            BinaryType::And | BinaryType::Or | BinaryType::LazyAnd | BinaryType::LazyOr => {
+                Type::Cons(Cons::Bool)
+            }
+        };
+        let return_type = match self.kind {
+            BinaryType::Concatenate => unreachable!(),
+            BinaryType::Add
+            | BinaryType::Sub
+            | BinaryType::Multiply
+            | BinaryType::Div
+            | BinaryType::FloorDiv
+            | BinaryType::Mod => Type::Cons(Cons::Num),
+            BinaryType::Equal
+            | BinaryType::NotEqual
+            | BinaryType::Greater
+            | BinaryType::GreaterEqual
+            | BinaryType::Less
+            | BinaryType::LessEqual
+            | BinaryType::And
+            | BinaryType::Or
+            | BinaryType::LazyAnd
+            | BinaryType::LazyOr => Type::Cons(Cons::Bool),
+        };
+        subs.compose_with(left.ty.unify_with(op_type.clone(), var_state)?)?;
+        subs.compose_with(right.ty.unify_with(op_type, var_state)?)?;
+        Ok(Typed {
+            ty: return_type,
+            expr: Binary {
+                kind: self.kind,
+                left: Box::new(left.expr),
+                right: Box::new(right.expr),
+            },
+        })
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -543,8 +620,10 @@ impl Inferable for Expr<()> {
                 }
             }
             Self::Unary(unary) => unary.partial_infer(subs, var_state, env)?.map(Expr::Unary),
+            Self::Binary(binary) => binary
+                .partial_infer(subs, var_state, env)?
+                .map(Expr::Binary),
             Self::Assign(_) => todo!(),
-            Self::Binary(_) => todo!(),
             Self::Call(_) => todo!(),
             Self::ControlFlow(_) => todo!(),
             Self::Fun(_) => todo!(),
