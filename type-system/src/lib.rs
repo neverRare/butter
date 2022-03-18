@@ -231,7 +231,7 @@ impl Inferable for Box<[Element<()>]> {
             let arr_subs = unify_to.unify_with(typed_expr.ty, var_state)?;
             ty_var.substitute(&arr_subs)?;
             arr_ty.substitute(&arr_subs)?;
-            // subs.compose_with(arr_subs)?;
+            subs.compose_with(arr_subs)?;
         }
         Ok(Typed {
             ty: arr_ty,
@@ -521,8 +521,10 @@ impl Inferable for Binary<()> {
             let mut ty = Type::Cons(Cons::Array(Box::new(Type::Var(var))));
             let left_subs = ty.clone().unify_with(left.ty, var_state)?;
             ty.substitute(&left_subs)?;
+            subs.compose_with(left_subs)?;
             let right_subs = ty.clone().unify_with(right.ty, var_state)?;
             ty.substitute(&right_subs)?;
+            subs.compose_with(right_subs)?;
             return Ok(Typed {
                 ty,
                 expr: Binary {
