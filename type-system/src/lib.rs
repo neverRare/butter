@@ -2,16 +2,20 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use crate::ty::{cons::OrderedAnd, Env, Subs, Substitutable, Unifiable, VarState};
+use crate::ty::{cons::OrderedAnd, Env, Scheme, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
-        Binary, BinaryType, Bound, Element, ElementKind, Expr, Field, FieldAccess, Index, Literal,
-        PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary,
-        UnaryType,
+        Binary, BinaryType, Bound, Element, ElementKind, Expr, Field, FieldAccess, Fun, Index,
+        Literal, PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat,
+        Unary, UnaryType,
     },
+    pattern,
     statement::Statement,
 };
-use std::{collections::HashMap, iter::once};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::once,
+};
 use string_cache::DefaultAtom;
 
 mod ty;
@@ -577,6 +581,67 @@ impl Inferable for Binary<()> {
         })
     }
 }
+impl Inferable for Fun<()> {
+    type TypedSelf = Fun<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let param_var: Vec<_> = self.param.iter().map(|var| var.ident.clone()).collect();
+        let param_map: HashMap<_, _> = param_var
+            .iter()
+            .map(|var| (var.clone(), var_state.new_named(&var)))
+            .collect();
+        let mut env = env.clone();
+        env.extend(param_map.iter().map(|(var, new_var)| {
+            (
+                Var {
+                    name: var.clone(),
+                    id: 0,
+                },
+                Scheme {
+                    for_all: HashSet::new(),
+                    ty: Type::Var(new_var.clone()),
+                },
+            )
+        }));
+        let mut param_ty = Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(
+            param_var
+                .into_iter()
+                .map(|var| (var.clone(), Type::Var(param_map.get(&var).unwrap().clone())))
+                .collect::<Vec<_>>()
+                .into(),
+        )));
+        let mut body_subs = Subs::new();
+        let body = self.body.partial_infer(&mut body_subs, var_state, &env)?;
+        param_ty.substitute(&body_subs)?;
+        let param: Vec<_> = self.param.into();
+        let typed_param = param
+            .into_iter()
+            .map(|var| {
+                let mut ty = Type::Var(param_map.get(&var.ident).unwrap().clone());
+                ty.substitute(&body_subs)?;
+                Ok(pattern::Var {
+                    ident: var.ident,
+                    mutable: var.mutable,
+                    bind_to_ref: var.bind_to_ref,
+                    ty,
+                })
+            })
+            .collect::<Result<Vec<_>, TypeError>>()?;
+        subs.compose_with(body_subs)?;
+        Ok(Typed {
+            ty: Type::Cons(Cons::Fun(Box::new(param_ty), Box::new(body.ty))),
+            expr: Fun {
+                param: typed_param.into(),
+                body: Box::new(body.expr),
+            },
+        })
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -623,10 +688,10 @@ impl Inferable for Expr<()> {
             Self::Binary(binary) => binary
                 .partial_infer(subs, var_state, env)?
                 .map(Expr::Binary),
+            Self::Fun(fun) => fun.partial_infer(subs, var_state, env)?.map(Expr::Fun),
             Self::Assign(_) => todo!(),
             Self::Call(_) => todo!(),
             Self::ControlFlow(_) => todo!(),
-            Self::Fun(_) => todo!(),
             Self::Jump(_) => todo!(),
         };
         Ok(ty_expr)

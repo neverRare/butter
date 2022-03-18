@@ -40,7 +40,7 @@ enum Kind {
     MutType,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-struct KindedVar {
+pub(super) struct KindedVar {
     kind: Kind,
     var: Var,
 }
@@ -223,8 +223,8 @@ impl Substitutable for Type1 {
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct Scheme {
-    for_all: HashSet<KindedVar>,
-    ty: Type,
+    pub(super) for_all: HashSet<KindedVar>,
+    pub(super) ty: Type,
 }
 impl FreeVars for Scheme {
     fn free_vars(&self) -> HashSet<KindedVar> {
@@ -361,6 +361,11 @@ impl Substitutable for Env {
             ty.substitute(subs)?;
         }
         Ok(())
+    }
+}
+impl Extend<(Var, Scheme)> for Env {
+    fn extend<T: IntoIterator<Item = (Var, Scheme)>>(&mut self, iter: T) {
+        self.hashmap_mut().extend(iter);
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
