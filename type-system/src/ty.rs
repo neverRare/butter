@@ -25,7 +25,7 @@ impl VarState {
     }
     pub fn new_named(&mut self, name: &DefaultAtom) -> Var {
         let Self(map) = self;
-        let state = map.entry(name.clone()).or_default();
+        let state = map.entry(name.clone()).or(1);
         let id = *state;
         *state += 1;
         Var {
