@@ -188,6 +188,7 @@ where
     // range operators
     let double_ops = || {
         choice([
+            attempt(string("++")),
             attempt(string("//")),
             attempt(string("==")),
             attempt(string("!=")),
