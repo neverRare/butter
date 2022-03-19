@@ -592,6 +592,7 @@ impl Inferable for Fun<()> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        // TODO: handle `ref` parameters
         let param_var: Vec<_> = self.param.iter().map(|var| var.ident.clone()).collect();
         let param_map: HashMap<_, _> = param_var
             .iter()
