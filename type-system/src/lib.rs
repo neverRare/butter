@@ -5,9 +5,9 @@
 use crate::ty::{cons::OrderedAnd, Env, Scheme, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
-        Binary, BinaryType, Bound, Element, ElementKind, Expr, Field, FieldAccess, Fun, Index,
-        Literal, PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat,
-        Unary, UnaryType,
+        Arg, Binary, BinaryType, Bound, Call, Element, ElementKind, Expr, Field, FieldAccess, Fun,
+        Index, Literal, PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag, Tuple,
+        TupleWithSplat, Unary, UnaryType,
     },
     pattern,
     statement::Statement,
@@ -644,6 +644,78 @@ impl Inferable for Fun<()> {
         })
     }
 }
+impl Inferable for Arg<()> {
+    type TypedSelf = Arg<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed = match self {
+            Arg::Unit => Typed {
+                ty: unit(),
+                expr: Arg::Unit,
+            },
+            Arg::Splat(expr) => {
+                let typed = expr.partial_infer(subs, var_state, env)?;
+                let var = var_state.new_var();
+                subs.compose_with(Type::Var(var.clone()).unify_with(typed.ty, var_state)?)?;
+                Typed {
+                    ty: Type::Cons(Cons::RecordTuple(OrderedAnd::Row(
+                        Vec::new(),
+                        var,
+                        Vec::new(),
+                    ))),
+                    expr: Arg::Splat(Box::new(typed.expr)),
+                }
+            }
+            Arg::Record(record) => record.partial_infer(subs, var_state, env)?.map(Arg::Record),
+            Arg::Tuple(tuple) => tuple.partial_infer(subs, var_state, env)?.map(Arg::Tuple),
+        };
+        Ok(typed)
+    }
+}
+impl Inferable for Call<()> {
+    type TypedSelf = Call<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let var = var_state.new_var();
+        let mut subs1 = Subs::new();
+        let typed1 = self.expr.partial_infer(&mut subs1, var_state, env)?;
+        let mut env2 = env.clone();
+        env2.substitute(&subs1)?;
+        let mut subs2 = Subs::new();
+        let typed2 = self.arg.partial_infer(&mut subs2, var_state, &env2)?;
+        let mut ty1 = typed1.ty;
+        ty1.substitute(&subs2)?;
+        let subs3 = ty1.unify_with(
+            Type::Cons(Cons::Fun(
+                Box::new(typed2.ty),
+                Box::new(Type::Var(var.clone())),
+            )),
+            var_state,
+        )?;
+        let mut ty = Type::Var(var);
+        ty.substitute(&subs3)?;
+        subs.compose_with(subs3)?;
+        subs.compose_with(subs2)?;
+        subs.compose_with(subs1)?;
+        Ok(Typed {
+            ty,
+            expr: Call {
+                expr: Box::new(typed1.expr),
+                arg: typed2.expr,
+            },
+        })
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -691,8 +763,8 @@ impl Inferable for Expr<()> {
                 .partial_infer(subs, var_state, env)?
                 .map(Expr::Binary),
             Self::Fun(fun) => fun.partial_infer(subs, var_state, env)?.map(Expr::Fun),
+            Self::Call(call) => call.partial_infer(subs, var_state, env)?.map(Expr::Call),
             Self::Assign(_) => todo!(),
-            Self::Call(_) => todo!(),
             Self::ControlFlow(_) => todo!(),
             Self::Jump(_) => todo!(),
         };
