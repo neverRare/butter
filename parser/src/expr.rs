@@ -1,16 +1,15 @@
 use crate::{
     expr::{
         array::{array, range},
-        infix::{expr_0, expr_6, infix_expr_op, print_infix_sizes},
+        infix::{expr_0, expr_6, infix_expr_op},
         integer::integer_u64,
-        record::{print_record_sizes, record},
+        record::record,
         string::{char_literal, string_literal},
-        tuple::{print_tuple_sizes, tuple},
+        tuple::tuple,
     },
     ident_keyword::{ident, keyword},
     lex,
     pattern::parameter,
-    size_of,
 };
 use combine::{
     attempt, between, chainl1, choice, optional,
@@ -28,22 +27,20 @@ mod record;
 mod string;
 mod tuple;
 
-combine::parser! {
-    fn literal[I]()(I) -> Literal
-    where [
-        I: Stream<Token = char>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-    ] {
-        choice((
-            char_literal().map(Literal::UInt),
-            float::float().map(Literal::Float),
-            integer_u64().map(Literal::UInt),
-            attempt(keyword("false")).with(value(Literal::False)),
-            attempt(keyword("true") ).with(value(Literal::True)),
-        ))
-    }
+fn literal<I>() -> impl Parser<I, Output = Literal>
+where
+    I: Stream<Token = char>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    choice((
+        char_literal().map(Literal::UInt),
+        float::float().map(Literal::Float),
+        integer_u64().map(Literal::UInt),
+        attempt(keyword("false")).with(value(Literal::False)),
+        attempt(keyword("true")).with(value(Literal::True)),
+    ))
 }
-fn jump<I, T>() -> impl Parser<I, Output = Jump<T>>
+fn jump<T, I>() -> impl Parser<I, Output = Jump<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -59,7 +56,7 @@ where
             .map(|expr| Jump::Return(expr.map(Box::new))),
     ))
 }
-fn unary<I, T>() -> impl Parser<I, Output = Unary<T>>
+fn unary<T, I>() -> impl Parser<I, Output = Unary<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -79,7 +76,7 @@ where
         expr: Box::new(expr),
     })
 }
-fn tag<I, T>() -> impl Parser<I, Output = Tag<T>>
+fn tag<T, I>() -> impl Parser<I, Output = Tag<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -92,7 +89,7 @@ where
             expr: expr.map(Box::new),
         })
 }
-fn fun<I, T>() -> impl Parser<I, Output = Fun<T>>
+fn fun<T, I>() -> impl Parser<I, Output = Fun<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -103,7 +100,7 @@ where
         body: Box::new(body),
     })
 }
-fn array_range<I, T>() -> impl Parser<I, Output = Expr<T>>
+fn array_range<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -114,7 +111,7 @@ where
         array().map(Expr::Array),
     ))
 }
-fn tuple_record_group<I, T>() -> impl Parser<I, Output = Expr<T>>
+fn tuple_record_group<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -136,7 +133,7 @@ where
         record().map(Expr::Record),
     ))
 }
-fn prefix_expr_<I, T>() -> impl Parser<I, Output = Expr<T>>
+fn prefix_expr_<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -165,7 +162,7 @@ where
     ))
 }
 combine::parser! {
-    fn prefix_expr[I, T]()(I) -> Expr< T>
+    fn prefix_expr[T, I]()(I) -> Expr<T>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -174,7 +171,7 @@ combine::parser! {
         prefix_expr_()
     }
 }
-fn expr_<I, T>(precedence: u8) -> impl Parser<I, Output = Expr<T>>
+fn expr_<T, I>(precedence: u8) -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -190,7 +187,7 @@ where
     }
 }
 combine::parser! {
-    pub(crate) fn expr[I, T](precedence: u8)(I) -> Expr< T>
+    pub(crate) fn expr[T, I](precedence: u8)(I) -> Expr<T>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -198,21 +195,6 @@ combine::parser! {
     ] {
         expr_(*precedence)
     }
-}
-pub(crate) fn print_expr_sizes() {
-    print_infix_sizes();
-    print_record_sizes();
-    print_tuple_sizes();
-    println!(
-        "{}: {}",
-        concat!(module_path!(), "::prefix_expr_"),
-        size_of(&prefix_expr_::<&str, ()>()),
-    );
-    println!(
-        "{}: {}",
-        concat!(module_path!(), "::expr_"),
-        size_of(&expr_::<&str, ()>(0)),
-    );
 }
 #[cfg(test)]
 mod test {
@@ -259,14 +241,14 @@ mod test {
         let src = "foo <- bar <- baz";
         let expected = Expr::Assign(
             vec![Assign {
-                place: Box::new(var_place("foo")),
-                expr: Box::new(Expr::Assign(
+                place: var_place("foo"),
+                expr: Expr::Assign(
                     vec![Assign {
-                        place: Box::new(var_place("bar")),
-                        expr: Box::new(var_expr("baz")),
+                        place: var_place("bar"),
+                        expr: var_expr("baz"),
                     }]
                     .into(),
-                )),
+                ),
             }]
             .into(),
         );

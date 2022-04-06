@@ -12,16 +12,16 @@ where
     (
         choice((
             char('.').map(|_| BoundType::Inclusive),
-            (char('>').map(|_| BoundType::Exclusive)),
+            char('>').map(|_| BoundType::Exclusive),
         )),
         choice((
             char('.').map(|_| BoundType::Inclusive),
-            (char('<').map(|_| BoundType::Exclusive)),
+            char('<').map(|_| BoundType::Exclusive),
         )),
     )
         .expected("range operator")
 }
-pub(crate) fn range<I, T>() -> impl Parser<I, Output = Range<T>>
+pub(crate) fn range<T, I>() -> impl Parser<I, Output = Range<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -44,7 +44,7 @@ where
     };
     between(lex(char('[')), lex(char(']')), range()).expected("range array")
 }
-pub(crate) fn array<I, T>() -> impl Parser<I, Output = Box<[Element<T>]>>
+pub(crate) fn array<T, I>() -> impl Parser<I, Output = Box<[Element<T>]>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

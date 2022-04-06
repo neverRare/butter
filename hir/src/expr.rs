@@ -213,12 +213,12 @@ pub struct Match<T> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct MatchArm<T> {
     pub pattern: Pattern<T>,
-    pub expr: Box<Expr<T>>,
+    pub expr: Expr<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Assign<T> {
-    pub place: Box<PlaceExpr<T>>,
-    pub expr: Box<Expr<T>>,
+    pub place: PlaceExpr<T>,
+    pub expr: Expr<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct FieldAccess<T> {

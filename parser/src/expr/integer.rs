@@ -47,62 +47,51 @@ where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    recognize((
+    recognize::<String, _, _>((
         satisfy(move |ch| parse_digit(ch, base).is_some()),
         skip_many(satisfy(move |ch| {
             parse_digit(ch, base).is_some() || ch == '_'
         })),
     ))
-    .map(|int: String| DefaultAtom::from(int))
+    .map(DefaultAtom::from)
 }
 pub(crate) fn integer_str_allow_underscore<I>(base: u8) -> impl Parser<I, Output = DefaultAtom>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    many1(satisfy(move |ch| {
+    many1::<String, _, _>(satisfy(move |ch| {
         parse_digit(ch, base).is_some() || ch == '_'
     }))
-    .map(|int: String| DefaultAtom::from(int))
+    .map(DefaultAtom::from)
 }
-// TODO: clean this up, it looks ugly
 macro_rules! gen_integer_parser {
     ($ident:ident, $parser:expr, $type:ty) => {
-        combine::parser! {
-            pub(crate) fn $ident[I]()(I) -> $type
-            where [
-                I: Stream<Token = char>,
-                I::Error: ParseError<I::Token, I::Range, I::Position>,
-            ] {
-                combine::parser! {
-                    fn integer[I, P](num_parser: P, base: $type)(I) -> $type
-                    where [
-                        I: Stream<Token = char>,
-                        I::Error: ParseError<I::Token, I::Range, I::Position>,
-                        P: Parser<I, Output = DefaultAtom>
-                    ] {
-                        num_parser
-                            .and_then(|src: DefaultAtom| {
-                                match $parser(src.as_ref(), *base) {
-                                    Some(result) => Ok(result),
-                                    None => Err(<StreamErrorFor<I>>::message_static_message("integer overflow")),
-                                }
-                            })
-                    }
+        pub(crate) fn $ident<I>() -> impl Parser<I, Output = $type>
+        where
+            I: Stream<Token = char>,
+            I::Error: ParseError<I::Token, I::Range, I::Position>,
+        {
+            let parse_mapper = |base| {
+                move |src: DefaultAtom| {
+                    $parser(src.as_ref(), base as $type).ok_or(
+                        <StreamErrorFor<I>>::message_static_message("integer overflow"),
+                    )
                 }
-                let base_prefix = |lower, upper| (char('0'), choice([char(lower), char(upper)]));
-                choice((
-                    attempt(base_prefix('x', 'X'))
-                        .with(integer(integer_str_allow_underscore(16), 16)),
-                    attempt(base_prefix('o', 'O'))
-                        .with(integer(integer_str_allow_underscore(8), 8)),
-                    attempt(base_prefix('b', 'B'))
-                        .with(integer(integer_str_allow_underscore(2), 2)),
-                    integer(integer_str(10), 10),
+            };
+            let prefixed = choice([('x', 16), ('o', 8), ('b', 2)].map(|(prefix, base)| {
+                attempt((
+                    char('0'),
+                    choice([
+                        char(prefix.to_ascii_lowercase()),
+                        char(prefix.to_ascii_uppercase()),
+                    ]),
                 ))
-                    .skip(not_followed_by(alpha_num()))
-                    .expected("integer")
-            }
+                .with(integer_str_allow_underscore(base).and_then(parse_mapper(base)))
+            }));
+            choice((prefixed, integer_str(10).and_then(parse_mapper(10))))
+                .skip(not_followed_by(alpha_num()))
+                .expected("integer")
         }
     };
 }

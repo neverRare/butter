@@ -7,7 +7,6 @@ use combine::{
     parser::char::{space, string},
     sep_end_by, skip_many, skip_many1, ParseError, Stream,
 };
-use expr::print_expr_sizes;
 use hir::{expr::Expr, statement::Statement};
 
 pub use combine::{EasyParser, Parser};
@@ -18,7 +17,7 @@ mod pattern;
 mod statement;
 
 combine::parser! {
-    pub fn ast[I, T]()(I) -> Vec<Statement< T>>
+    pub fn ast[T, I]()(I) -> Vec<Statement<T>>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -31,7 +30,7 @@ combine::parser! {
     }
 }
 combine::parser! {
-    pub fn expr_parser[I, T]()(I) -> Expr< T>
+    pub fn expr_parser[T, I]()(I) -> Expr<T>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -86,12 +85,6 @@ where
         have_rest().map(|((left, rest), right)| (left, Some((rest, right)))),
         no_rest().map(|collection| (collection, None)),
     ))
-}
-fn size_of<T>(_: &T) -> usize {
-    std::mem::size_of::<T>()
-}
-pub fn print_sizes() {
-    print_expr_sizes();
 }
 #[cfg(test)]
 mod test {

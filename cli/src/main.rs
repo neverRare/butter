@@ -1,3 +1,4 @@
+use hir::expr::Expr;
 use parser::{expr_parser, EasyParser};
 use std::io::{self, Write};
 use structopt::StructOpt;
@@ -32,7 +33,7 @@ fn type_repl() -> io::Result<()> {
         if input.is_empty() || input.starts_with(":q") {
             break;
         }
-        let ast = match expr_parser::<_, ()>().easy_parse(&input[..]) {
+        let ast: Expr<()> = match expr_parser().easy_parse(&input[..]) {
             Ok((ast, _)) => ast,
             Err(err) => {
                 eprintln!("{}", err);
@@ -82,7 +83,7 @@ fn parser_repl() -> io::Result<()> {
                 }
             }
         }
-        match expr_parser::<_, ()>().easy_parse(&input[..]) {
+        match expr_parser::<(), _>().easy_parse(&input[..]) {
             Ok((ast, _)) => {
                 println!("{:#?}", ast);
             }

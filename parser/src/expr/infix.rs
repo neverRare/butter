@@ -1,7 +1,7 @@
 use crate::{
     expr::{array::range, expr, record::record, tuple::tuple},
     ident_keyword::ident,
-    lex, size_of,
+    lex,
 };
 use combine::{
     attempt, between, choice,
@@ -64,7 +64,7 @@ impl<T> PartialAst<T> {
         }
     }
 }
-fn infix_6_<I, T>() -> impl Parser<I, Output = PartialAst<T>>
+fn infix_6<T, I>() -> impl Parser<I, Output = PartialAst<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -112,23 +112,13 @@ where
         lex(char('^')).map(|_| PartialAst::Deref),
     ))
 }
-combine::parser! {
-    fn infix_6[I, T]()(I) -> PartialAst< T>
-    where [
-        I: Stream<Token = char>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default,
-    ] {
-        infix_6_()
-    }
-}
-pub(crate) fn expr_6<I, T>() -> impl Parser<I, Output = Expr<T>>
+pub(crate) fn expr_6<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     T: Default,
 {
-    (expr(7), many(infix_6_())).map(|(prefix, infixes)| {
+    (expr(7), many(infix_6())).map(|(prefix, infixes)| {
         let infixes: Vec<_> = infixes;
         let mut expr = prefix;
         for infix in infixes {
@@ -137,7 +127,7 @@ where
         expr
     })
 }
-pub(crate) fn expr_0<I, T>() -> impl Parser<I, Output = Expr<T>>
+pub(crate) fn expr_0<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -147,13 +137,7 @@ where
         match expr {
             Some(expr) => {
                 if let Expr::Place(place) = place {
-                    Ok(Expr::Assign(
-                        vec![Assign {
-                            place: Box::new(place),
-                            expr: Box::new(expr),
-                        }]
-                        .into(),
-                    ))
+                    Ok(Expr::Assign(vec![Assign { place, expr }].into()))
                 } else {
                     Err(<StreamErrorFor<I>>::expected_static_message(
                         "place expression",
@@ -176,7 +160,7 @@ fn precedence_of(token: &str) -> Option<u8> {
         _ => None,
     }
 }
-pub(crate) fn infix_expr_op<I, T>(
+pub(crate) fn infix_expr_op<T, I>(
     precedence: u8,
 ) -> impl Parser<I, Output = impl Fn(Expr<T>, Expr<T>) -> Expr<T>>
 where
@@ -261,26 +245,4 @@ where
                 })
             }
         })
-}
-pub(crate) fn print_infix_sizes() {
-    println!(
-        "{}: {}",
-        concat!(module_path!(), "::infix_6_"),
-        size_of(&infix_6_::<&str, ()>()),
-    );
-    println!(
-        "{}: {}",
-        concat!(module_path!(), "::expr_6"),
-        size_of(&expr_6::<&str, ()>()),
-    );
-    println!(
-        "{}: {}",
-        concat!(module_path!(), "::expr_0"),
-        size_of(&expr_0::<&str, ()>()),
-    );
-    println!(
-        "{}: {}",
-        concat!(module_path!(), "::infix_expr_op"),
-        size_of(&infix_expr_op::<&str, ()>(0)),
-    );
 }

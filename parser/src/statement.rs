@@ -22,7 +22,9 @@ pub(crate) enum StatementReturn<T> {
     Statement(Statement<T>),
     Return(Expr<T>),
 }
-fn statement_return_<I, P, T>(end_look_ahead: P) -> impl Parser<I, Output = StatementReturn<T>>
+pub(crate) fn statement_return<I, P, T>(
+    end_look_ahead: P,
+) -> impl Parser<I, Output = StatementReturn<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -96,10 +98,7 @@ where
                 let assign = place
                     .into_iter()
                     .zip(expr.into_iter())
-                    .map(|(place, expr)| Assign {
-                        place: Box::new(place),
-                        expr: Box::new(expr),
-                    })
+                    .map(|(place, expr)| Assign { place, expr })
                     .collect();
                 Ok(Expr::Assign(assign))
             })
@@ -127,18 +126,7 @@ where
         expr(),
     ))
 }
-combine::parser! {
-    pub(crate) fn statement_return[I, P, T](end_look_ahead: P)(I) -> StatementReturn< T>
-    where [
-        I: Stream<Token = char>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-        P: Parser<I>,
-        T: Default,
-    ] {
-        statement_return_(end_look_ahead)
-    }
-}
-pub(crate) fn statement<I, T>() -> impl Parser<I, Output = Statement<T>>
+pub(crate) fn statement<T, I>() -> impl Parser<I, Output = Statement<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -170,12 +158,12 @@ mod test {
         let expected: Statement<()> = Statement::Expr(Expr::Assign(
             vec![
                 Assign {
-                    place: Box::new(var_place("foo")),
-                    expr: Box::new(var_expr("bar")),
+                    place: var_place("foo"),
+                    expr: var_expr("bar"),
                 },
                 Assign {
-                    place: Box::new(var_place("bar")),
-                    expr: Box::new(var_expr("foo")),
+                    place: var_place("bar"),
+                    expr: var_expr("foo"),
                 },
             ]
             .into(),
@@ -187,14 +175,14 @@ mod test {
         let src = "foo <- bar <- baz;";
         let expected: Statement<()> = Statement::Expr(Expr::Assign(
             vec![Assign {
-                place: Box::new(var_place("foo")),
-                expr: Box::new(Expr::Assign(
+                place: var_place("foo"),
+                expr: Expr::Assign(
                     vec![Assign {
-                        place: Box::new(var_place("bar")),
-                        expr: Box::new(var_expr("baz")),
+                        place: var_place("bar"),
+                        expr: var_expr("baz"),
                     }]
                     .into(),
-                )),
+                ),
             }]
             .into(),
         ));

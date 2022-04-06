@@ -46,7 +46,7 @@ impl<T> Extend<StatementReturn<T>> for StatementExpr<T> {
         }
     }
 }
-pub(crate) fn block<I, T>() -> impl Parser<I, Output = Block<T>>
+pub(crate) fn block<T, I>() -> impl Parser<I, Output = Block<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -66,7 +66,7 @@ where
     })
     .expected("block")
 }
-fn if_<I, T>() -> impl Parser<I, Output = If<T>>
+fn if_<T, I>() -> impl Parser<I, Output = If<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -87,7 +87,7 @@ where
         })
 }
 combine::parser! {
-    fn if_expression[I, T]()(I) -> If< T>
+    fn if_expression[T, I]()(I) -> If<T>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -96,7 +96,7 @@ combine::parser! {
         if_()
     }
 }
-fn for_expression<I, T>() -> impl Parser<I, Output = For<T>>
+fn for_expression<T, I>() -> impl Parser<I, Output = For<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -110,7 +110,7 @@ where
             body,
         })
 }
-fn while_expression<I, T>() -> impl Parser<I, Output = While<T>>
+fn while_expression<T, I>() -> impl Parser<I, Output = While<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -123,7 +123,7 @@ where
             body,
         })
 }
-fn loop_expression<I, T>() -> impl Parser<I, Output = Block<T>>
+fn loop_expression<T, I>() -> impl Parser<I, Output = Block<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -131,7 +131,7 @@ where
 {
     attempt(lex(keyword("loop"))).with(block())
 }
-fn match_expression<I, T>() -> impl Parser<I, Output = Match<T>>
+fn match_expression<T, I>() -> impl Parser<I, Output = Match<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -149,10 +149,8 @@ where
         ))
     };
     let arm = || {
-        (pattern().skip(lex(string("=>"))), arm_expr()).map(|(pattern, expr)| MatchArm {
-            pattern,
-            expr: Box::new(expr),
-        })
+        (pattern().skip(lex(string("=>"))), arm_expr())
+            .map(|(pattern, expr)| MatchArm { pattern, expr })
     };
     let body = || {
         between(lex(char('{')), lex(char('}')), many(arm()))
@@ -166,7 +164,7 @@ where
             arm,
         })
 }
-fn control_flow_<I, T>() -> impl Parser<I, Output = ControlFlow<T>>
+fn control_flow_<T, I>() -> impl Parser<I, Output = ControlFlow<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -182,7 +180,7 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn control_flow[I, T]()(I) -> ControlFlow< T>
+    pub(crate) fn control_flow[T, I]()(I) -> ControlFlow<T>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,

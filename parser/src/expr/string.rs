@@ -42,13 +42,13 @@ where
         satisfy(move |ch: char| ch != delimiter && ch != '\n').map(Char::Char),
     ))
 }
-combine::parser! {
-    pub(crate) fn char_literal[I]()(I) -> u64
-    where [
-        I: Stream<Token = char>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-    ] {
-        between(char('\''), char('\''), char_inside('\'')).and_then(|ch| match ch {
+pub(crate) fn char_literal<I>() -> impl Parser<I, Output = u64>
+where
+    I: Stream<Token = char>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    between(char('\''), char('\''), char_inside('\''))
+        .and_then(|ch| match ch {
             Char::Byte(byte) => Ok(byte as u64),
             Char::Char(ch) => {
                 if ch.len_utf8() == 1 {
@@ -60,8 +60,7 @@ combine::parser! {
                 }
             }
         })
-            .expected("char")
-    }
+        .expected("char")
 }
 #[derive(Clone, PartialEq, Debug, Default)]
 struct StringLiteral(Vec<u8>);

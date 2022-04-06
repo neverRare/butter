@@ -1,8 +1,8 @@
-use crate::{expr::expr, lex, sep_optional_between, size_of};
+use crate::{expr::expr, lex, sep_optional_between};
 use combine::{between, parser::char::char, ParseError, Parser, Stream};
 use hir::expr::{Tuple, TupleWithSplat};
 
-pub(crate) fn tuple<I, T>() -> impl Parser<I, Output = Tuple<T>>
+pub(crate) fn tuple<T, I>() -> impl Parser<I, Output = Tuple<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -24,11 +24,4 @@ where
         )
     };
     between(lex(char('(')), lex(char(')')), fields()).expected("tuple")
-}
-pub(crate) fn print_tuple_sizes() {
-    println!(
-        "{}: {}",
-        concat!(module_path!(), "::tuple"),
-        size_of(&tuple::<&str, ()>()),
-    );
 }

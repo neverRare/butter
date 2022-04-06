@@ -11,7 +11,7 @@ use hir::pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPatt
 use std::collections::HashMap;
 use string_cache::DefaultAtom;
 
-fn var<I, T>() -> impl Parser<I, Output = Var<T>>
+fn var<T, I>() -> impl Parser<I, Output = Var<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -29,7 +29,7 @@ where
             ty: T::default(),
         })
 }
-fn list<I, T>() -> impl Parser<I, Output = ListPattern<T>>
+fn list<T, I>() -> impl Parser<I, Output = ListPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -49,7 +49,7 @@ where
         },
     )
 }
-fn array<I, T>() -> impl Parser<I, Output = ListPattern<T>>
+fn array<T, I>() -> impl Parser<I, Output = ListPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -57,7 +57,7 @@ where
 {
     between(lex(char('[')), lex(char(']')), list()).expected("array pattern")
 }
-fn tuple<I, T>() -> impl Parser<I, Output = ListPattern<T>>
+fn tuple<T, I>() -> impl Parser<I, Output = ListPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -65,7 +65,7 @@ where
 {
     between(lex(char('(')), lex(char(')')), list()).expected("tuple pattern")
 }
-pub(crate) fn parameter<I, T>() -> impl Parser<I, Output = Box<[Var<T>]>>
+pub(crate) fn parameter<T, I>() -> impl Parser<I, Output = Box<[Var<T>]>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -79,7 +79,7 @@ where
     .map(Vec::into)
     .expected("parameter")
 }
-fn record<I, T>() -> impl Parser<I, Output = RecordPattern<T>>
+fn record<T, I>() -> impl Parser<I, Output = RecordPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -117,7 +117,7 @@ where
     })
     .expected("record pattern")
 }
-fn pattern_<I, T>() -> impl Parser<I, Output = Pattern<T>>
+fn pattern_<T, I>() -> impl Parser<I, Output = Pattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -151,7 +151,7 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn pattern[I, T]()(I) -> Pattern< T>
+    pub(crate) fn pattern[T, I]()(I) -> Pattern<T>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,

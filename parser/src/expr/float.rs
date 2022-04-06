@@ -88,19 +88,17 @@ where
             exp,
         })
 }
-combine::parser! {
-    pub(crate) fn float[I]()(I) -> f64
-    where [
-        I: Stream<Token = char>,
-        I::Error: ParseError<I::Token, I::Range, I::Position>,
-    ] {
-        float_src()
-            .and_then(|src| match src.parse() {
-                Some(float) => Ok(float),
-                None => Err(<StreamErrorFor<I>>::message_static_message("magnitude overflow"))
-            })
-            .expected("float")
-    }
+pub(crate) fn float<I>() -> impl Parser<I, Output = f64>
+where
+    I: Stream<Token = char>,
+    I::Error: ParseError<I::Token, I::Range, I::Position>,
+{
+    float_src()
+        .and_then(|src| {
+            src.parse()
+                .ok_or_else(|| <StreamErrorFor<I>>::message_static_message("magnitude overflow"))
+        })
+        .expected("float")
 }
 #[cfg(test)]
 mod test {

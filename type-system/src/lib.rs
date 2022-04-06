@@ -596,7 +596,7 @@ impl Inferable for Fun<()> {
         let param_var: Vec<_> = self.param.iter().map(|var| var.ident.clone()).collect();
         let param_map: HashMap<_, _> = param_var
             .iter()
-            .map(|var| (var.clone(), var_state.new_named(&var)))
+            .map(|var| (var.clone(), var_state.new_named(var)))
             .collect();
         let mut env = env.clone();
         env.extend(param_map.iter().map(|(var, new_var)| {
