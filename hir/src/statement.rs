@@ -1,8 +1,8 @@
 use crate::{
     expr::{Expr, Fun},
     pattern::Pattern,
+    Atom,
 };
-use string_cache::DefaultAtom;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement<T> {
@@ -17,7 +17,7 @@ pub struct Declare<T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunDeclare<T> {
-    pub ident: DefaultAtom,
+    pub ident: Atom,
     pub fun: Fun<T>,
     pub ty: T,
 }

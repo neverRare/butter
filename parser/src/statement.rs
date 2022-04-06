@@ -149,8 +149,8 @@ mod test {
         expr::Literal,
         pattern::{Pattern, Var},
         statement::Declare,
+        Atom,
     };
-    use string_cache::DefaultAtom;
 
     #[test]
     fn parallel_assign() {
@@ -193,7 +193,7 @@ mod test {
         let src = "foo = 10;";
         let expected: Statement<()> = Statement::Declare(Declare {
             pattern: Pattern::Var(Var {
-                ident: DefaultAtom::from("foo"),
+                ident: Atom::from("foo"),
                 mutable: false,
                 bind_to_ref: false,
                 ty: (),

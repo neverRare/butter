@@ -7,9 +7,11 @@ use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
     stream::StreamErrorFor, ParseError, Parser, Stream,
 };
-use hir::pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPattern, Var};
+use hir::{
+    pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPattern, Var},
+    Atom,
+};
 use std::collections::HashMap;
-use string_cache::DefaultAtom;
 
 fn var<T, I>() -> impl Parser<I, Output = Var<T>>
 where
@@ -87,7 +89,7 @@ where
 {
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(pattern())).and_then(|(name, pattern)| {
-            match name.map(DefaultAtom::from).or_else(|| pattern.field_name()) {
+            match name.map(Atom::from).or_else(|| pattern.field_name()) {
                 Some(name) => Ok((name, pattern)),
                 None => Err(<StreamErrorFor<I>>::message_static_message(
                     "couldn't infer field name",

@@ -4,6 +4,7 @@
 
 These are keywords with special meaning, it cannot be used as variable name, function name, field name, nor tag name.
 
+- `_`
 - `break`
 - `clone`
 - `continue`

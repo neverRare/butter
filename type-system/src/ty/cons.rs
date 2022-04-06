@@ -2,6 +2,7 @@ use super::FreeVars;
 use crate::ty::{
     Kind, KindedVar, MutType, Subs, Substitutable, Type, Type1, TypeError, Unifiable, Var, VarState,
 };
+use hir::Atom;
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -9,7 +10,6 @@ use std::{
     iter::once,
     mem::{replace, swap},
 };
-use string_cache::DefaultAtom;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cons {
@@ -18,7 +18,7 @@ pub enum Cons {
     Ref(MutType, Box<Type>),
     Array(Box<Type>),
     Fun(Box<Type>, Box<Type>),
-    RecordTuple(OrderedAnd<(DefaultAtom, Type)>),
+    RecordTuple(OrderedAnd<(Atom, Type)>),
     Record(Keyed),
     Tuple(OrderedAnd<Type>),
     Union(Keyed),
@@ -150,7 +150,7 @@ impl Unifiable for Cons {
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub struct Keyed {
-    pub fields: HashMap<DefaultAtom, Type>,
+    pub fields: HashMap<Atom, Type>,
     pub rest: Option<Var>,
 }
 impl FreeVars for Keyed {
@@ -260,7 +260,7 @@ pub enum OrderedAnd<T> {
     NonRow(Box<[T]>),
     Row(Vec<T>, Var, Vec<T>),
 }
-impl OrderedAnd<(DefaultAtom, Type)> {
+impl OrderedAnd<(Atom, Type)> {
     fn into_keyed(self) -> Keyed {
         match self {
             Self::NonRow(record) => {

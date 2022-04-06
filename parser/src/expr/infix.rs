@@ -11,14 +11,16 @@ use combine::{
     stream::StreamErrorFor,
     value, ParseError, Parser, Stream,
 };
-use hir::expr::{
-    Arg, Assign, Binary, BinaryType, Call, Expr, FieldAccess, Index, PlaceExpr, Range, Record,
-    Slice, Tuple,
+use hir::{
+    expr::{
+        Arg, Assign, Binary, BinaryType, Call, Expr, FieldAccess, Index, PlaceExpr, Range, Record,
+        Slice, Tuple,
+    },
+    keyword, Atom,
 };
-use string_cache::DefaultAtom;
 
 pub(crate) enum PartialAst<T> {
-    Property(DefaultAtom),
+    Property(Atom),
     Index(Expr<T>),
     Slice(Range<T>),
     UnitCall,
@@ -78,7 +80,7 @@ where
         ))
         .with(lex(ident()))
         .map(|prop| {
-            if prop.as_ref() == "len" {
+            if prop == keyword!("len") {
                 PartialAst::Len
             } else {
                 PartialAst::Property(prop)

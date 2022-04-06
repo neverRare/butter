@@ -9,6 +9,8 @@ pub mod expr;
 pub mod pattern;
 pub mod statement;
 
+include!(concat!(env!("OUT_DIR"), "/string_cache.rs"));
+
 fn all_unique<I>(iter: I) -> bool
 where
     I: IntoIterator,

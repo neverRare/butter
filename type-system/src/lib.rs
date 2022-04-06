@@ -11,12 +11,12 @@ use hir::{
     },
     pattern,
     statement::Statement,
+    Atom,
 };
 use std::{
     collections::{HashMap, HashSet},
     iter::once,
 };
-use string_cache::DefaultAtom;
 
 mod ty;
 
@@ -68,8 +68,8 @@ impl Inferable for Literal {
         })
     }
 }
-impl Inferable for DefaultAtom {
-    type TypedSelf = DefaultAtom;
+impl Inferable for Atom {
+    type TypedSelf = Atom;
 
     fn partial_infer(
         self,
@@ -310,7 +310,7 @@ impl Inferable for Tag<()> {
 }
 fn partial_infer_field_list(
     expr: Box<[Field<()>]>,
-    ty: &mut HashMap<DefaultAtom, Type>,
+    ty: &mut HashMap<Atom, Type>,
     subs: &mut Subs,
     var_state: &mut VarState,
     env: &Env,

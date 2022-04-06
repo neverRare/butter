@@ -1,5 +1,5 @@
+use crate::Atom;
 use std::collections::HashMap;
-use string_cache::DefaultAtom;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Pattern<T> {
@@ -16,7 +16,7 @@ pub enum Pattern<T> {
     Ref(Box<Pattern<T>>),
 }
 impl<T> Pattern<T> {
-    pub fn field_name(&self) -> Option<DefaultAtom> {
+    pub fn field_name(&self) -> Option<Atom> {
         match self {
             Self::Var(var) => Some(var.ident.clone()),
             _ => None,
@@ -25,7 +25,7 @@ impl<T> Pattern<T> {
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Var<T> {
-    pub ident: DefaultAtom,
+    pub ident: Atom,
     pub mutable: bool,
     pub bind_to_ref: bool,
     pub ty: T,
@@ -43,11 +43,11 @@ pub struct ListWithRest<T> {
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RecordPattern<T> {
-    pub fields: HashMap<DefaultAtom, Pattern<T>>,
+    pub fields: HashMap<Atom, Pattern<T>>,
     pub rest: Option<Box<Pattern<T>>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TaggedPattern<T> {
-    pub tag: DefaultAtom,
+    pub tag: Atom,
     pub pattern: Option<Box<Pattern<T>>>,
 }

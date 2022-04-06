@@ -8,7 +8,7 @@ use combine::{
     stream::StreamErrorFor,
     ParseError, Parser, Stream,
 };
-use string_cache::DefaultAtom;
+use hir::Atom;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Sign {
@@ -25,10 +25,10 @@ impl Sign {
 }
 #[derive(Clone, PartialEq, Eq, Debug)]
 struct FloatSrc {
-    whole: DefaultAtom,
-    decimal: DefaultAtom,
+    whole: Atom,
+    decimal: Atom,
     exp_sign: Sign,
-    exp: DefaultAtom,
+    exp: Atom,
 }
 impl FloatSrc {
     fn parse(self) -> Option<f64> {
@@ -78,7 +78,7 @@ where
                     integer_str_allow_underscore(10),
                 )),
         )
-        .map(|sign_exp| sign_exp.unwrap_or((Sign::Plus, DefaultAtom::from("")))),
+        .map(|sign_exp| sign_exp.unwrap_or((Sign::Plus, Atom::from("")))),
     )
         .skip(not_followed_by(alpha_num()))
         .map(|(whole, decimal, (exp_sign, exp))| FloatSrc {

@@ -3,8 +3,10 @@ use combine::{
     between, error::StreamError, optional, parser::char::char, stream::StreamErrorFor, ParseError,
     Parser, Stream,
 };
-use hir::expr::{Field, Record, RecordWithSplat};
-use string_cache::DefaultAtom;
+use hir::{
+    expr::{Field, Record, RecordWithSplat},
+    Atom,
+};
 
 pub(crate) fn record<T, I>() -> impl Parser<I, Output = Record<T>>
 where
@@ -14,7 +16,7 @@ where
 {
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(expr(0))).and_then(|(name, expr)| {
-            match name.map(DefaultAtom::from).or_else(|| expr.field_name()) {
+            match name.map(Atom::from).or_else(|| expr.field_name()) {
                 Some(name) => Ok(Field { name, expr }),
                 None => Err(<StreamErrorFor<I>>::message_static_message(
                     "couldn't infer field name",

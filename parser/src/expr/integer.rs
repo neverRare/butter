@@ -10,7 +10,7 @@ use combine::{
     stream::StreamErrorFor,
     ParseError, Parser, Stream,
 };
-use string_cache::DefaultAtom;
+use hir::Atom;
 
 pub(crate) fn parse_digit(ch: char, base: u8) -> Option<u8> {
     let (lower_ch, lower_bound) = match ch {
@@ -42,7 +42,7 @@ macro_rules! gen_integer_decoder {
 }
 gen_integer_decoder!(parse_u64, u64);
 gen_integer_decoder!(parse_i64, i64);
-pub(crate) fn integer_str<I>(base: u8) -> impl Parser<I, Output = DefaultAtom>
+pub(crate) fn integer_str<I>(base: u8) -> impl Parser<I, Output = Atom>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -53,9 +53,9 @@ where
             parse_digit(ch, base).is_some() || ch == '_'
         })),
     ))
-    .map(DefaultAtom::from)
+    .map(Atom::from)
 }
-pub(crate) fn integer_str_allow_underscore<I>(base: u8) -> impl Parser<I, Output = DefaultAtom>
+pub(crate) fn integer_str_allow_underscore<I>(base: u8) -> impl Parser<I, Output = Atom>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -63,7 +63,7 @@ where
     many1::<String, _, _>(satisfy(move |ch| {
         parse_digit(ch, base).is_some() || ch == '_'
     }))
-    .map(DefaultAtom::from)
+    .map(Atom::from)
 }
 macro_rules! gen_integer_parser {
     ($ident:ident, $parser:expr, $type:ty) => {
@@ -73,7 +73,7 @@ macro_rules! gen_integer_parser {
             I::Error: ParseError<I::Token, I::Range, I::Position>,
         {
             let parse_mapper = |base| {
-                move |src: DefaultAtom| {
+                move |src: Atom| {
                     $parser(src.as_ref(), base as $type).ok_or(
                         <StreamErrorFor<I>>::message_static_message("integer overflow"),
                     )

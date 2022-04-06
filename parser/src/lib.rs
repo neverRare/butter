@@ -90,14 +90,16 @@ where
 mod test {
     use crate::insignificants;
     use combine::Parser;
-    use hir::expr::{Expr, PlaceExpr};
-    use string_cache::DefaultAtom;
+    use hir::{
+        expr::{Expr, PlaceExpr},
+        Atom,
+    };
 
     pub(super) fn var_expr(var: &str) -> Expr<()> {
         Expr::Place(var_place(var))
     }
     pub(super) fn var_place(var: &str) -> PlaceExpr<()> {
-        PlaceExpr::Var(DefaultAtom::from(var))
+        PlaceExpr::Var(Atom::from(var))
     }
     #[test]
     fn insignificant() {

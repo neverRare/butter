@@ -1,29 +1,29 @@
 use crate::ty::cons::Cons;
+use hir::Atom;
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
     hash::Hash,
     iter::once,
 };
-use string_cache::DefaultAtom;
 
 pub mod cons;
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct Var {
-    pub name: DefaultAtom,
+    pub name: Atom,
     pub id: u32,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub(super) struct VarState(HashMap<DefaultAtom, u32>);
+pub(super) struct VarState(HashMap<Atom, u32>);
 impl VarState {
     pub fn new() -> Self {
         Self::default()
     }
     pub fn new_var(&mut self) -> Var {
-        self.new_named(&DefaultAtom::from(""))
+        self.new_named(&Atom::from(""))
     }
-    pub fn new_named(&mut self, name: &DefaultAtom) -> Var {
+    pub fn new_named(&mut self, name: &Atom) -> Var {
         let Self(map) = self;
         let state = map.entry(name.clone()).or_insert(1);
         let id = *state;
@@ -86,13 +86,13 @@ impl Substitutable for Type {
         Ok(())
     }
 }
-impl FreeVars for (DefaultAtom, Type) {
+impl FreeVars for (Atom, Type) {
     fn free_vars(&self) -> HashSet<KindedVar> {
         let (_, ty) = self;
         ty.free_vars()
     }
 }
-impl Substitutable for (DefaultAtom, Type) {
+impl Substitutable for (Atom, Type) {
     fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
         let (_, ty) = self;
         ty.substitute(subs)
@@ -121,7 +121,7 @@ impl Unifiable for Type {
         Ok(subs)
     }
 }
-impl Unifiable for (DefaultAtom, Type) {
+impl Unifiable for (Atom, Type) {
     fn unify_with(self, other: Self, var_state: &mut VarState) -> Result<Subs, TypeError> {
         let (name1, ty1) = self;
         let (name2, ty2) = other;

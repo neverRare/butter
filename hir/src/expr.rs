@@ -2,8 +2,8 @@ use crate::{
     all_unique,
     pattern::{Pattern, Var},
     statement::Statement,
+    Atom,
 };
-use string_cache::DefaultAtom;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
@@ -40,7 +40,7 @@ pub enum Expr<T> {
     Jump(Jump<T>),
 }
 impl<T> Expr<T> {
-    pub fn field_name(&self) -> Option<DefaultAtom> {
+    pub fn field_name(&self) -> Option<Atom> {
         match self {
             Self::Tag(tag) => tag.expr.as_ref().and_then(|expr| Expr::field_name(expr)),
             Self::Unary(unary) => unary.expr.field_name(),
@@ -51,7 +51,7 @@ impl<T> Expr<T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum PlaceExpr<T> {
-    Var(DefaultAtom),
+    Var(Atom),
     FieldAccess(FieldAccess<T>),
     Index(Index<T>),
     Slice(Slice<T>),
@@ -59,7 +59,7 @@ pub enum PlaceExpr<T> {
     Len(Box<Expr<T>>),
 }
 impl<T> PlaceExpr<T> {
-    pub fn field_name(&self) -> Option<DefaultAtom> {
+    pub fn field_name(&self) -> Option<Atom> {
         match self {
             Self::Var(var) => Some(var.clone()),
             Self::FieldAccess(field) => field.field_name(),
@@ -171,7 +171,7 @@ pub struct RecordWithSplat<T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Field<T> {
-    pub name: DefaultAtom,
+    pub name: Atom,
     pub expr: Expr<T>,
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -223,10 +223,10 @@ pub struct Assign<T> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct FieldAccess<T> {
     pub expr: Box<Expr<T>>,
-    pub name: DefaultAtom,
+    pub name: Atom,
 }
 impl<T> FieldAccess<T> {
-    pub fn field_name(&self) -> Option<DefaultAtom> {
+    pub fn field_name(&self) -> Option<Atom> {
         Some(self.name.clone())
     }
 }
@@ -249,7 +249,7 @@ pub enum Arg<T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Tag<T> {
-    pub tag: DefaultAtom,
+    pub tag: Atom,
     pub expr: Option<Box<Expr<T>>>,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
