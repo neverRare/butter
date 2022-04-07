@@ -9,7 +9,12 @@ pub mod expr;
 pub mod pattern;
 pub mod statement;
 
-include!(concat!(env!("OUT_DIR"), "/string_cache.rs"));
+#[doc(hidden)]
+pub mod hir_string_cache {
+    include!(concat!(env!("OUT_DIR"), "/hir_string_cache.rs"));
+}
+
+pub use hir_string_cache::Atom;
 
 fn all_unique<I>(iter: I) -> bool
 where
