@@ -534,42 +534,23 @@ impl Inferable for Binary<()> {
                 },
             });
         }
-        let op_type = match self.kind {
+        let (op_type, return_type) = match self.kind {
             BinaryType::Concatenate => unreachable!(),
             BinaryType::Add
             | BinaryType::Sub
             | BinaryType::Multiply
             | BinaryType::Div
             | BinaryType::FloorDiv
-            | BinaryType::Mod
-            | BinaryType::Equal
-            | BinaryType::NotEqual
-            | BinaryType::Greater
-            | BinaryType::GreaterEqual
-            | BinaryType::Less
-            | BinaryType::LessEqual => Type::Cons(Cons::Num),
-            BinaryType::And | BinaryType::Or | BinaryType::LazyAnd | BinaryType::LazyOr => {
-                Type::Cons(Cons::Bool)
-            }
-        };
-        let return_type = match self.kind {
-            BinaryType::Concatenate => unreachable!(),
-            BinaryType::Add
-            | BinaryType::Sub
-            | BinaryType::Multiply
-            | BinaryType::Div
-            | BinaryType::FloorDiv
-            | BinaryType::Mod => Type::Cons(Cons::Num),
+            | BinaryType::Mod => (Type::Cons(Cons::Num), Type::Cons(Cons::Num)),
             BinaryType::Equal
             | BinaryType::NotEqual
             | BinaryType::Greater
             | BinaryType::GreaterEqual
             | BinaryType::Less
-            | BinaryType::LessEqual
-            | BinaryType::And
-            | BinaryType::Or
-            | BinaryType::LazyAnd
-            | BinaryType::LazyOr => Type::Cons(Cons::Bool),
+            | BinaryType::LessEqual => (Type::Cons(Cons::Num), Type::Cons(Cons::Bool)),
+            BinaryType::And | BinaryType::Or | BinaryType::LazyAnd | BinaryType::LazyOr => {
+                (Type::Cons(Cons::Bool), Type::Cons(Cons::Bool))
+            }
         };
         subs.compose_with(left.ty.unify_with(op_type.clone(), var_state)?)?;
         subs.compose_with(right.ty.unify_with(op_type, var_state)?)?;

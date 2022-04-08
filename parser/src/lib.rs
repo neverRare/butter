@@ -39,19 +39,19 @@ combine::parser! {
         insignificants().with(expr::expr(0)).skip(eof())
     }
 }
-fn comments<I>() -> impl Parser<I, Output = ()>
+fn comment<I>() -> impl Parser<I, Output = ()>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    skip_many1((attempt(string("--")), skip_many(none_of(['\n']))))
+    (attempt(string("--")), skip_many(none_of(['\n']))).map(|_| ())
 }
 pub fn insignificants<I>() -> impl Parser<I, Output = ()>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    skip_many(skip_many1(space()).or(comments())).silent()
+    skip_many(skip_many1(space()).or(comment())).silent()
 }
 fn lex<I, P>(parser: P) -> impl Parser<I, Output = P::Output>
 where
