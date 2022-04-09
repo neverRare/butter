@@ -13,6 +13,7 @@ use hir::{
     statement::Statement,
     Atom,
 };
+use ty::SchemeMut;
 use std::{
     collections::{HashMap, HashSet},
     iter::once,
@@ -77,7 +78,7 @@ impl Inferable for Atom {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        match env.get(&Var {
+        match env.get_ty(&Var {
             name: self.clone(),
             id: 0,
         }) {
@@ -610,7 +611,7 @@ impl Inferable for Fun<()> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        // TODO: handle `ref` parameters
+        // TODO: handle `ref` parameters and mut
         let param_var: Vec<_> = self.param.iter().map(|var| var.ident.clone()).collect();
         let param_map: HashMap<_, _> = param_var
             .iter()
@@ -623,9 +624,12 @@ impl Inferable for Fun<()> {
                     name: var.clone(),
                     id: 0,
                 },
-                Scheme {
-                    for_all: HashSet::new(),
-                    ty: Type::Var(new_var.clone()),
+                SchemeMut {
+                    is_mut: false, // TODO: handle this
+                    scheme: Scheme {
+                        for_all: HashSet::new(),
+                        ty: Type::Var(new_var.clone()),
+                    },
                 },
             )
         }));

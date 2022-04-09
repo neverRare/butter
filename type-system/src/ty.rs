@@ -317,22 +317,37 @@ impl FromIterator<(Var, Type1)> for Subs {
         Self(iter.into_iter().collect())
     }
 }
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub(super) struct SchemeMut {
+    pub(super) is_mut: bool,
+    pub(super) scheme: Scheme,
+}
+impl FreeVars for SchemeMut {
+    fn free_vars(&self) -> HashSet<KindedVar> {
+        self.scheme.free_vars()
+    }
+}
+impl Substitutable for SchemeMut {
+    fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
+        self.scheme.substitute(subs)
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
-pub(super) struct Env(HashMap<Var, Scheme>);
+pub(super) struct Env(HashMap<Var, SchemeMut>);
 impl Env {
     pub fn new() -> Self {
         Self::default()
     }
-    fn hashmap(&self) -> &HashMap<Var, Scheme> {
+    fn hashmap(&self) -> &HashMap<Var, SchemeMut> {
         let Self(map) = self;
         map
     }
-    fn hashmap_mut(&mut self) -> &mut HashMap<Var, Scheme> {
+    fn hashmap_mut(&mut self) -> &mut HashMap<Var, SchemeMut> {
         let Self(map) = self;
         map
     }
-    pub fn get(&self, var: &Var) -> Option<Scheme> {
-        self.hashmap().get(var).map(Scheme::clone)
+    pub fn get_ty(&self, var: &Var) -> Option<Scheme> {
+        self.hashmap().get(var).map(|x| Scheme::clone(&x.scheme))
     }
     fn remove(&mut self, var: Var) {
         self.hashmap_mut().remove(&var);
@@ -351,7 +366,7 @@ impl FreeVars for Env {
     fn free_vars(&self) -> HashSet<KindedVar> {
         self.hashmap()
             .values()
-            .flat_map(Scheme::free_vars)
+            .flat_map(SchemeMut::free_vars)
             .collect()
     }
 }
@@ -363,8 +378,8 @@ impl Substitutable for Env {
         Ok(())
     }
 }
-impl Extend<(Var, Scheme)> for Env {
-    fn extend<T: IntoIterator<Item = (Var, Scheme)>>(&mut self, iter: T) {
+impl Extend<(Var, SchemeMut)> for Env {
+    fn extend<T: IntoIterator<Item = (Var, SchemeMut)>>(&mut self, iter: T) {
         self.hashmap_mut().extend(iter);
     }
 }
