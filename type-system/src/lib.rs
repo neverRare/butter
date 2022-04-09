@@ -204,7 +204,20 @@ impl Inferable for PlaceExpr<()> {
                     expr: PlaceExpr::Len(Box::new(typed.expr)),
                 }
             }
-            Self::Deref(_) => todo!(),
+            Self::Deref(expr) => {
+                let typed_expr = expr.partial_infer(subs, var_state, env)?;
+                let var = var_state.new_var();
+                let mut_var = var_state.new_var();
+                let mut ty = Type::Var(var);
+                let more_subs = Type::Cons(Cons::Ref(MutType::Var(mut_var), Box::new(ty.clone())))
+                    .unify_with(typed_expr.ty, var_state)?;
+                ty.substitute(&more_subs)?;
+                subs.compose_with(more_subs)?;
+                Typed {
+                    ty,
+                    expr: PlaceExpr::Deref(Box::new(typed_expr.expr)),
+                }
+            }
         };
         Ok(typed)
     }
@@ -515,7 +528,16 @@ impl Inferable for Unary<()> {
                     },
                 }
             }
-            UnaryType::Ref => todo!(),
+            UnaryType::Ref => {
+                let var = var_state.new_var();
+                Typed {
+                    ty: Type::Cons(Cons::Ref(MutType::Var(var), Box::new(typed.ty))),
+                    expr: Unary {
+                        kind: UnaryType::Ref,
+                        expr: Box::new(typed.expr),
+                    },
+                }
+            }
         };
         Ok(typed)
     }
