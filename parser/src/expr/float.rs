@@ -6,7 +6,7 @@ use combine::{
     parser::char::{alpha_num, char, digit},
     skip_many,
     stream::StreamErrorFor,
-    ParseError, Parser, Stream,
+    value, ParseError, Parser, Stream,
 };
 use hir::Atom;
 
@@ -58,8 +58,8 @@ where
 {
     let sign = || {
         choice((
-            char('+').map(|_| Sign::Plus),
-            char('-').map(|_| Sign::Minus),
+            char('+').with(value(Sign::Plus)),
+            char('-').with(value(Sign::Minus)),
         ))
     };
     (

@@ -11,12 +11,12 @@ where
 {
     (
         choice((
-            char('.').map(|_| BoundType::Inclusive),
-            char('>').map(|_| BoundType::Exclusive),
+            char('.').with(value(BoundType::Inclusive)),
+            char('>').with(value(BoundType::Exclusive)),
         )),
         choice((
-            char('.').map(|_| BoundType::Inclusive),
-            char('<').map(|_| BoundType::Exclusive),
+            char('.').with(value(BoundType::Inclusive)),
+            char('<').with(value(BoundType::Exclusive)),
         )),
     )
         .expected("range operator")
@@ -25,7 +25,7 @@ pub(crate) fn range<T, I>() -> impl Parser<I, Output = Range<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     let range = || {
         (optional(expr(0)), lex(range_operator()), optional(expr(0))).map(
@@ -48,11 +48,11 @@ pub(crate) fn array<T, I>() -> impl Parser<I, Output = Box<[Element<T>]>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     let element_kind = || {
         choice((
-            char('*').map(|_| ElementKind::Splat),
+            char('*').with(value(ElementKind::Splat)),
             value(ElementKind::Element),
         ))
     };

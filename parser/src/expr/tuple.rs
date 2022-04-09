@@ -6,7 +6,7 @@ pub(crate) fn tuple<T, I>() -> impl Parser<I, Output = Tuple<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     let fields = || {
         sep_optional_between(|| expr(0), lex(char('*')).with(expr(0)), || lex(char(','))).map(

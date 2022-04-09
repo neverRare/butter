@@ -4,7 +4,7 @@ use combine::{
     parser::{char::string, combinator::recognize},
     satisfy, skip_many,
     stream::StreamErrorFor,
-    ParseError, Parser, Stream,
+    value, ParseError, Parser, Stream,
 };
 use hir::{keyword, Atom};
 
@@ -28,7 +28,7 @@ where
 {
     string(keyword)
         .skip(not_followed_by(satisfy(rest)))
-        .map(|_| ())
+        .with(value(()))
 }
 pub(crate) fn ident<I>() -> impl Parser<I, Output = Atom>
 where

@@ -44,13 +44,13 @@ fn jump<T, I>() -> impl Parser<I, Output = Jump<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     choice((
         lex(keyword("break"))
             .with(optional(expr(0)))
             .map(|expr| Jump::Break(expr.map(Box::new))),
-        lex(keyword("continue")).map(|_| Jump::Continue),
+        lex(keyword("continue")).with(value(Jump::Continue)),
         lex(keyword("return"))
             .with(optional(expr(0)))
             .map(|expr| Jump::Return(expr.map(Box::new))),
@@ -60,7 +60,7 @@ fn unary<T, I>() -> impl Parser<I, Output = Unary<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     let kind = || {
         choice((
@@ -80,7 +80,7 @@ fn tag<T, I>() -> impl Parser<I, Output = Tag<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     lex(char('@'))
         .with((lex(ident()), optional(expr(6))))
@@ -93,7 +93,7 @@ fn fun<T, I>() -> impl Parser<I, Output = Fun<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     (attempt(parameter().skip(lex(string("=>")))), expr(0)).map(|(param, body)| Fun {
         param,
@@ -104,7 +104,7 @@ fn array_range<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     choice((
         attempt(range()).map(Expr::ArrayRange),
@@ -115,11 +115,11 @@ fn tuple_record_group<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     choice((
         attempt((lex(char('(')), lex(char(')'))))
-            .map(|_| Expr::Unit)
+            .with(value(Expr::Unit))
             .silent(),
         attempt(between(
             (lex(char('(')), lex(char('*'))),
@@ -137,7 +137,7 @@ fn prefix_expr_<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     choice((
         fun().map(Expr::Fun),
@@ -166,7 +166,7 @@ combine::parser! {
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default,
+        T: Default + Clone,
     ] {
         prefix_expr_()
     }
@@ -175,11 +175,11 @@ fn expr_<T, I>(precedence: u8) -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     match precedence {
         0 => expr_0().left().left(),
-        1..=5 => chainl1(expr(precedence + 1), attempt(infix_expr_op(precedence)))
+        1..=5 => chainl1(expr(precedence + 1), lex(infix_expr_op(precedence)))
             .right()
             .left(),
         6 => expr_6().left().right(),
@@ -191,7 +191,7 @@ combine::parser! {
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default,
+        T: Default + Clone,
     ] {
         expr_(*precedence)
     }

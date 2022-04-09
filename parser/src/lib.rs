@@ -5,7 +5,7 @@
 use combine::{
     attempt, choice, eof, many, none_of, optional,
     parser::char::{space, string},
-    sep_end_by, skip_many, skip_many1, ParseError, Stream,
+    sep_end_by, skip_many, skip_many1, value, ParseError, Stream,
 };
 use hir::{expr::Expr, statement::Statement};
 
@@ -21,7 +21,7 @@ combine::parser! {
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default,
+        T: Default + Clone,
     ] {
         optional(attempt(string("#!")).with(skip_many(none_of(['\n']))))
             .with(insignificants())
@@ -34,7 +34,7 @@ combine::parser! {
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default,
+        T: Default + Clone,
     ] {
         insignificants().with(expr::expr(0)).skip(eof())
     }
@@ -44,7 +44,7 @@ where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    (attempt(string("--")), skip_many(none_of(['\n']))).map(|_| ())
+    (attempt(string("--")), skip_many(none_of(['\n']))).with(value(()))
 }
 pub fn insignificants<I>() -> impl Parser<I, Output = ()>
 where

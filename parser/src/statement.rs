@@ -11,7 +11,7 @@ use combine::{
     parser::char::{char, string},
     sep_by1,
     stream::StreamErrorFor,
-    ParseError, Parser, Stream,
+    value, ParseError, Parser, Stream,
 };
 use hir::{
     expr::{Assign, Expr, Fun},
@@ -29,7 +29,7 @@ where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     P: Parser<I>,
-    T: Default,
+    T: Default + Clone,
 {
     let control_flow_statement = || {
         (control_flow(), optional(lex(char(';')))).map(|(control_flow, semicolon)| {
@@ -107,8 +107,8 @@ where
         (
             choice((parallel_assign(), expr(0))),
             choice((
-                lex(char(';')).map(|_| true),
-                look_ahead(end_look_ahead).map(|_| false),
+                lex(char(';')).with(value(true)),
+                look_ahead(end_look_ahead).with(value(false)),
             )),
         )
             .map(|(expr, implicit_return)| {
@@ -130,7 +130,7 @@ pub(crate) fn statement<T, I>() -> impl Parser<I, Output = Statement<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     statement_return(char(';')).map(|statement_return| match statement_return {
         StatementReturn::Statement(statement) => statement,

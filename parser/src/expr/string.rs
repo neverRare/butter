@@ -6,7 +6,7 @@ use combine::{
     parser::char::{char, hex_digit},
     satisfy,
     stream::StreamErrorFor,
-    ParseError, Parser, Stream,
+    value, ParseError, Parser, Stream,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,14 +21,14 @@ where
 {
     let simple_escape = || {
         choice((
-            char('\\').map(|_| b'\\'),
-            char('"').map(|_| b'"'),
-            char('\'').map(|_| b'\''),
-            char('n').map(|_| b'\n'),
-            char('r').map(|_| b'\r'),
-            char('t').map(|_| b'\t'),
-            char('v').map(|_| 11),
-            char('0').map(|_| 0),
+            char('\\').with(value(b'\\')),
+            char('"').with(value(b'"')),
+            char('\'').with(value(b'\'')),
+            char('n').with(value(b'\n')),
+            char('r').with(value(b'\r')),
+            char('t').with(value(b'\t')),
+            char('v').with(value(11)),
+            char('0').with(value(0)),
         ))
     };
     let byte = || {

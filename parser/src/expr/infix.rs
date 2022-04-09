@@ -19,6 +19,7 @@ use hir::{
     keyword, Atom,
 };
 
+#[derive(Debug, PartialEq, Clone)]
 pub(crate) enum PartialAst<T> {
     Property(Atom),
     Index(Expr<T>),
@@ -70,7 +71,7 @@ fn infix_6<T, I>() -> impl Parser<I, Output = PartialAst<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     let property_or_len = || {
         lex(attempt(
@@ -94,7 +95,7 @@ where
     };
     let arg = || {
         choice((
-            attempt((lex(char('(')), lex(char(')')))).map(|_| PartialAst::UnitCall),
+            attempt((lex(char('(')), lex(char(')')))).with(value(PartialAst::UnitCall)),
             attempt(between(
                 (lex(char('(')), lex(char('*'))),
                 (optional(lex(char(','))), lex(char(')'))),
@@ -111,14 +112,14 @@ where
         property_or_len(),
         attempt(index()),
         range().map(PartialAst::Slice).expected("slice"),
-        lex(char('^')).map(|_| PartialAst::Deref),
+        lex(char('^')).with(value(PartialAst::Deref)),
     ))
 }
 pub(crate) fn expr_6<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     (expr(7), many(infix_6())).map(|(prefix, infixes)| {
         let infixes: Vec<_> = infixes;
@@ -133,7 +134,7 @@ pub(crate) fn expr_0<T, I>() -> impl Parser<I, Output = Expr<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     (expr(1), optional(lex(attempt(string("<-"))).with(expr(0)))).and_then(|(place, expr)| {
         match expr {
@@ -150,18 +151,6 @@ where
         }
     })
 }
-fn precedence_of(token: &str) -> Option<u8> {
-    match token {
-        // "." | "[" | "(" | "^" => Some(6),
-        "*" | "/" | "//" | "%" => Some(5),
-        "+" | "-" | "++" => Some(4),
-        "==" | "!=" | "<" | ">" | "<=" | ">=" => Some(3),
-        "&&" | "&" => Some(2),
-        "||" | "|" => Some(1),
-        // "<-" => Some(0),
-        _ => None,
-    }
-}
 pub(crate) fn infix_expr_op<T, I>(
     precedence: u8,
 ) -> impl Parser<I, Output = impl Fn(Expr<T>, Expr<T>) -> Expr<T>>
@@ -169,82 +158,54 @@ where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    // TODO: instead of testing every possible operator, just output a parser of
-    // operator with given precedence, be wary of assignment operator `<-`, and
-    // range operators
-    let double_ops = || {
-        choice([
-            attempt(string("++")),
-            attempt(string("//")),
-            attempt(string("==")),
-            attempt(string("!=")),
-            attempt(string("<=")),
-            attempt(string(">=")),
-            attempt(string("&&")),
-            attempt(string("||")),
-            attempt(string("<-")),
-            attempt(string("..")),
-            attempt(string(".<")),
-            attempt(string(">.")),
-            attempt(string("><")),
-        ])
+    let op = match precedence {
+        5 => choice((
+            attempt(string("//")).with(value(BinaryType::FloorDiv)),
+            char('*').with(value(BinaryType::Multiply)),
+            char('/').with(value(BinaryType::Div)),
+            char('%').with(value(BinaryType::Mod)),
+        ))
+        .left()
+        .left(),
+        4 => choice((
+            attempt(string("++")).with(value(BinaryType::Concatenate)),
+            char('+').with(value(BinaryType::Add)),
+            char('-').with(value(BinaryType::Sub)),
+        ))
+        .right()
+        .left(),
+        3 => choice((
+            attempt(string("==")).with(value(BinaryType::Equal)),
+            attempt(string("!=")).with(value(BinaryType::NotEqual)),
+            attempt(string("<=")).with(value(BinaryType::LessEqual)),
+            attempt(string(">=")).with(value(BinaryType::GreaterEqual)),
+            attempt(char('<').skip(not_followed_by(char('-')))).with(value(BinaryType::Less)),
+            attempt(char('>').skip(not_followed_by(choice([char('.'), char('<')]))))
+                .with(value(BinaryType::Greater)),
+        ))
+        .left()
+        .right(),
+        2 => choice((
+            attempt(string("&&")).with(value(BinaryType::LazyAnd)),
+            char('&').with(value(BinaryType::And)),
+        ))
+        .right()
+        .right(),
+        1 => choice((
+            attempt(string("||")).with(value(BinaryType::LazyOr)),
+            char('|').with(value(BinaryType::Or)),
+        ))
+        .right()
+        .right(),
+        precedence => panic!("invalid precedence {}", precedence),
     };
-    let single_ops = || {
-        choice([
-            char('.').with(value(".")),
-            char('[').with(value("[")),
-            char('(').with(value("(")),
-            char('^').with(value("^")),
-            char('*').with(value("*")),
-            char('/').with(value("/")),
-            char('%').with(value("%")),
-            char('+').with(value("+")),
-            char('-').with(value("-")),
-            char('<').with(value("<")),
-            char('>').with(value(">")),
-            char('&').with(value("&")),
-            char('|').with(value("|")),
-        ])
-    };
-    lex(choice((double_ops(), single_ops())))
-        .and_then(move |token| match precedence_of(token) {
-            Some(this_precedence) if this_precedence == precedence => Ok(token),
-            // TODO: these errors are made for attempt combinator outside, it
-            // should be silent
-            Some(_) => Err(<StreamErrorFor<I>>::message_static_message(
-                "operator with equal precedence",
-            )),
-            None => Err(<StreamErrorFor<I>>::expected_static_message(
-                "expression operator",
-            )),
-        })
-        .map(|op| {
-            let op = match op {
-                "+" => BinaryType::Add,
-                "-" => BinaryType::Sub,
-                "*" => BinaryType::Multiply,
-                "/" => BinaryType::Div,
-                "//" => BinaryType::FloorDiv,
-                "%" => BinaryType::Mod,
-                "&" => BinaryType::And,
-                "|" => BinaryType::Or,
-                "||" => BinaryType::LazyOr,
-                "==" => BinaryType::Equal,
-                "!=" => BinaryType::NotEqual,
-                "<" => BinaryType::Less,
-                ">" => BinaryType::Greater,
-                "<=" => BinaryType::LessEqual,
-                ">=" => BinaryType::GreaterEqual,
-                "++" => BinaryType::Concatenate,
-                "&&" => BinaryType::LazyAnd,
-                _ => unreachable!(),
-            };
-            move |left, right| {
-                Expr::Binary(Binary {
-                    kind: op,
-                    left: Box::new(left),
-                    right: Box::new(right),
-                })
-            }
-        })
+    op.map(|op| {
+        move |left, right| {
+            Expr::Binary(Binary {
+                kind: op,
+                left: Box::new(left),
+                right: Box::new(right),
+            })
+        }
+    })
 }

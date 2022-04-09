@@ -5,7 +5,7 @@ use crate::{
 };
 use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
-    stream::StreamErrorFor, ParseError, Parser, Stream,
+    stream::StreamErrorFor, value, ParseError, Parser, Stream,
 };
 use hir::{
     pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPattern, Var},
@@ -35,7 +35,7 @@ fn list<T, I>() -> impl Parser<I, Output = ListPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     sep_optional_between(pattern, lex(char('*')).with(pattern()), || lex(char(','))).map(
         |(left, rest_right)| {
@@ -55,7 +55,7 @@ fn array<T, I>() -> impl Parser<I, Output = ListPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     between(lex(char('[')), lex(char(']')), list()).expected("array pattern")
 }
@@ -63,7 +63,7 @@ fn tuple<T, I>() -> impl Parser<I, Output = ListPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     between(lex(char('(')), lex(char(')')), list()).expected("tuple pattern")
 }
@@ -85,7 +85,7 @@ fn record<T, I>() -> impl Parser<I, Output = RecordPattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(pattern())).and_then(|(name, pattern)| {
@@ -123,7 +123,7 @@ fn pattern_<T, I>() -> impl Parser<I, Output = Pattern<T>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
+    T: Default + Clone,
 {
     choice((
         lex(char('@'))
@@ -146,9 +146,9 @@ where
         record().map(Pattern::Record),
         tuple().map(Pattern::Tuple),
         array().map(Pattern::Array),
-        attempt(lex(keyword("_"))).map(|_| Pattern::Ignore),
-        attempt(lex(keyword("true"))).map(|_| Pattern::True),
-        attempt(lex(keyword("false"))).map(|_| Pattern::False),
+        attempt(lex(keyword("_"))).with(value(Pattern::Ignore)),
+        attempt(lex(keyword("true"))).with(value(Pattern::True)),
+        attempt(lex(keyword("false"))).with(value(Pattern::False)),
         var().map(Pattern::Var),
     ))
 }
@@ -157,7 +157,7 @@ combine::parser! {
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default,
+        T: Default + Clone,
     ] {
         pattern_()
     }
