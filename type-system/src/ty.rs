@@ -349,6 +349,9 @@ impl Env {
     pub fn get_ty(&self, var: &Var) -> Option<Scheme> {
         self.hashmap().get(var).map(|x| Scheme::clone(&x.scheme))
     }
+    pub fn get_mut(&self, var: &Var) -> Option<bool> {
+        self.hashmap().get(var).map(|x| x.is_mut)
+    }
     fn remove(&mut self, var: Var) {
         self.hashmap_mut().remove(&var);
     }
@@ -392,6 +395,7 @@ pub enum TypeError {
     InfiniteOccurrence,
     Overlap,
     UnboundVar,
+    AssignedImm,
 }
 impl Display for TypeError {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {

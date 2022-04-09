@@ -5,19 +5,19 @@
 use crate::ty::{cons::OrderedAnd, Env, Scheme, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
-        Arg, Binary, BinaryType, Bound, Call, Element, ElementKind, Expr, Field, FieldAccess, Fun,
-        Index, Literal, PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag, Tuple,
-        TupleWithSplat, Unary, UnaryType,
+        Arg, Assign, Binary, BinaryType, Bound, Call, Element, ElementKind, Expr, Field,
+        FieldAccess, Fun, Index, Literal, PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag,
+        Tuple, TupleWithSplat, Unary, UnaryType,
     },
     pattern,
     statement::Statement,
     Atom,
 };
-use ty::SchemeMut;
 use std::{
     collections::{HashMap, HashSet},
     iter::once,
 };
+use ty::SchemeMut;
 
 mod ty;
 
@@ -611,21 +611,26 @@ impl Inferable for Fun<()> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        // TODO: handle `ref` parameters and mut
-        let param_var: Vec<_> = self.param.iter().map(|var| var.ident.clone()).collect();
-        let param_map: HashMap<_, _> = param_var
+        // TODO: handle `ref` parameters
+        let param_map: HashMap<_, _> = self
+            .param
             .iter()
-            .map(|var| (var.clone(), var_state.new_named(var)))
+            .map(|var| {
+                (
+                    var.ident.clone(),
+                    (var_state.new_named(&var.ident), var.clone()),
+                )
+            })
             .collect();
         let mut env = env.clone();
-        env.extend(param_map.iter().map(|(var, new_var)| {
+        env.extend(param_map.iter().map(|(var, (new_var, var_hir))| {
             (
                 Var {
                     name: var.clone(),
                     id: 0,
                 },
                 SchemeMut {
-                    is_mut: false, // TODO: handle this
+                    is_mut: var_hir.mutable,
                     scheme: Scheme {
                         for_all: HashSet::new(),
                         ty: Type::Var(new_var.clone()),
@@ -634,9 +639,14 @@ impl Inferable for Fun<()> {
             )
         }));
         let mut param_ty = Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(
-            param_var
-                .into_iter()
-                .map(|var| (var.clone(), Type::Var(param_map.get(&var).unwrap().clone())))
+            self.param
+                .iter()
+                .map(|var| {
+                    (
+                        var.ident.clone(),
+                        Type::Var(param_map.get(&var.ident).unwrap().0.clone()),
+                    )
+                })
                 .collect::<Vec<_>>()
                 .into(),
         )));
@@ -647,7 +657,7 @@ impl Inferable for Fun<()> {
         let typed_param = param
             .into_iter()
             .map(|var| {
-                let mut ty = Type::Var(param_map.get(&var.ident).unwrap().clone());
+                let mut ty = Type::Var(param_map.get(&var.ident).unwrap().0.clone());
                 ty.substitute(&body_subs)?;
                 Ok(pattern::Var {
                     ident: var.ident,
@@ -742,6 +752,61 @@ impl Inferable for Call<()> {
         })
     }
 }
+impl Inferable for Assign<()> {
+    type TypedSelf = Assign<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let var = self.place.var();
+        if let Some(var) = var {
+            match env.get_mut(&Var { name: var, id: 0 }) {
+                Some(true) => (),
+                Some(false) => return Err(TypeError::AssignedImm),
+                None => return Err(TypeError::UnboundVar),
+            }
+        }
+        // TODO: unify mutability variables of references to `mut`
+        let typed_place = self.place.partial_infer(subs, var_state, env)?;
+        let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
+        subs.compose_with(typed_place.ty.unify_with(typed_expr.ty, var_state)?)?;
+        Ok(Typed {
+            ty: unit(),
+            expr: Assign {
+                place: typed_place.expr,
+                expr: typed_expr.expr,
+            },
+        })
+    }
+}
+impl Inferable for Box<[Assign<()>]> {
+    type TypedSelf = Box<[Assign<Type>]>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let assigns: Vec<_> = self.into();
+        let assigns = assigns
+            .into_iter()
+            .map(|assign| {
+                assign
+                    .partial_infer(subs, var_state, env)
+                    .map(|typed| typed.expr)
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into();
+        Ok(Typed {
+            ty: unit(),
+            expr: assigns,
+        })
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -793,7 +858,9 @@ impl Inferable for Expr<()> {
                 .map(Expr::Binary),
             Self::Fun(fun) => fun.partial_infer(subs, var_state, env)?.map(Expr::Fun),
             Self::Call(call) => call.partial_infer(subs, var_state, env)?.map(Expr::Call),
-            Self::Assign(_) => todo!(),
+            Self::Assign(assigns) => assigns
+                .partial_infer(subs, var_state, env)?
+                .map(Expr::Assign),
             Self::ControlFlow(_) => todo!(),
             Self::Jump(_) => todo!(),
         };

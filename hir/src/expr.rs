@@ -67,6 +67,23 @@ impl<T> PlaceExpr<T> {
             _ => None,
         }
     }
+    pub fn var(&self) -> Option<Atom> {
+        match self {
+            PlaceExpr::Var(var) => Some(var.clone()),
+            PlaceExpr::FieldAccess(FieldAccess { expr, name: _ })
+            | PlaceExpr::Index(Index { expr, index: _ })
+            | PlaceExpr::Slice(Slice { expr, range: _ })
+            | PlaceExpr::Deref(expr)
+            | PlaceExpr::Len(expr) => {
+                let expr: &Expr<_> = expr;
+                if let Expr::Place(place) = expr {
+                    place.var()
+                } else {
+                    None
+                }
+            }
+        }
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<T> {
