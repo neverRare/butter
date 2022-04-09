@@ -1,11 +1,11 @@
 use crate::{
-    expr::integer::{integer_u64},
+    expr::integer::integer_u64,
     ident_keyword::{ident, keyword},
     lex, sep_optional_between,
 };
 use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
-    stream::StreamErrorFor, ParseError, Parser, Stream, value,
+    stream::StreamErrorFor, value, ParseError, Parser, Stream,
 };
 use hir::{
     pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPattern, Var},
