@@ -1,11 +1,11 @@
 use crate::{
-    expr::integer::{integer_i64, integer_u64},
+    expr::integer::{integer_u64},
     ident_keyword::{ident, keyword},
     lex, sep_optional_between,
 };
 use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
-    stream::StreamErrorFor, value, ParseError, Parser, Stream,
+    stream::StreamErrorFor, ParseError, Parser, Stream, value,
 };
 use hir::{
     pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPattern, Var},
@@ -137,10 +137,7 @@ where
         lex(char('&'))
             .with(pattern())
             .map(|pattern| Pattern::Ref(Box::new(pattern))),
-        // TODO: this may not be able to parse i64::MIN
-        lex(char('-'))
-            .with(integer_i64())
-            .map(|num| Pattern::Int(-num)),
+        // TODO: minus integer
         integer_u64().map(Pattern::UInt),
         attempt(between(lex(char('(')), lex(char(')')), pattern())).expected("group"),
         record().map(Pattern::Record),

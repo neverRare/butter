@@ -12,6 +12,8 @@ use combine::{
 };
 use hir::Atom;
 
+// TODO: minus integer parser
+
 pub(crate) fn parse_digit(ch: char, base: u8) -> Option<u8> {
     let (lower_ch, lower_bound) = match ch {
         '0'..='9' => ('0', 0),
@@ -41,7 +43,6 @@ macro_rules! gen_integer_decoder {
     };
 }
 gen_integer_decoder!(parse_u64, u64);
-gen_integer_decoder!(parse_i64, i64);
 pub(crate) fn integer_str<I>(base: u8) -> impl Parser<I, Output = Atom>
 where
     I: Stream<Token = char>,
@@ -96,7 +97,6 @@ macro_rules! gen_integer_parser {
     };
 }
 gen_integer_parser!(integer_u64, parse_u64, u64);
-gen_integer_parser!(integer_i64, parse_i64, i64);
 #[cfg(test)]
 mod test {
     use crate::expr::integer_u64;

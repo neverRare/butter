@@ -36,6 +36,7 @@ where
         char_literal().map(Literal::UInt),
         float::float().map(Literal::Float),
         integer_u64().map(Literal::UInt),
+        // TODO: minus integer parser
         attempt(keyword("false")).with(value(Literal::False)),
         attempt(keyword("true")).with(value(Literal::True)),
     ))
