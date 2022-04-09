@@ -352,6 +352,9 @@ impl Env {
     pub fn get_mut(&self, var: &Var) -> Option<bool> {
         self.hashmap().get(var).map(|x| x.is_mut)
     }
+    pub fn insert(&mut self, var: &Var, scheme_mut: SchemeMut) -> Option<SchemeMut> {
+        self.hashmap_mut().insert(var.clone(), scheme_mut)
+    }
     fn remove(&mut self, var: Var) {
         self.hashmap_mut().remove(&var);
     }

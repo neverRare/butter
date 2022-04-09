@@ -5,9 +5,9 @@
 use crate::ty::{cons::OrderedAnd, Env, Scheme, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
-        Arg, Assign, Binary, BinaryType, Bound, Call, Element, ElementKind, Expr, Field,
-        FieldAccess, Fun, Index, Literal, PlaceExpr, Range, Record, RecordWithSplat, Slice, Tag,
-        Tuple, TupleWithSplat, Unary, UnaryType,
+        Arg, Assign, Binary, BinaryType, Bound, Call, Element, ElementKind, Expr,
+        Field, FieldAccess, Fun, Index, Jump, Literal, PlaceExpr, Range, Record, RecordWithSplat,
+        Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
     pattern,
     statement::Statement,
@@ -638,6 +638,20 @@ impl Inferable for Fun<()> {
                 },
             )
         }));
+        let return_var = var_state.new_var();
+        env.insert(
+            &Var {
+                name: Atom::from("return"),
+                id: 0,
+            },
+            SchemeMut {
+                is_mut: false,
+                scheme: Scheme {
+                    for_all: HashSet::new(),
+                    ty: Type::Var(return_var.clone()),
+                },
+            },
+        );
         let mut param_ty = Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(
             self.param
                 .iter()
@@ -652,6 +666,8 @@ impl Inferable for Fun<()> {
         )));
         let mut body_subs = Subs::new();
         let body = self.body.partial_infer(&mut body_subs, var_state, &env)?;
+        let mut return_ty = Type::Var(return_var);
+        return_ty.substitute(&body_subs)?;
         param_ty.substitute(&body_subs)?;
         let param: Vec<_> = self.param.into();
         let typed_param = param
@@ -668,8 +684,12 @@ impl Inferable for Fun<()> {
             })
             .collect::<Result<Vec<_>, TypeError>>()?;
         subs.compose_with(body_subs)?;
+        let mut body_ty = body.ty;
+        let body_return_subs = return_ty.unify_with(body_ty.clone(), var_state)?;
+        body_ty.substitute(&body_return_subs)?;
+        subs.compose_with(body_return_subs)?;
         Ok(Typed {
-            ty: Type::Cons(Cons::Fun(Box::new(param_ty), Box::new(body.ty))),
+            ty: Type::Cons(Cons::Fun(Box::new(param_ty), Box::new(body_ty))),
             expr: Fun {
                 param: typed_param.into(),
                 body: Box::new(body.expr),
@@ -807,6 +827,41 @@ impl Inferable for Box<[Assign<()>]> {
         })
     }
 }
+impl Inferable for Jump<()> {
+    type TypedSelf = Jump<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed = match self {
+            Jump::Break(_) => todo!(),
+            Jump::Continue => todo!(),
+            Jump::Return(expr) => {
+                let typed_expr = match expr {
+                    Some(expr) => expr.partial_infer(subs, var_state, env)?.map(Some),
+                    None => Typed {
+                        ty: unit(),
+                        expr: None,
+                    },
+                };
+                let more_subs = Atom::from("return")
+                    .partial_infer(subs, var_state, env)?
+                    .ty
+                    .unify_with(typed_expr.ty, var_state)?;
+                subs.compose_with(more_subs)?;
+                Jump::Return(typed_expr.expr.map(Box::new))
+            }
+        };
+        let var = var_state.new_var();
+        Ok(Typed {
+            ty: Type::Var(var),
+            expr: typed,
+        })
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -861,8 +916,8 @@ impl Inferable for Expr<()> {
             Self::Assign(assigns) => assigns
                 .partial_infer(subs, var_state, env)?
                 .map(Expr::Assign),
+            Self::Jump(jump) => jump.partial_infer(subs, var_state, env)?.map(Expr::Jump),
             Self::ControlFlow(_) => todo!(),
-            Self::Jump(_) => todo!(),
         };
         Ok(ty_expr)
     }
