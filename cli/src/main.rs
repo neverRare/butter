@@ -1,12 +1,11 @@
 use hir::expr::Expr;
 use parser::{expr_parser, EasyParser};
 use std::io::{self, Write};
-use structopt::StructOpt;
+use clap::Parser;
 use type_system::test_infer;
 
 /// Butter compiler
-#[derive(StructOpt, Debug, Clone, Copy, PartialEq, Eq)]
-#[structopt(name = "butter")]
+#[derive(Parser, Debug, Clone, Copy, PartialEq, Eq)]
 enum Command {
     /// Start a repl for testing type inference
     TypeRepl,
@@ -14,7 +13,7 @@ enum Command {
     ParserRepl,
 }
 fn main() {
-    match Command::from_args() {
+    match Command::parse() {
         Command::TypeRepl => type_repl().unwrap(),
         Command::ParserRepl => parser_repl().unwrap(),
     }

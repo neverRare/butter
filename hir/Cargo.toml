@@ -8,4 +8,4 @@ build = "build.rs"
 string_cache = "0.8.4"
 
 [build-dependencies]
-string_cache_codegen = "0.5"
+string_cache_codegen = "0.5.2"
