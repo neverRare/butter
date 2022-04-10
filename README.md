@@ -47,7 +47,7 @@ Being my personal project, designs and features are ultimately up for my decisio
 Features to be implemented
 
 - Structural typing
-- Mix of explicit and inferred mutability &mdash; variables are explicitly "mut-typed" but it's inner data such as individual record fields are "mut-type inferred"
+- Mix of explicit and inferred mutability &mdash; variables are explicitly annotated with mutability while mutability of references are inferred
 - An extension of Hindley-Milner type system, this includes row-polymorphism
 - Refinement types
 - Mix of ownership systems and automatic reference counting &mdash; data that are immutable and never moved are shareable, otherwise they are owned

@@ -9,6 +9,21 @@ Currently, string and char literal are just syntactic sugar for array of bytes a
 - Validity of such type shall be enforced by refinement types. Unsure for this, might be a challenge or simply impossible.
 - Another type for Unicode bytes and scalar values.
 
+## Raw string
+
+```butter
+#"raw strings don't have escape notation"#
+```
+
+## Match parameter
+
+```butter
+map_option(match val, mapper) => {
+    @some val => @some mapper(val),
+    @none => @none
+}
+```
+
 ## Equal to pattern
 
 Also known as pin pattern or pin operator.
@@ -31,6 +46,17 @@ outer: while true {
         }
     }
 }
+```
+
+## Breakable block
+
+```butter
+num = {|
+    if foo == 10 {
+        break 10
+    }
+    20
+|};
 ```
 
 ## Multiline comment
@@ -86,14 +112,13 @@ For functions
 
 ```butter
 forall(a, b):
-map_option(val: Option(a), mapper: a -> b) -> Option(b) =>
-    match val {
-        @some(val) => @some(mapper(val)),
-        @none => @none,
-    };
+map_option(val: Option(a), mapper: a -> b) -> Option(b) => match val {
+    @some(val) => @some(mapper(val)),
+    @none => @none,
+}
 ```
 
-For variables
+For variables or patterns
 
 ```butter
 foo: [Num] = [];
@@ -133,6 +158,16 @@ Options for design and implementation:
 - Have traits for iterators. Simplest implementation but lessens the ergonomics.
 - Have iterator as first-class type. This will use dynamic dispatch but ergonomics can be great. A generalization for this approach would be an implementation of dynamic object with certain trait.
 
+## Iterator literal
+
+```butter
+iter("apple", "banana", "cherry")
+iter(1.<3)
+-- or
+#("apple", "banana", "cherry")
+#(1.<3)
+```
+
 ## Module system
 
 ```butter
@@ -168,13 +203,26 @@ Importing from nested module, would be similar to declaration.
 ```butter
 pi = math.pi;
 -- or with unpacking pattern
-(pi,) = math;
+(= pi) = math;
+-- or with left to right declaration
+math =: (= pi);
+```
+
+## Declaration shorthand
+
+```butter
+= math.pi;
+-- the same as
+pi = math.pi;
 ```
 
 ## Visibility system
 
 ```butter
 pub greet(name) => "hello " ++ name ++ "!";
+
+-- public to only select module
+pub(path.to.module) greet(name) => "hello " ++ name ++ "!";
 ```
 
 ## Pipeline operator
@@ -254,17 +302,16 @@ if val =: @some val {
 Useful for unwrapping.
 
 ```butter
-@some val = val else { std.abort() };
+@some val = val else { std.panic() };
 ```
 
 ## Identifier as compile-time value
 
 ```butter
-map_tagged(val, tag, fn) =>
-    match val {
-        @$tag val => @$tag fn(val),
-        val => val,
-    };
+map_tagged(val, tag, fn) =>match val {
+    @$tag val => @$tag fn(val),
+    val => val,
+}
 
 map_tagged(val, $some, (val) => val + 3);
 ```
@@ -292,16 +339,40 @@ impl Eq([a]) {
 ## New nominal type
 
 ```butter
+-- declaration
 derive Eq(_):
 pub newtype Point(
     x: Num,
     y: Num,
 );
+
+-- creation
+point = Point(x = 10, y = 20);
 ```
 
-They won't have trait implementation by default and each field can have its own visibility (for structural record, every field is public). It can also have it's own refined types.
+They won't have trait implementation by default and have it's own refined types.
 
 Generics? How??
+
+## Private fields
+
+```butter
+-- declaration
+derive Eq(_):
+newtype Point(
+    x: Num,
+    #y: Num,
+    pub(path.to.module) #z: Num,
+);
+
+-- creation
+point = Point(x = 10, #y = 20, #z = 30);
+
+-- access
+y = point.#y;
+```
+
+Anonymous record types have all fields public. Private fields are only applicable for `newtype`. Private fields can have visibility overridden by using `pub`.
 
 ## Effect system
 

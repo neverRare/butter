@@ -2,13 +2,13 @@
 
 Butter have the following types:
 
-- Void
 - Number
 - Boolean
 - Array (homogenous)
 - Function
 - Reference
 - Record
+- Tuple (heterogenous)
 - Tagged Union
 
 Butter is able to infer these and check if type mismatch happens.

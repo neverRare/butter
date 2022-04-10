@@ -2,7 +2,7 @@
 
 Thank you for taking your time contributing. I'll address these contributions as soon as possible.
 
-## Opening an Issue
+## Opening an issue
 
 If you have an issue, question, or suggestion, you may open an issue.
 
@@ -36,7 +36,7 @@ Parser REPL can be started with `cargo run -- parser-repl` command. This REPL on
 
 This REPL will output verbose and sparsely formatted AST.
 
-### Type Inference REPL
+### Type inference REPL
 
 Type inference REPL can be started with `cargo run -- type-repl` command. This REPL parses an expression and outputs the inferred type.
 
@@ -45,7 +45,7 @@ Type inference REPL can be started with `cargo run -- type-repl` command. This R
 [inferred type will be printed here]
 ```
 
-## Opening a fork
+## Opening a pull request
 
 If you know how to fix such issues, consider forking and opening a pull request. Any form of pull requests is welcome, this includes typographic fixes and code improvements.
 

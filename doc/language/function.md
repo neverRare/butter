@@ -26,7 +26,7 @@ reverse(arr) => {
         return arr;
     }
     mut reverse = [];
-    for elem in arr {
+    for elem in >arr {
         reverse <- [elem] ++ reverse;
     }
     reverse
@@ -67,7 +67,7 @@ Second, unless shadowed, the body can access the function itself. With this, rec
 ```butter
 fibonacci(nth) => {
     if nth < 0 {
-        abort;
+        std.panic()
     } else if nth <= 1 {
         nth
     } else {
