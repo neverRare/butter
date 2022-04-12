@@ -10,7 +10,7 @@ use hir::{
         RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
     pattern,
-    statement::Statement,
+    statement::{FunDeclare, Statement},
     Atom,
 };
 use std::{
@@ -870,7 +870,43 @@ fn infer_statement(
 ) -> Result<Statement<Type>, TypeError> {
     let typed = match statement {
         Statement::Declare(_) => todo!(),
-        Statement::FunDeclare(_) => todo!(),
+        Statement::FunDeclare(fun) => {
+            let var = Var {
+                name: fun.ident.clone(),
+                id: 0,
+            };
+            env.remove(var.clone());
+            let mut ty = Type::Cons(Cons::Fun(
+                Box::new(Type::Var(var_state.new_var())),
+                Box::new(Type::Var(var_state.new_var())),
+            ));
+            env.insert(
+                &var,
+                SchemeMut {
+                    is_mut: false,
+                    scheme: Scheme {
+                        for_all: HashSet::new(),
+                        ty: ty.clone(),
+                    },
+                },
+            );
+            let typed_fun = fun.fun.partial_infer(subs, var_state, env)?;
+            let more_subs = ty.clone().unify_with(typed_fun.ty, var_state)?;
+            ty.substitute(&more_subs)?;
+            subs.compose_with(more_subs)?;
+            env.insert(
+                &var,
+                SchemeMut {
+                    is_mut: false,
+                    scheme: env.generalize(ty.clone()),
+                },
+            );
+            Statement::FunDeclare(FunDeclare {
+                ident: fun.ident,
+                fun: typed_fun.expr,
+                ty,
+            })
+        }
         Statement::Expr(expr) => Statement::Expr(expr.partial_infer(subs, var_state, env)?.expr),
     };
     Ok(typed)

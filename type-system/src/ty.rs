@@ -355,10 +355,10 @@ impl Env {
     pub fn insert(&mut self, var: &Var, scheme_mut: SchemeMut) -> Option<SchemeMut> {
         self.hashmap_mut().insert(var.clone(), scheme_mut)
     }
-    fn remove(&mut self, var: Var) {
+    pub fn remove(&mut self, var: Var) {
         self.hashmap_mut().remove(&var);
     }
-    fn generalize(&self, ty: Type) -> Scheme {
+    pub fn generalize(&self, ty: Type) -> Scheme {
         let env_free_vars = self.free_vars();
         let for_all = ty
             .free_vars()

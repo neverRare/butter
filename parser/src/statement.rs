@@ -107,8 +107,8 @@ where
         (
             choice((parallel_assign(), expr(0))),
             choice((
-                lex(char(';')).with(value(true)),
-                look_ahead(end_look_ahead).with(value(false)),
+                lex(char(';')).with(value(false)),
+                look_ahead(end_look_ahead).with(value(true)),
             )),
         )
             .map(|(expr, implicit_return)| {

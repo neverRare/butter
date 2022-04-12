@@ -1,7 +1,7 @@
+use clap::Parser;
 use hir::expr::Expr;
 use parser::{expr_parser, EasyParser};
 use std::io::{self, Write};
-use clap::Parser;
 use type_system::test_infer;
 
 /// Butter compiler
