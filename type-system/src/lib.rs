@@ -5,9 +5,9 @@
 use crate::ty::{cons::OrderedAnd, Env, Scheme, Subs, Substitutable, Unifiable, VarState};
 use hir::{
     expr::{
-        Arg, Assign, Binary, BinaryType, Bound, Call, Element, ElementKind, Expr,
-        Field, FieldAccess, Fun, Index, Jump, Literal, PlaceExpr, Range, Record, RecordWithSplat,
-        Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
+        Arg, Assign, Binary, BinaryType, Block, Bound, Call, ControlFlow, Element, ElementKind,
+        Expr, Field, FieldAccess, Fun, Index, Jump, Literal, PlaceExpr, Range, Record,
+        RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
     pattern,
     statement::Statement,
@@ -862,6 +862,77 @@ impl Inferable for Jump<()> {
         })
     }
 }
+fn infer_statement(
+    subs: &mut Subs,
+    env: &mut Env,
+    var_state: &mut VarState,
+    statement: Statement<()>,
+) -> Result<Statement<Type>, TypeError> {
+    let typed = match statement {
+        Statement::Declare(_) => todo!(),
+        Statement::FunDeclare(_) => todo!(),
+        Statement::Expr(expr) => Statement::Expr(expr.partial_infer(subs, var_state, env)?.expr),
+    };
+    Ok(typed)
+}
+impl Inferable for Block<()> {
+    type TypedSelf = Block<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let mut typed_statement = Vec::with_capacity(self.statement.len());
+        let mut env = env.clone();
+        let statement: Vec<_> = self.statement.into();
+        let mut more_subs = Subs::new();
+        for statement in statement {
+            let typed = infer_statement(&mut more_subs, &mut env, var_state, statement)?;
+            typed_statement.push(typed);
+        }
+        let typed_expr = match self.expr {
+            Some(expr) => expr.partial_infer(subs, var_state, &mut env)?.map(Some),
+            None => Typed {
+                ty: unit(),
+                expr: None,
+            },
+        };
+        let mut ty = typed_expr.ty;
+        ty.substitute(&more_subs)?;
+        subs.compose_with(more_subs)?;
+        Ok(Typed {
+            ty,
+            expr: Block {
+                statement: typed_statement.into(),
+                expr: typed_expr.expr.map(Box::new),
+            },
+        })
+    }
+}
+impl Inferable for ControlFlow<()> {
+    type TypedSelf = ControlFlow<Type>;
+
+    fn partial_infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let typed = match self {
+            ControlFlow::Block(block) => block
+                .partial_infer(subs, var_state, env)?
+                .map(ControlFlow::Block),
+            ControlFlow::If(_) => todo!(),
+            ControlFlow::For(_) => todo!(),
+            ControlFlow::While(_) => todo!(),
+            ControlFlow::Loop(_) => todo!(),
+            ControlFlow::Match(_) => todo!(),
+        };
+        Ok(typed)
+    }
+}
 impl Inferable for Expr<()> {
     type TypedSelf = Expr<Type>;
 
@@ -917,7 +988,9 @@ impl Inferable for Expr<()> {
                 .partial_infer(subs, var_state, env)?
                 .map(Expr::Assign),
             Self::Jump(jump) => jump.partial_infer(subs, var_state, env)?.map(Expr::Jump),
-            Self::ControlFlow(_) => todo!(),
+            Self::ControlFlow(control_flow) => control_flow
+                .partial_infer(subs, var_state, env)?
+                .map(Expr::ControlFlow),
         };
         Ok(ty_expr)
     }
