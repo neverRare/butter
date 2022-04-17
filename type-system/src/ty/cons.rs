@@ -73,32 +73,27 @@ impl Substitutable for Cons {
                         ty.substitute(subs)?;
                     }
                 }
-                OrderedAnd::Row(_, rest, _) => {
-                    // let rest = rest.clone();
-                    match subs.get(rest) {
-                        Some(Type1::Type(Type::Var(_) | Type::Cons(Cons::RecordTuple(_)))) => {
-                            record_tuple.substitute(subs, |cons| match cons {
-                                Cons::RecordTuple(record_tuple) => Some(record_tuple),
-                                _ => unreachable!(),
-                            })?;
-                        }
-                        Some(Type1::Type(Type::Cons(
-                            other @ (Cons::Record(_) | Cons::Tuple(_)),
-                        ))) => {
-                            let record_tuple = match replace(self, Cons::Num) {
-                                Cons::RecordTuple(record_tuple) => record_tuple,
-                                _ => unreachable!(),
-                            };
-                            *self = match other {
-                                Cons::Record(_) => Cons::Record(record_tuple.into_keyed()),
-                                Cons::Tuple(_) => Cons::Tuple(record_tuple.into_ordered()),
-                                _ => unreachable!(),
-                            };
-                            self.substitute(subs)?;
-                        }
-                        _ => return Err(TypeError::MismatchCons),
+                OrderedAnd::Row(_, rest, _) => match subs.get(rest.clone()) {
+                    Some(Type1::Type(Type::Var(_) | Type::Cons(Cons::RecordTuple(_)))) => {
+                        record_tuple.substitute(subs, |cons| match cons {
+                            Cons::RecordTuple(record_tuple) => Some(record_tuple),
+                            _ => unreachable!(),
+                        })?;
                     }
-                }
+                    Some(Type1::Type(Type::Cons(other @ (Cons::Record(_) | Cons::Tuple(_))))) => {
+                        let record_tuple = match replace(self, Cons::Num) {
+                            Cons::RecordTuple(record_tuple) => record_tuple,
+                            _ => unreachable!(),
+                        };
+                        *self = match other {
+                            Cons::Record(_) => Cons::Record(record_tuple.into_keyed()),
+                            Cons::Tuple(_) => Cons::Tuple(record_tuple.into_ordered()),
+                            _ => unreachable!(),
+                        };
+                        self.substitute(subs)?;
+                    }
+                    _ => return Err(TypeError::MismatchCons),
+                },
             },
             Self::Union(union) => union.substitute(subs, |cons| match cons {
                 Cons::Union(ty) => Some(ty),
@@ -109,43 +104,46 @@ impl Substitutable for Cons {
     }
 }
 impl Unifiable for Cons {
-    fn unify_with(self, other: Self, var_state: &mut VarState) -> Result<Subs, TypeError> {
-        let mut subs = Subs::new();
+    fn unify_with(
+        self,
+        other: Self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+    ) -> Result<(), TypeError> {
         match (self, other) {
             (Self::Bool, Self::Bool) | (Self::Num, Self::Num) => (),
             (Self::Ref(mut1, ty1), Self::Ref(mut2, ty2)) => {
-                subs.compose_with(mut1.unify_with(mut2, var_state)?)?;
-                subs.compose_with(ty1.unify_with(*ty2, var_state)?)?;
+                mut1.unify_with(mut2, subs, var_state)?;
+                ty1.unify_with(*ty2, subs, var_state)?;
             }
-            (Self::Array(ty1), Self::Array(ty2)) => {
-                subs.compose_with(ty1.unify_with(*ty2, var_state)?)?
-            }
+            (Self::Array(ty1), Self::Array(ty2)) => ty1.unify_with(*ty2, subs, var_state)?,
             (Self::Fun(param1, ret1), Self::Fun(param2, ret2)) => {
-                subs.compose_with(param1.unify_with(*param2, var_state)?)?;
-                subs.compose_with(ret1.unify_with(*ret2, var_state)?)?;
+                param1.unify_with(*param2, subs, var_state)?;
+                ret1.unify_with(*ret2, subs, var_state)?;
             }
             (Self::Record(rec1), Self::Record(rec2)) => {
-                subs.compose_with(rec1.unify_with(rec2, var_state, Cons::Record)?)?
+                rec1.unify_with(rec2, subs, var_state, Cons::Record)?
             }
             (Self::Record(rec), Self::RecordTuple(rec_tup))
             | (Self::RecordTuple(rec_tup), Self::Record(rec)) => {
-                subs.compose_with(rec.unify_with(rec_tup.into_keyed(), var_state, Cons::Record)?)?
+                rec.unify_with(rec_tup.into_keyed(), subs, var_state, Cons::Record)?
             }
             (Self::Tuple(tup1), Self::Tuple(tup2)) => {
-                subs.compose_with(tup1.unify_with(tup2, var_state, Cons::Tuple)?)?
+                tup1.unify_with(tup2, subs, var_state, Cons::Tuple)?
             }
             (Self::Tuple(tup), Self::RecordTuple(rec_tup))
-            | (Self::RecordTuple(rec_tup), Self::Tuple(tup)) => subs
-                .compose_with(tup.unify_with(rec_tup.into_ordered(), var_state, Cons::Tuple)?)?,
+            | (Self::RecordTuple(rec_tup), Self::Tuple(tup)) => {
+                tup.unify_with(rec_tup.into_ordered(), subs, var_state, Cons::Tuple)?
+            }
             (Self::RecordTuple(rec_tup1), Self::RecordTuple(rec_tup2)) => {
-                subs.compose_with(rec_tup1.unify_with(rec_tup2, var_state, Cons::RecordTuple)?)?
+                rec_tup1.unify_with(rec_tup2, subs, var_state, Cons::RecordTuple)?
             }
             (Self::Union(union1), Self::Union(union2)) => {
-                subs.compose_with(union1.unify_with(union2, var_state, Cons::Union)?)?
+                union1.unify_with(union2, subs, var_state, Cons::Union)?
             }
             _ => return Err(TypeError::MismatchCons),
         }
-        Ok(subs)
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -175,8 +173,7 @@ impl Keyed {
             ty.substitute(subs)?;
         }
         if let Some(var) = &self.rest {
-            // let var = var.clone();
-            match subs.get(var) {
+            match subs.get(var.clone()) {
                 Some(Type1::Type(Type::Var(new_var))) => {
                     self.rest = Some(new_var);
                 }
@@ -207,14 +204,14 @@ impl Keyed {
     pub(super) fn unify_with(
         self,
         other: Self,
+        subs: &mut Subs,
         var_state: &mut VarState,
         mut cons: impl FnMut(Keyed) -> Cons,
-    ) -> Result<Subs, TypeError> {
-        let mut subs = Subs::new();
+    ) -> Result<(), TypeError> {
         let mut map1 = self.fields;
         let mut map2 = other.fields;
         for (_, (ty1, ty2)) in intersection(&mut map1, &mut map2) {
-            subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+            ty1.unify_with(ty2, subs, var_state)?;
         }
         match (self.rest, map1, other.rest, map2) {
             (Some(rest1), map1, Some(rest2), map2) => {
@@ -252,7 +249,7 @@ impl Keyed {
                 }
             }
         }
-        Ok(subs)
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -332,7 +329,7 @@ impl<T> OrderedAnd<T> {
                 for ty in right.iter_mut() {
                     ty.substitute(subs)?
                 }
-                match subs.get(rest) {
+                match subs.get(rest.clone()) {
                     Some(Type1::Type(Type::Var(var))) => {
                         *rest = var;
                     }
@@ -373,13 +370,13 @@ impl<T> OrderedAnd<T> {
     pub(super) fn unify_with(
         self,
         other: Self,
+        subs: &mut Subs,
         var_state: &mut VarState,
         mut cons: impl FnMut(Self) -> Cons,
-    ) -> Result<Subs, TypeError>
+    ) -> Result<(), TypeError>
     where
         T: Unifiable,
     {
-        let mut subs = Subs::new();
         match (self, other) {
             (Self::NonRow(tup1), Self::NonRow(tup2)) => {
                 if tup1.len() != tup2.len() {
@@ -388,7 +385,7 @@ impl<T> OrderedAnd<T> {
                 let tup1: Vec<_> = tup1.into();
                 let tup2: Vec<_> = tup2.into();
                 for (ty1, ty2) in tup1.into_iter().zip(tup2.into_iter()) {
-                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                    ty1.unify_with(ty2, subs, var_state)?;
                 }
             }
             (Self::NonRow(tup), Self::Row(left, rest, right))
@@ -401,10 +398,10 @@ impl<T> OrderedAnd<T> {
                 let mut rest2 = left2.split_off(left.len());
                 let right2 = rest2.split_off(rest2.len() - right.len());
                 for (ty1, ty2) in left.into_iter().zip(left2.into_iter()) {
-                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                    ty1.unify_with(ty2, subs, var_state)?;
                 }
                 for (ty1, ty2) in right.into_iter().zip(right2.into_iter()) {
-                    subs.compose_with(ty1.unify_with(ty2, var_state)?)?;
+                    ty1.unify_with(ty2, subs, var_state)?;
                 }
                 subs.insert(
                     rest,
@@ -413,7 +410,7 @@ impl<T> OrderedAnd<T> {
             }
             (Self::Row(left1, rest1, right1), Self::Row(left2, rest2, right2)) => todo!(),
         }
-        Ok(subs)
+        Ok(())
     }
 }
 fn intersection<K, A, B>(a: &mut HashMap<K, A>, b: &mut HashMap<K, B>) -> HashMap<K, (A, B)>

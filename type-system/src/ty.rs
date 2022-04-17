@@ -1,5 +1,5 @@
 use crate::ty::cons::Cons;
-use hir::Atom;
+use hir::{keyword, Atom};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -14,6 +14,11 @@ pub struct Var {
     pub name: Atom,
     pub id: u32,
 }
+impl Var {
+    pub(super) fn new_bare(name: Atom) -> Self {
+        Self { name, id: 0 }
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
 pub(super) struct VarState(HashMap<Atom, u32>);
 impl VarState {
@@ -21,17 +26,14 @@ impl VarState {
         Self::default()
     }
     pub fn new_var(&mut self) -> Var {
-        self.new_named(&Atom::from(""))
+        self.new_named(keyword!(""))
     }
-    pub fn new_named(&mut self, name: &Atom) -> Var {
+    pub fn new_named(&mut self, name: Atom) -> Var {
         let Self(map) = self;
         let state = map.entry(name.clone()).or_insert(1);
         let id = *state;
         *state += 1;
-        Var {
-            name: name.clone(),
-            id,
-        }
+        Var { name, id }
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
@@ -51,7 +53,12 @@ pub(super) trait Substitutable {
     fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError>;
 }
 pub(super) trait Unifiable {
-    fn unify_with(self, other: Self, var_state: &mut VarState) -> Result<Subs, TypeError>;
+    fn unify_with(
+        self,
+        other: Self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+    ) -> Result<(), TypeError>;
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Type {
@@ -74,7 +81,7 @@ impl Substitutable for Type {
     fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
         match self {
             Self::Var(var) => {
-                if let Some(ty) = subs.get(var) {
+                if let Some(ty) = subs.get(var.clone()) {
                     match ty {
                         Type1::Type(ty) => *self = ty,
                         Type1::MutType(_) => return Err(TypeError::MismatchKind),
@@ -99,12 +106,14 @@ impl Substitutable for (Atom, Type) {
     }
 }
 impl Unifiable for Type {
-    fn unify_with(self, other: Self, var_state: &mut VarState) -> Result<Subs, TypeError> {
-        let mut subs = Subs::new();
+    fn unify_with(
+        self,
+        other: Self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+    ) -> Result<(), TypeError> {
         match (self, other) {
-            (Self::Cons(cons1), Self::Cons(cons2)) => {
-                subs.compose_with(cons1.unify_with(cons2, var_state)?)?
-            }
+            (Self::Cons(cons1), Self::Cons(cons2)) => cons1.unify_with(cons2, subs, var_state)?,
             (Self::Var(var), ty) | (ty, Self::Var(var)) => {
                 if ty == Self::Var(var.clone()) {
                     // do nothing
@@ -118,17 +127,23 @@ impl Unifiable for Type {
                 }
             }
         }
-        Ok(subs)
+        Ok(())
     }
 }
 impl Unifiable for (Atom, Type) {
-    fn unify_with(self, other: Self, var_state: &mut VarState) -> Result<Subs, TypeError> {
+    fn unify_with(
+        self,
+        other: Self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+    ) -> Result<(), TypeError> {
         let (name1, ty1) = self;
         let (name2, ty2) = other;
         if name1 != name2 {
             return Err(TypeError::MismatchName);
         }
-        ty1.unify_with(ty2, var_state)
+        ty1.unify_with(ty2, subs, var_state)?;
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -152,7 +167,7 @@ impl FreeVars for MutType {
 impl Substitutable for MutType {
     fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
         if let Self::Var(var) = self {
-            if let Some(ty) = subs.get(var) {
+            if let Some(ty) = subs.get(var.clone()) {
                 match ty {
                     Type1::MutType(mutability) => *self = mutability,
                     Type1::Type(_) => return Err(TypeError::MismatchKind),
@@ -163,8 +178,7 @@ impl Substitutable for MutType {
     }
 }
 impl Unifiable for MutType {
-    fn unify_with(self, other: Self, _: &mut VarState) -> Result<Subs, TypeError> {
-        let mut subs = Subs::new();
+    fn unify_with(self, other: Self, subs: &mut Subs, _: &mut VarState) -> Result<(), TypeError> {
         match (self, other) {
             (Self::Mut, Self::Mut) | (Self::Imm, Self::Imm) => (),
             (Self::Var(var), ty) | (ty, Self::Var(var)) => {
@@ -181,7 +195,7 @@ impl Unifiable for MutType {
             }
             _ => return Err(TypeError::MismatchCons),
         }
-        Ok(subs)
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -194,14 +208,6 @@ impl From<KindedVar> for Type1 {
         match var.kind {
             Kind::Type => Self::Type(Type::Var(var.var)),
             Kind::MutType => Self::MutType(MutType::Var(var.var)),
-        }
-    }
-}
-impl Type1 {
-    fn kind(&self) -> Kind {
-        match self {
-            Self::Type(_) => Kind::Type,
-            Self::MutType(_) => Kind::MutType,
         }
     }
 }
@@ -249,7 +255,7 @@ impl Scheme {
             .for_all
             .into_iter()
             .map(|var| {
-                let new_var = var_state.new_named(&var.var.name);
+                let new_var = var_state.new_named(var.var.name.clone());
                 (
                     var.var,
                     match var.kind {
@@ -285,8 +291,8 @@ impl Subs {
     fn is_empty(&self) -> bool {
         self.hashmap().is_empty()
     }
-    fn get(&self, var: &Var) -> Option<Type1> {
-        self.hashmap().get(var).map(Type1::clone)
+    fn get(&self, var: Var) -> Option<Type1> {
+        self.hashmap().get(&var).map(Type1::clone)
     }
     fn insert(&mut self, var: Var, ty: Type1) {
         self.hashmap_mut().insert(var, ty);
@@ -346,14 +352,14 @@ impl Env {
         let Self(map) = self;
         map
     }
-    pub fn get_ty(&self, var: &Var) -> Option<Scheme> {
-        self.hashmap().get(var).map(|x| Scheme::clone(&x.scheme))
+    pub fn get_ty(&self, var: Var) -> Option<Scheme> {
+        self.hashmap().get(&var).map(|x| Scheme::clone(&x.scheme))
     }
-    pub fn get_mut(&self, var: &Var) -> Option<bool> {
-        self.hashmap().get(var).map(|x| x.is_mut)
+    pub fn get_mut(&self, var: Var) -> Option<bool> {
+        self.hashmap().get(&var).map(|x| x.is_mut)
     }
-    pub fn insert(&mut self, var: &Var, scheme_mut: SchemeMut) -> Option<SchemeMut> {
-        self.hashmap_mut().insert(var.clone(), scheme_mut)
+    pub fn insert(&mut self, var: Var, scheme_mut: SchemeMut) -> Option<SchemeMut> {
+        self.hashmap_mut().insert(var, scheme_mut)
     }
     pub fn remove(&mut self, var: Var) {
         self.hashmap_mut().remove(&var);

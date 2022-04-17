@@ -2,14 +2,16 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use crate::ty::{cons::OrderedAnd, Env, Scheme, Subs, Substitutable, Unifiable, VarState};
+use crate::ty::{
+    cons::OrderedAnd, Env, Scheme, SchemeMut, Subs, Substitutable, Unifiable, VarState,
+};
 use hir::{
     expr::{
         Arg, Assign, Binary, BinaryType, Block, Bound, Call, ControlFlow, Element, ElementKind,
         Expr, Field, FieldAccess, Fun, Index, Jump, Literal, PlaceExpr, Range, Record,
         RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
-    pattern,
+    keyword, pattern,
     statement::{FunDeclare, Statement},
     Atom,
 };
@@ -17,7 +19,6 @@ use std::{
     collections::{HashMap, HashSet},
     iter::once,
 };
-use ty::SchemeMut;
 
 mod ty;
 
@@ -25,7 +26,6 @@ pub use crate::ty::{
     cons::{Cons, Keyed},
     MutType, Type, TypeError, Var,
 };
-
 fn unit() -> Type {
     Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(vec![].into())))
 }
@@ -78,10 +78,7 @@ impl Inferable for Atom {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        match env.get_ty(&Var {
-            name: self.clone(),
-            id: 0,
-        }) {
+        match env.get_ty(Var::new_bare(self.clone())) {
             Some(scheme) => Ok(Typed {
                 ty: scheme.instantiate(var_state)?,
                 expr: self,
@@ -102,11 +99,15 @@ impl Inferable for FieldAccess<()> {
         let name = self.name;
         let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
         let var = var_state.new_var();
-        let more_subs = Type::Cons(Cons::Record(Keyed {
-            fields: once((name.clone(), Type::Var(var.clone()))).collect(),
-            rest: Some(var_state.new_var()),
-        }))
-        .unify_with(typed_expr.ty, var_state)?;
+        let mut more_subs = Subs::new();
+        typed_expr.ty.unify_with(
+            Type::Cons(Cons::Record(Keyed {
+                fields: once((name.clone(), Type::Var(var.clone()))).collect(),
+                rest: Some(var_state.new_var()),
+            })),
+            &mut more_subs,
+            var_state,
+        )?;
         let mut ty = Type::Var(var);
         ty.substitute(&more_subs)?;
         subs.compose_with(more_subs)?;
@@ -130,13 +131,19 @@ impl Inferable for Index<()> {
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
         let var = var_state.new_var();
-        let more_subs = Type::Cons(Cons::Array(Box::new(Type::Var(var.clone()))))
-            .unify_with(typed_expr.ty, var_state)?;
+        let mut more_subs = Subs::new();
+        typed_expr.ty.unify_with(
+            Type::Cons(Cons::Array(Box::new(Type::Var(var.clone())))),
+            &mut more_subs,
+            var_state,
+        )?;
         let mut ty = Type::Var(var);
         ty.substitute(&more_subs)?;
         subs.compose_with(more_subs)?;
         let typed_index = self.index.partial_infer(subs, var_state, env)?;
-        subs.compose_with(Type::Cons(Cons::Num).unify_with(typed_index.ty, var_state)?)?;
+        typed_index
+            .ty
+            .unify_with(Type::Cons(Cons::Num), subs, var_state)?;
         Ok(Typed {
             ty,
             expr: Index {
@@ -158,8 +165,12 @@ impl Inferable for Slice<()> {
         let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
         let var = var_state.new_var();
         let mut elem_ty = Type::Var(var.clone());
-        let more_subs = Type::Cons(Cons::Array(Box::new(Type::Var(var))))
-            .unify_with(typed_expr.ty, var_state)?;
+        let mut more_subs = Subs::new();
+        typed_expr.ty.unify_with(
+            Type::Cons(Cons::Array(Box::new(Type::Var(var)))),
+            &mut more_subs,
+            var_state,
+        )?;
         elem_ty.substitute(&more_subs)?;
         subs.compose_with(more_subs)?;
         let typed_range = self.range.partial_infer(subs, var_state, env)?;
@@ -195,10 +206,10 @@ impl Inferable for PlaceExpr<()> {
             Self::Len(expr) => {
                 let typed = expr.partial_infer(subs, var_state, env)?;
                 let var = var_state.new_var();
-                subs.compose_with(
-                    typed
-                        .ty
-                        .unify_with(Type::Cons(Cons::Array(Box::new(Type::Var(var)))), var_state)?,
+                typed.ty.unify_with(
+                    Type::Cons(Cons::Array(Box::new(Type::Var(var)))),
+                    subs,
+                    var_state,
                 )?;
                 Typed {
                     ty: Type::Cons(Cons::Num),
@@ -210,8 +221,12 @@ impl Inferable for PlaceExpr<()> {
                 let var = var_state.new_var();
                 let mut_var = var_state.new_var();
                 let mut ty = Type::Var(var);
-                let more_subs = Type::Cons(Cons::Ref(MutType::Var(mut_var), Box::new(ty.clone())))
-                    .unify_with(typed_expr.ty, var_state)?;
+                let mut more_subs = Subs::new();
+                typed_expr.ty.unify_with(
+                    Type::Cons(Cons::Ref(MutType::Var(mut_var), Box::new(ty.clone()))),
+                    &mut more_subs,
+                    var_state,
+                )?;
                 ty.substitute(&more_subs)?;
                 subs.compose_with(more_subs)?;
                 Typed {
@@ -245,7 +260,10 @@ impl Inferable for Box<[Element<()>]> {
                 ElementKind::Splat => arr_ty.clone(),
                 ElementKind::Element => ty_var.clone(),
             };
-            let arr_subs = unify_to.unify_with(typed_expr.ty, var_state)?;
+            let mut arr_subs = Subs::new();
+            typed_expr
+                .ty
+                .unify_with(unify_to, &mut arr_subs, var_state)?;
             ty_var.substitute(&arr_subs)?;
             arr_ty.substitute(&arr_subs)?;
             subs.compose_with(arr_subs)?;
@@ -268,7 +286,10 @@ impl Inferable for Option<Bound<()>> {
         let expr = match self {
             Some(bound) => {
                 let typed = bound.expr.partial_infer(subs, var_state, env)?;
-                let more_subs = Type::Cons(Cons::Num).unify_with(typed.ty, var_state)?;
+                let mut more_subs = Subs::new();
+                typed
+                    .ty
+                    .unify_with(Type::Cons(Cons::Num), &mut more_subs, var_state)?;
                 subs.compose_with(more_subs)?;
                 Some(Bound {
                     kind: bound.kind,
@@ -375,7 +396,10 @@ impl Inferable for RecordWithSplat<()> {
         let typed_splat = self.splat.partial_infer(subs, var_state, env)?;
         let typed_right = partial_infer_field_list(self.right, &mut fields, subs, var_state, env)?;
         let var = var_state.new_var();
-        let more_subs = Type::Var(var.clone()).unify_with(typed_splat.ty, var_state)?;
+        let mut more_subs = Subs::new();
+        typed_splat
+            .ty
+            .unify_with(Type::Var(var.clone()), &mut more_subs, var_state)?;
         let mut ty = Type::Cons(Cons::Record(Keyed {
             fields,
             rest: Some(var),
@@ -465,7 +489,10 @@ impl Inferable for TupleWithSplat<()> {
             var.clone(),
             right_type,
         )));
-        let more_subs = Type::Var(var).unify_with(splat.ty, var_state)?;
+        let mut more_subs = Subs::new();
+        splat
+            .ty
+            .unify_with(Type::Var(var), &mut more_subs, var_state)?;
         ty.substitute(&more_subs)?;
         subs.compose_with(more_subs)?;
         Ok(Typed {
@@ -520,7 +547,7 @@ impl Inferable for Unary<()> {
                     UnaryType::Not => Type::Cons(Cons::Bool),
                     _ => unreachable!(),
                 };
-                subs.compose_with(typed.ty.unify_with(ty.clone(), var_state)?)?;
+                typed.ty.unify_with(ty.clone(), subs, var_state)?;
                 Typed {
                     ty,
                     expr: Unary {
@@ -557,10 +584,14 @@ impl Inferable for Binary<()> {
         if self.kind == BinaryType::Concatenate {
             let var = var_state.new_var();
             let mut ty = Type::Cons(Cons::Array(Box::new(Type::Var(var))));
-            let left_subs = ty.clone().unify_with(left.ty, var_state)?;
+            let mut left_subs = Subs::new();
+            left.ty.unify_with(ty.clone(), &mut left_subs, var_state)?;
             ty.substitute(&left_subs)?;
             subs.compose_with(left_subs)?;
-            let right_subs = ty.clone().unify_with(right.ty, var_state)?;
+            let mut right_subs = Subs::new();
+            right
+                .ty
+                .unify_with(ty.clone(), &mut right_subs, var_state)?;
             ty.substitute(&right_subs)?;
             subs.compose_with(right_subs)?;
             return Ok(Typed {
@@ -590,8 +621,8 @@ impl Inferable for Binary<()> {
                 (Type::Cons(Cons::Bool), Type::Cons(Cons::Bool))
             }
         };
-        subs.compose_with(left.ty.unify_with(op_type.clone(), var_state)?)?;
-        subs.compose_with(right.ty.unify_with(op_type, var_state)?)?;
+        left.ty.unify_with(op_type.clone(), subs, var_state)?;
+        right.ty.unify_with(op_type, subs, var_state)?;
         Ok(Typed {
             ty: return_type,
             expr: Binary {
@@ -618,17 +649,14 @@ impl Inferable for Fun<()> {
             .map(|var| {
                 (
                     var.ident.clone(),
-                    (var_state.new_named(&var.ident), var.clone()),
+                    (var_state.new_named(var.ident.clone()), var.clone()),
                 )
             })
             .collect();
         let mut env = env.clone();
         env.extend(param_map.iter().map(|(var, (new_var, var_hir))| {
             (
-                Var {
-                    name: var.clone(),
-                    id: 0,
-                },
+                Var::new_bare(var.clone()),
                 SchemeMut {
                     is_mut: var_hir.mutable,
                     scheme: Scheme {
@@ -640,10 +668,7 @@ impl Inferable for Fun<()> {
         }));
         let return_var = var_state.new_var();
         env.insert(
-            &Var {
-                name: Atom::from("return"),
-                id: 0,
-            },
+            Var::new_bare(keyword!("return")),
             SchemeMut {
                 is_mut: false,
                 scheme: Scheme {
@@ -685,7 +710,8 @@ impl Inferable for Fun<()> {
             .collect::<Result<Vec<_>, TypeError>>()?;
         subs.compose_with(body_subs)?;
         let mut body_ty = body.ty;
-        let body_return_subs = return_ty.unify_with(body_ty.clone(), var_state)?;
+        let mut body_return_subs = Subs::new();
+        return_ty.unify_with(body_ty.clone(), &mut body_return_subs, var_state)?;
         body_ty.substitute(&body_return_subs)?;
         subs.compose_with(body_return_subs)?;
         Ok(Typed {
@@ -719,7 +745,10 @@ impl Inferable for Arg<()> {
                     var.clone(),
                     Vec::new(),
                 )));
-                let more_subs = Type::Var(var).unify_with(typed.ty, var_state)?;
+                let mut more_subs = Subs::new();
+                typed
+                    .ty
+                    .unify_with(Type::Var(var), &mut more_subs, var_state)?;
                 ty.substitute(&more_subs)?;
                 subs.compose_with(more_subs)?;
                 Typed {
@@ -751,11 +780,13 @@ impl Inferable for Call<()> {
         let typed2 = self.arg.partial_infer(&mut subs2, var_state, &env2)?;
         let mut ty1 = typed1.ty;
         ty1.substitute(&subs2)?;
-        let subs3 = ty1.unify_with(
+        let mut subs3 = Subs::new();
+        ty1.unify_with(
             Type::Cons(Cons::Fun(
                 Box::new(typed2.ty),
                 Box::new(Type::Var(var.clone())),
             )),
+            &mut subs3,
             var_state,
         )?;
         let mut ty = Type::Var(var);
@@ -783,7 +814,7 @@ impl Inferable for Assign<()> {
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let var = self.place.var();
         if let Some(var) = var {
-            match env.get_mut(&Var { name: var, id: 0 }) {
+            match env.get_mut(Var::new_bare(var)) {
                 Some(true) => (),
                 Some(false) => return Err(TypeError::AssignedImm),
                 None => return Err(TypeError::UnboundVar),
@@ -792,7 +823,7 @@ impl Inferable for Assign<()> {
         // TODO: unify mutability variables of references to `mut`
         let typed_place = self.place.partial_infer(subs, var_state, env)?;
         let typed_expr = self.expr.partial_infer(subs, var_state, env)?;
-        subs.compose_with(typed_place.ty.unify_with(typed_expr.ty, var_state)?)?;
+        typed_place.ty.unify_with(typed_expr.ty, subs, var_state)?;
         Ok(Typed {
             ty: unit(),
             expr: Assign {
@@ -847,10 +878,12 @@ impl Inferable for Jump<()> {
                         expr: None,
                     },
                 };
-                let more_subs = Atom::from("return")
-                    .partial_infer(subs, var_state, env)?
-                    .ty
-                    .unify_with(typed_expr.ty, var_state)?;
+                let mut more_subs = Subs::new();
+                typed_expr.ty.unify_with(
+                    keyword!("return").partial_infer(subs, var_state, env)?.ty,
+                    &mut more_subs,
+                    var_state,
+                )?;
                 subs.compose_with(more_subs)?;
                 Jump::Return(typed_expr.expr.map(Box::new))
             }
@@ -871,17 +904,14 @@ fn infer_statement(
     let typed = match statement {
         Statement::Declare(_) => todo!(),
         Statement::FunDeclare(fun) => {
-            let var = Var {
-                name: fun.ident.clone(),
-                id: 0,
-            };
+            let var = Var::new_bare(fun.ident.clone());
             env.remove(var.clone());
             let mut ty = Type::Cons(Cons::Fun(
                 Box::new(Type::Var(var_state.new_var())),
                 Box::new(Type::Var(var_state.new_var())),
             ));
             env.insert(
-                &var,
+                var.clone(),
                 SchemeMut {
                     is_mut: false,
                     scheme: Scheme {
@@ -891,11 +921,14 @@ fn infer_statement(
                 },
             );
             let typed_fun = fun.fun.partial_infer(subs, var_state, env)?;
-            let more_subs = ty.clone().unify_with(typed_fun.ty, var_state)?;
+            let mut more_subs = Subs::new();
+            typed_fun
+                .ty
+                .unify_with(ty.clone(), &mut more_subs, var_state)?;
             ty.substitute(&more_subs)?;
             subs.compose_with(more_subs)?;
             env.insert(
-                &var,
+                var,
                 SchemeMut {
                     is_mut: false,
                     scheme: env.generalize(ty.clone()),
@@ -1006,7 +1039,10 @@ impl Inferable for Expr<()> {
                     var.clone(),
                     Vec::new(),
                 )));
-                let more_subs = Type::Var(var).unify_with(splat.ty, var_state)?;
+                let mut more_subs = Subs::new();
+                splat
+                    .ty
+                    .unify_with(Type::Var(var), &mut more_subs, var_state)?;
                 ty.substitute(&more_subs)?;
                 subs.compose_with(more_subs)?;
                 Typed {
@@ -1031,6 +1067,7 @@ impl Inferable for Expr<()> {
         Ok(ty_expr)
     }
 }
+
 pub fn infer(statements: Vec<Statement<()>>) -> Result<Vec<Statement<Type>>, TypeError> {
     todo!()
 }

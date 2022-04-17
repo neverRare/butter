@@ -8,7 +8,7 @@ use combine::{
     stream::StreamErrorFor,
     value, ParseError, Parser, Stream,
 };
-use hir::Atom;
+use hir::{keyword, Atom};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Sign {
@@ -78,7 +78,7 @@ where
                     integer_str_allow_underscore(10),
                 )),
         )
-        .map(|sign_exp| sign_exp.unwrap_or((Sign::Plus, Atom::from("")))),
+        .map(|sign_exp| sign_exp.unwrap_or((Sign::Plus, keyword!("")))),
     )
         .skip(not_followed_by(alpha_num()))
         .map(|(whole, decimal, (exp_sign, exp))| FloatSrc {
