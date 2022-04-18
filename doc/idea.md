@@ -248,7 +248,7 @@ foo <- 10;
 
 ## Shareable mutable container
 
-An escape hatch for ownership and no mutable alias rule. There might be a better keyword other than `cell`.
+An escape hatch for "no shared mutable" rule. There might be a better keyword other than `cell`.
 
 ```butter
 foo = cell 10;

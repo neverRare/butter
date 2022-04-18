@@ -17,4 +17,4 @@ bar = &foo;  -- borrow foo
 baz = bar^;  -- access where bar refers to, which is foo
 ```
 
-TODO: explain lifetime and no mutable alias rule
+TODO: explain lifetime and "no shared mutable" rule
