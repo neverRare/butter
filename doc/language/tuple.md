@@ -13,4 +13,6 @@ TODO: explain splat
 
 ## Field access
 
+**Note:** This is not implemented yet
+
 TODO: explain `val.0`, `val.1`, etc.

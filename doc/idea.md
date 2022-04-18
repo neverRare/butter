@@ -36,7 +36,7 @@ match foo {
 
 ## Control flow label
 
-This clashes with [type annotation](#type-annotation). There should not be dedicated syntax for label anyway, it must be syntactically salted.
+This clashes with type annotation syntax. There should not be dedicated syntax for label anyway, it must be syntactically salted.
 
 ```butter
 outer: while true {
@@ -104,30 +104,6 @@ Access and manipulation? How??
 
 ```butter
 alias Option(a) = @some a | @none;
-```
-
-## Type annotation
-
-For functions
-
-```butter
-forall(a, b):
-map_option(val: Option(a), mapper: a -> b) -> Option(b) => match val {
-    @some(val) => @some(mapper(val)),
-    @none => @none,
-}
-```
-
-For variables or patterns
-
-```butter
-foo: [Num] = [];
-```
-
-For expressions
-
-```butter
-foo = []: [Num];
 ```
 
 ## Left to right var declaration
