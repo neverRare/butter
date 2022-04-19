@@ -18,7 +18,7 @@ car = (
 );
 ```
 
-You can use field declaration shortcut if the value is stored in a variable with the same name as desired field.
+You can use field punning syntax if the value is stored in a variable with the same name as desired field.
 
 ```butter
 color = "red";

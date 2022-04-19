@@ -1,6 +1,6 @@
 # Share
 
-Some values are shareable between different places, these values are immutable and never moved.
+Some values are shareable between different places, these are values that are immutable and never moved.
 
 ```butter
 fruits = ["strawberry", "pineapple"];
@@ -8,8 +8,6 @@ my_fruits = fruits;
 your_fruits = fruits;
 -- `fruits`, `my_fruits`, and `your_fruits` shares the same value
 ```
-
-Butter infer such values are shareable when sharing and implicitly copying it makes no logical difference. Butter can use whichever is more efficient.
 
 ## Difference with Implicit Copy
 

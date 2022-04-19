@@ -19,7 +19,7 @@ Currently, string and char literal are just syntactic sugar for array of bytes a
 
 ```butter
 map_option(match val, mapper) => {
-    @some val => @some mapper(val),
+    @val val => @val mapper(val),
     @none => @none
 }
 ```
@@ -103,7 +103,7 @@ Access and manipulation? How??
 ## Type alias
 
 ```butter
-alias Option(a) = @some a | @none;
+alias Option(a) = @val a | @none;
 ```
 
 ## Left to right var declaration
@@ -266,7 +266,7 @@ prime_factor(num) => {
 ## If match, while match
 
 ```butter
-if val =: @some val {
+if val =: @val val {
     -- ...
 } else {
     -- ...
@@ -278,7 +278,7 @@ if val =: @some val {
 Useful for unwrapping.
 
 ```butter
-@some val = val else { std.panic() };
+@val val = val else { std.panic() };
 ```
 
 ## Identifier as compile-time value
@@ -289,7 +289,7 @@ map_tagged(val, tag, fn) =>match val {
     val => val,
 }
 
-map_tagged(val, $some, (val) => val + 3);
+map_tagged(val, $val, (val) => val + 3);
 ```
 
 ## Traits

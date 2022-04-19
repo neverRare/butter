@@ -35,7 +35,7 @@ reverse(arr) => {
 
 ## Calling
 
-Calling executes the body of a function. Within the arguments, you can use either record syntax or tuple syntax.
+Calling executes the body of a function. Within the arguments, you can use either record syntax (named arguments) or tuple syntax (unnamed arguments).
 
 ```butter
 report_favorite(name, favorite) => {
@@ -49,6 +49,8 @@ report_favorite("Alex", "butter toast");
 ```
 
 ## Scoping of named function
+
+**Note:** these are not fully implemented yet.
 
 Named function can act like like [variables], although it have special scoping rules.
 

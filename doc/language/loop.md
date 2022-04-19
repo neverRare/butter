@@ -56,7 +56,7 @@ A break expression can be given an expression, this is only applicable to `loop`
 ```butter
 mut counter = 0;
 result = loop {
-    counter += 1;
+    counter <- counter + 1;
     if counter == 10 {
         break counter * 2;  -- exit the loop and `result` will be counter * 2
     }

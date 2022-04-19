@@ -16,7 +16,7 @@ You can match against either boolean literal or numeric literal.
 
 TODO: example
 
-## Ignore
+## Wildcard
 
 You can discards the value regardless of its type or structure with `_`.
 
@@ -90,7 +90,7 @@ You can match against its start or its end then match against the rest as an ano
 
 ## Record
 
-[record] pattern matches against record. You may use a shortcut syntax where `= var` is written instead of `var = var` respectively.
+[record] pattern matches against record. You may use a field punning syntax where `= var` is written instead of `var = var`.
 
 [record]: record.md
 
@@ -122,8 +122,8 @@ TODO
 Tagged pattern matches against the tag and the associated value of a value.
 
 ```butter
-num = @some 10;
-@some num = num;
+num = @val 10;
+@val num = num;
 std.assert(num == 10);
 ```
 

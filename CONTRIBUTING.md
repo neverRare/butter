@@ -41,7 +41,7 @@ This REPL will output verbose and sparsely formatted AST.
 Type inference REPL can be started with `cargo run -- type-repl` command. This REPL parses an expression and outputs the inferred type.
 
 ```txt
-> @some 10
+> @val 10
 [inferred type will be printed here]
 ```
 

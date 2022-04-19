@@ -4,7 +4,7 @@ TODO
 
 ```butter
 match val {
-    @some val => ...,
+    @val val => ...,
     @none => ...,
 }
 ```
