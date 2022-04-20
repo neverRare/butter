@@ -434,9 +434,9 @@ where
 impl<'a> Display for Cons {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
-            Self::Num => write!(fmt, "number"),
-            Self::Bool => write!(fmt, "boolean"),
-            Self::Ref(mutability, ty) => write!(fmt, "&{} :{}", ty, mutability),
+            Self::Num => write!(fmt, "Num"),
+            Self::Bool => write!(fmt, "Bool"),
+            Self::Ref(mutability, ty) => write!(fmt, "&:{} {}", mutability, ty),
             Self::Array(ty) => write!(fmt, "[{}]", ty),
             Self::Record(record) => {
                 write!(fmt, "(")?;
@@ -493,14 +493,12 @@ impl<'a> Display for Cons {
             }
             Self::Fun(param, ret) => write!(fmt, "{} -> {}", param, ret),
             Self::Union(union) => {
-                write!(fmt, "union(")?;
                 for (tag, assoc) in union.fields.iter() {
-                    write!(fmt, "@{} {}, ", tag, assoc)?;
+                    write!(fmt, "@{} {} | ", tag, assoc)?;
                 }
                 if let Some(rest) = &union.rest {
-                    write!(fmt, "*{}, ", rest)?;
+                    write!(fmt, "*{} | ", rest)?;
                 }
-                write!(fmt, ")")?;
                 Ok(())
             }
         }

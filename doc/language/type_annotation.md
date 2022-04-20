@@ -77,7 +77,7 @@ val: @val _ | *_
 TODO: explanation and better example
 
 ```butter
-val: &ty :mut_var /l_var
+val: &:mut_var /l_var ty
 ```
 
 ## Function types
