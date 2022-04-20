@@ -440,11 +440,14 @@ impl Display for MutType {
 }
 impl Display for Scheme {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        write!(fmt, "forall ")?;
-        for var in &self.for_all {
-            write!(fmt, "{}, ", var)?;
+        if !self.for_all.is_empty() {
+            write!(fmt, ":(")?;
+            for var in &self.for_all {
+                write!(fmt, "{}, ", var)?;
+            }
+            write!(fmt, ") ")?;
         }
-        write!(fmt, ": {}", &self.ty)?;
+        write!(fmt, "{}", &self.ty)?;
         Ok(())
     }
 }

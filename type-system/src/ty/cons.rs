@@ -436,7 +436,7 @@ impl<'a> Display for Cons {
         match self {
             Self::Num => write!(fmt, "number"),
             Self::Bool => write!(fmt, "boolean"),
-            Self::Ref(mutability, ty) => write!(fmt, "&{} {}", mutability, ty),
+            Self::Ref(mutability, ty) => write!(fmt, "&{} :{}", ty, mutability),
             Self::Array(ty) => write!(fmt, "[{}]", ty),
             Self::Record(record) => {
                 write!(fmt, "(")?;

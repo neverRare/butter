@@ -33,7 +33,24 @@ pub(super) trait Inferable {
         subs: &mut Subs,
         var_state: &mut VarState,
         env: &Env,
-    ) -> Result<Typed<Self::TypedSelf>, TypeError>;
+    ) -> Result<Typed<Self::TypedSelf>, TypeError>
+    where
+        Self: Sized,
+    {
+        self.infer_with_mut(subs, var_state, env)
+            .map(|(_, typed)| typed)
+    }
+    fn infer_with_mut(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<(Option<Var>, Typed<Self::TypedSelf>), TypeError>
+    where
+        Self: Sized,
+    {
+        self.infer(subs, var_state, env).map(|typed| (None, typed))
+    }
 }
 impl Inferable for Literal {
     type TypedSelf = Literal;
@@ -75,14 +92,14 @@ impl Inferable for Atom {
 impl Inferable for FieldAccess<()> {
     type TypedSelf = FieldAccess<Type>;
 
-    fn infer(
+    fn infer_with_mut(
         self,
         subs: &mut Subs,
         var_state: &mut VarState,
         env: &Env,
-    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+    ) -> Result<(Option<Var>, Typed<Self::TypedSelf>), TypeError> {
         let name = self.name;
-        let typed_expr = self.expr.infer(subs, var_state, env)?;
+        let (mut_var, typed_expr) = self.expr.infer_with_mut(subs, var_state, env)?;
         let var = var_state.new_var();
         let mut more_subs = Subs::new();
         typed_expr.ty.unify_with(
@@ -96,25 +113,28 @@ impl Inferable for FieldAccess<()> {
         let mut ty = Type::Var(var);
         ty.substitute(&more_subs)?;
         subs.compose_with(more_subs)?;
-        Ok(Typed {
-            ty,
-            value: FieldAccess {
-                expr: Box::new(typed_expr.value),
-                name,
+        Ok((
+            mut_var,
+            Typed {
+                ty,
+                value: FieldAccess {
+                    expr: Box::new(typed_expr.value),
+                    name,
+                },
             },
-        })
+        ))
     }
 }
 impl Inferable for Index<()> {
     type TypedSelf = Index<Type>;
 
-    fn infer(
+    fn infer_with_mut(
         self,
         subs: &mut Subs,
         var_state: &mut VarState,
         env: &Env,
-    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        let typed_expr = self.expr.infer(subs, var_state, env)?;
+    ) -> Result<(Option<Var>, Typed<Self::TypedSelf>), TypeError> {
+        let (mut_var, typed_expr) = self.expr.infer_with_mut(subs, var_state, env)?;
         let var = var_state.new_var();
         let mut more_subs = Subs::new();
         typed_expr.ty.unify_with(
@@ -129,25 +149,28 @@ impl Inferable for Index<()> {
         typed_index
             .ty
             .unify_with(Type::Cons(Cons::Num), subs, var_state)?;
-        Ok(Typed {
-            ty,
-            value: Index {
-                expr: Box::new(typed_expr.value),
-                index: Box::new(typed_index.value),
+        Ok((
+            mut_var,
+            Typed {
+                ty,
+                value: Index {
+                    expr: Box::new(typed_expr.value),
+                    index: Box::new(typed_index.value),
+                },
             },
-        })
+        ))
     }
 }
 impl Inferable for Slice<()> {
     type TypedSelf = Slice<Type>;
 
-    fn infer(
+    fn infer_with_mut(
         self,
         subs: &mut Subs,
         var_state: &mut VarState,
         env: &Env,
-    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        let typed_expr = self.expr.infer(subs, var_state, env)?;
+    ) -> Result<(Option<Var>, Typed<Self::TypedSelf>), TypeError> {
+        let (mut_var, typed_expr) = self.expr.infer_with_mut(subs, var_state, env)?;
         let var = var_state.new_var();
         let mut elem_ty = Type::Var(var.clone());
         let mut more_subs = Subs::new();
@@ -159,64 +182,83 @@ impl Inferable for Slice<()> {
         elem_ty.substitute(&more_subs)?;
         subs.compose_with(more_subs)?;
         let typed_range = self.range.infer(subs, var_state, env)?;
-        Ok(Typed {
-            ty: Type::Cons(Cons::Array(Box::new(elem_ty))),
-            value: Slice {
-                expr: Box::new(typed_expr.value),
-                range: typed_range.value,
+        Ok((
+            mut_var,
+            Typed {
+                ty: Type::Cons(Cons::Array(Box::new(elem_ty))),
+                value: Slice {
+                    expr: Box::new(typed_expr.value),
+                    range: typed_range.value,
+                },
             },
-        })
+        ))
     }
 }
 impl Inferable for PlaceExpr<()> {
     type TypedSelf = PlaceExpr<Type>;
 
-    fn infer(
+    fn infer_with_mut(
         self,
         subs: &mut Subs,
         var_state: &mut VarState,
         env: &Env,
-    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        let typed = match self {
-            Self::Var(var) => var.infer(subs, var_state, env)?.map(PlaceExpr::Var),
-            Self::FieldAccess(expr) => expr
-                .infer(subs, var_state, env)?
-                .map(PlaceExpr::FieldAccess),
-            Self::Index(index) => index.infer(subs, var_state, env)?.map(PlaceExpr::Index),
-            Self::Slice(slice) => slice.infer(subs, var_state, env)?.map(PlaceExpr::Slice),
+    ) -> Result<(Option<Var>, Typed<PlaceExpr<Type>>), TypeError> {
+        let mut_typed = match self {
+            Self::Var(var) => (None, var.infer(subs, var_state, env)?.map(PlaceExpr::Var)),
+            Self::FieldAccess(expr) => {
+                let (mut_var, typed) = expr.infer_with_mut(subs, var_state, env)?;
+                (mut_var, typed.map(PlaceExpr::FieldAccess))
+            }
+            Self::Index(index) => {
+                let (mut_var, typed) = index.infer_with_mut(subs, var_state, env)?;
+                (mut_var, typed.map(PlaceExpr::Index))
+            }
+            Self::Slice(slice) => {
+                let (mut_var, typed) = slice.infer_with_mut(subs, var_state, env)?;
+                (mut_var, typed.map(PlaceExpr::Slice))
+            }
             Self::Len(expr) => {
-                let typed = expr.infer(subs, var_state, env)?;
+                let (mut_var, typed) = expr.infer_with_mut(subs, var_state, env)?;
                 let var = var_state.new_var();
                 typed.ty.unify_with(
                     Type::Cons(Cons::Array(Box::new(Type::Var(var)))),
                     subs,
                     var_state,
                 )?;
-                Typed {
-                    ty: Type::Cons(Cons::Num),
-                    value: PlaceExpr::Len(Box::new(typed.value)),
-                }
+                (
+                    mut_var,
+                    Typed {
+                        ty: Type::Cons(Cons::Num),
+                        value: PlaceExpr::Len(Box::new(typed.value)),
+                    },
+                )
             }
             Self::Deref(expr) => {
-                let typed_expr = expr.infer(subs, var_state, env)?;
+                let (mut_var, typed_expr) = expr.infer_with_mut(subs, var_state, env)?;
                 let var = var_state.new_var();
-                let mut_var = var_state.new_var();
+                let mut_var = mut_var.unwrap_or_else(|| var_state.new_var());
                 let mut ty = Type::Var(var);
                 let mut more_subs = Subs::new();
                 typed_expr.ty.unify_with(
-                    Type::Cons(Cons::Ref(MutType::Var(mut_var), Box::new(ty.clone()))),
+                    Type::Cons(Cons::Ref(
+                        MutType::Var(mut_var.clone()),
+                        Box::new(ty.clone()),
+                    )),
                     &mut more_subs,
                     var_state,
                 )?;
                 ty.substitute(&more_subs)?;
                 subs.compose_with(more_subs)?;
-                Typed {
-                    ty,
-                    value: PlaceExpr::Deref(Box::new(typed_expr.value)),
-                }
+                (
+                    Some(mut_var),
+                    Typed {
+                        ty,
+                        value: PlaceExpr::Deref(Box::new(typed_expr.value)),
+                    },
+                )
             }
         };
-        Ok(typed)
+        Ok(mut_typed)
     }
 }
 impl Inferable for Box<[Element<()>]> {
@@ -514,7 +556,7 @@ impl Inferable for Unary<()> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        let typed = self.expr.infer(subs, var_state, env)?;
+        let (mut_var, typed) = self.expr.infer_with_mut(subs, var_state, env)?;
         let typed = match self.kind {
             // TODO: implement error when cloning function and mutable reference
             // Or maybe not, constraining Clonables may better be implemented
@@ -539,7 +581,7 @@ impl Inferable for Unary<()> {
                 }
             }
             UnaryType::Ref => {
-                let var = var_state.new_var();
+                let var = mut_var.unwrap_or_else(|| var_state.new_var());
                 Typed {
                     ty: Type::Cons(Cons::Ref(MutType::Var(var), Box::new(typed.ty))),
                     value: Unary {
@@ -802,9 +844,11 @@ impl Inferable for Assign<()> {
                 None => return Err(TypeError::UnboundVar),
             }
         }
-        // TODO: unify mutability variables of references to `mut`
-        let typed_place = self.place.infer(subs, var_state, env)?;
         let typed_expr = self.expr.infer(subs, var_state, env)?;
+        let (mut_var, typed_place) = self.place.infer_with_mut(subs, var_state, env)?;
+        if let Some(mut_var) = mut_var {
+            MutType::Var(mut_var).unify_with(MutType::Mut, subs, var_state)?;
+        }
         typed_place.ty.unify_with(typed_expr.ty, subs, var_state)?;
         Ok(Typed {
             ty: unit(),
@@ -1042,5 +1086,19 @@ impl Inferable for Expr<()> {
                 .map(Expr::ControlFlow),
         };
         Ok(ty_expr)
+    }
+    fn infer_with_mut(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<(Option<Var>, Typed<Expr<Type>>), TypeError> {
+        let mut_typed = if let Self::Place(place) = self {
+            let (mut_var, typed) = place.infer_with_mut(subs, var_state, env)?;
+            (mut_var, typed.map(Expr::Place))
+        } else {
+            (None, self.infer(subs, var_state, env)?)
+        };
+        Ok(mut_typed)
     }
 }
