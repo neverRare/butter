@@ -70,9 +70,9 @@ You can use `..`, `.<`, `>.`, or `><` for ranges. An angle bracket `<` or `>` me
 | Syntax                    | Meaning       |
 | ------------------------- | ------------- |
 | `A..B`                    | `A <= x <= B` |
-| `A.<b`                    | `A <= x < B`  |
-| `A>.b`                    | `A < x <= B`  |
-| `A><b`                    | `A < x < B`   |
+| `A.<B`                    | `A <= x < B`  |
+| `A>.B`                    | `A < x <= B`  |
+| `A><B`                    | `A < x < B`   |
 | `A..` or `A.<`            | `A <= x`      |
 | `A>.` or `A><`            | `A < x`       |
 | `..B` or `>.B`            | `x <= B`      |

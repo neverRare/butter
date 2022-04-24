@@ -82,5 +82,4 @@ val: &:mut_var /l_var ty
 
 ## Function types
 
-```butter
-```
+TODO

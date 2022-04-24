@@ -6,3 +6,5 @@ Variables are declared via `=`.
 foo = 10;
 bar = false;
 ```
+
+TODO: explain shadowing

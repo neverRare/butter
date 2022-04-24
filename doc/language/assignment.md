@@ -1,6 +1,8 @@
 # Assignment
 
-Assignment replaces a value within a place.
+Assignment replaces a value within a place. Variables that holds the place must be annotated with `mut`.
+
+Assigning a variable itself.
 
 ```butter
 mut foo = 10;

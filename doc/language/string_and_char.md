@@ -11,14 +11,14 @@ letter = 'a';
 
 ## Escaping
 
-| Notation                 | Output           |
-| ------------------------ | ---------------- |
-| `\\`                     | Backslash        |
-| `\"`                     | Double quote     |
-| `\'`                     | Single quote     |
-| `\n`                     | Line feed        |
-| `\r`                     | Carriage return  |
-| `\t`                     | Horizontal tab   |
-| `\v`                     | Vertical tab     |
-| `\0`                     | Null             |
-| `\xXX`                   | UTF-8 code unit  |
+| Notation | Output                                                 |
+| -------- | ------------------------------------------------------ |
+| `\\`     | Backslash                                              |
+| `\"`     | Double quote                                           |
+| `\'`     | Single quote                                           |
+| `\n`     | Line feed                                              |
+| `\r`     | Carriage return                                        |
+| `\t`     | Horizontal tab                                         |
+| `\v`     | Vertical tab                                           |
+| `\0`     | Null                                                   |
+| `\xXX`   | UTF-8 code unit, where `XX` is the code in hexadecimal |

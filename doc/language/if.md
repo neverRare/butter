@@ -5,7 +5,7 @@ If block is used to conditionally execute statements.
 ```butter
 input = std.get_line();
 if input.len == 0 {
-    std.println("please input something meaningful");
+    std.println("input cannot be blank");
 }
 ```
 
@@ -14,9 +14,9 @@ You can add an `else` branch which gets executed when the condition isn't true
 ```butter
 input = std.get_line();
 if input.len == 0 {
-    std.println("please input something meaningful");
+    std.println("input cannot be blank");
 } else {
-    std.println("thanks for the input!");
+    std.println("input processed!");
 }
 ```
 
@@ -30,7 +30,7 @@ if len == 0 {
 } else if len < 8 {
     std.println("password too short");
 } else {
-    std.println("alright!");
+    std.println("password has changed!");
 }
 ```
 
@@ -39,9 +39,9 @@ if len == 0 {
 ```butter
 input = std.get_line();
 message = if input.len == 0 {
-    "please input something meaningful"
+    "input cannot be blank"
 } else {
-    "thanks for the input!"
+    "input processed!"
 };
 std.println(message);
 ```

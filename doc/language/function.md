@@ -35,7 +35,7 @@ reverse(arr) => {
 
 ## Calling
 
-Calling executes the body of a function. Within the arguments, you can use either record syntax (named arguments) or tuple syntax (unnamed arguments).
+Calling executes the body of a function. Within the arguments, you can use either record syntax (named arguments) or tuple syntax (unnamed arguments). We cannot have mix of named and unnamed arguments.
 
 ```butter
 report_favorite(name, favorite) => {
@@ -90,4 +90,10 @@ increment(num) => num <- num + 1;
 
 ## Capturing
 
-TODO
+Functions can access values outside it. This is known as capturing. Named and unnamed functions differs on how they capture values.
+
+Named functions can only capture values that are [shared](./share.md).
+
+TODO: example
+
+TODO: capturing of unnamed function

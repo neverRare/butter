@@ -58,7 +58,7 @@ mut counter = 0;
 result = loop {
     counter <- counter + 1;
     if counter == 10 {
-        break counter * 2;  -- exit the loop and `result` will be counter * 2
+        break counter * 2;  -- exit the loop and `result` will be `counter * 2`
     }
 };
 std.assert(result == 20);

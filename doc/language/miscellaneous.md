@@ -12,6 +12,7 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `false`
 - `for`
 - `if`
+- `imm`
 - `in`
 - `loop`
 - `match`
@@ -29,52 +30,48 @@ These are keywords that only have special meaning in some context.
 
 ## Punctuation reference
 
-| Punctuation | Purpose                     |
-| ----------- | --------------------------- |
-| `=`         | Declaration, Field, Break   |
-| `==`        | Equal                       |
-| `!=`        | Not equal                   |
-| `.`         | Field access                |
-| `^`         | Dereference                 |
-| `..`        | Inclusive range             |
-| `.<`        | Inclusive-exclusive range   |
-| `>.`        | Exclusive-inclusive range   |
-| `><`        | Exclusive range             |
-| `+`         | Addition                    |
-| `++`        | Concatenation               |
-| `-`         | Subtraction                 |
-| `*`         | Multiplication, Splat, Rest |
-| `/`         | Unary Minus, Division       |
-| `//`        | Floor Division              |
-| `%`         | Modulo                      |
-| `!`         | Not                         |
-| `|`         | OR                          |
-| `||`        | Lazy OR                     |
-| `&`         | AND, reference              |
-| `&&`        | Lazy AND, Double reference  |
-| `>`         | Greater than, Move          |
-| `<`         | Less than                   |
-| `>=`        | Greater than or equal       |
-| `<=`        | Less than or equal          |
-| `<-`        | Assignment                  |
-| `=>`        | Function                    |
-| `@`         | Tag                         |
-| `:`         | Type annotation             |
+|    Punctuation    | Purpose                              |
+| :---------------: | ------------------------------------ |
+|        `;`        | Statements terminator                |
+|        `,`        | Separator of various kind            |
+|        `=`        | Declaration, field                   |
+|       `==`        | Equal                                |
+|       `!=`        | Not equal                            |
+|        `.`        | Field access                         |
+|        `^`        | Dereference                          |
+|       `..`        | Inclusive range                      |
+|       `.<`        | Inclusive-exclusive range            |
+|       `>.`        | Exclusive-inclusive range            |
+|       `><`        | Exclusive range                      |
+|        `+`        | Addition                             |
+|       `++`        | Concatenation                        |
+|        `-`        | Subtraction                          |
+|        `*`        | Multiplication, splat, rest          |
+|        `/`        | Unary Minus, division, lifetime      |
+|       `//`        | Floor division                       |
+|        `%`        | Modulo                               |
+|        `!`        | Not                                  |
+|  <code>\|</code>  | OR                                   |
+| <code>\|\|</code> | Lazy OR                              |
+|        `&`        | AND, reference                       |
+|       `&&`        | Lazy AND, double reference           |
+|        `>`        | Greater than, Move                   |
+|        `<`        | Less than                            |
+|       `>=`        | Greater than or equal                |
+|       `<=`        | Less than or equal                   |
+|       `<-`        | Assignment                           |
+|       `=>`        | Function                             |
+|        `@`        | Tag                                  |
+|        `:`        | Type annotation, mutability modifier |
+|       `->`        | Return type annotation               |
 
 ## Delimiter reference
 
-| Delimiter | Purpose                             |
-| --------- | ----------------------------------- |
-| `(...)`   | Group, Record,  Parameter, Argument |
-| `[...]`   | Array, Index, Slice                 |
-| `{...}`   | Block, Control-flow body            |
-
-## Separator references
-
-| Separator | Operand                                                                     |
-| --------- | --------------------------------------------------------------------------- |
-| `,`       | Elements, Fields, Parameters, Arguments, Expressions of parallel assignment |
-| `;`       | Statements                                                                  |
+| Delimiter | Purpose                                   |
+| :-------: | ----------------------------------------- |
+|  `(...)`  | Group, record, tuple, parameter, argument |
+|  `[...]`  | Array, index, slice                       |
+|  `{...}`  | Block, control-flow body                  |
 
 ## Operator precedence
 
@@ -103,4 +100,4 @@ These determines how chain of operations are parsed. You can think of precedence
 #!/path/to/interpreter
 ```
 
-[Hashbang]: https://en.wikipedia.org/wiki/Shebang_(Unix)
+[hashbang]: https://en.wikipedia.org/wiki/Shebang_(Unix)

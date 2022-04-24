@@ -74,7 +74,7 @@ std.assert(foo == true);
 
 [Array] pattern matches against the length and each element of the array.
 
-[Array]: array.md
+[array]: array.md
 
 ```butter
 arr = ["hello", "world"];
@@ -120,6 +120,8 @@ TODO
 ## Tagged pattern
 
 Tagged pattern matches against the tag and the associated value of a value.
+
+TODO: maybe use `match` expression here
 
 ```butter
 num = @val 10;

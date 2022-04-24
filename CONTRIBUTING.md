@@ -14,7 +14,7 @@ Before running the repl, you'll need to [install Cargo] first. Additionally, thi
 
 Unless it's an "not yet implemented" error, if you found any issue, please report it.
 
-[install Cargo]: https://www.rust-lang.org/tools/install
+[install cargo]: https://www.rust-lang.org/tools/install
 [read the documents]: doc/README.md
 
 ### Parser REPL

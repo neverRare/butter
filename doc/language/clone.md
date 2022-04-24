@@ -11,7 +11,7 @@ std.assert(bar == 10);
 
 You can't clone mutable references and functions.
 
-## Implicit Copy
+## Implicit copy
 
 Some types can be implicitly copied. These are numbers, booleans, and immutable references of any type. The example above can be rewritten as:
 
@@ -21,3 +21,7 @@ bar = foo;
 foo <- 20;
 std.assert(bar == 10);
 ```
+
+## Clone and implicit copy traits
+
+TODO

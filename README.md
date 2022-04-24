@@ -6,7 +6,7 @@ A tasty language for building efficient software.
 
 **Note:** Still work in progress and experimental. [Contributions] are welcome.
 
-[Contributions]: CONTRIBUTING.md
+[contributions]: CONTRIBUTING.md
 
 ## A small taste
 
@@ -26,6 +26,8 @@ reverse(mut arr) => {
 
 Butter is a personal and experimental language that seeks balance for these aspects:
 
+**Note:** Being an experimental language, these are all subject to change
+
 - Concise: The language constructs should be simple and have a feel of scripting language.
 - Explicit: There should be little-to-no vagueness syntax-wise nor semantic-wise.
 - High-level: Low-level concepts that are hard to understand should be abstracted.
@@ -43,6 +45,8 @@ Being my personal project, designs and features are ultimately up for my decisio
 [More details](https://github.com/neverRare/butter/projects/1)
 
 ## Planned features
+
+**Note:** These are subject to change
 
 Features to be implemented
 
