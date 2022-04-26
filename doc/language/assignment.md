@@ -11,7 +11,7 @@ foo <- 20;
 
 Reassign a value of field of a [record].
 
-[record]: record.md
+[record]: ./record.md
 
 ```butter
 mut foo = (
@@ -22,7 +22,7 @@ foo.prop <- 20;
 
 Reassign an element of an [array].
 
-[array]: array.md
+[array]: ./array.md
 
 ```butter
 mut foo = [10];
@@ -31,7 +31,7 @@ foo[0] <- 20;
 
 Reassign the referencing value.
 
-[reference]: reference.md
+[reference]: ./reference.md
 
 ```butter
 mut foo = 10;

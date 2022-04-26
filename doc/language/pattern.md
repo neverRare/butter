@@ -2,28 +2,52 @@
 
 Pattern can be used in [variable declaration], [match expression], and [`for`] loop. These are used to match against the structure of the value and possibly bind a value to a variable.
 
-[variable declaration]: variable_and_assignment.md#declaration
-[match expression]: match.md
-[`for`]: control_flow.md#for
+[variable declaration]: ./variable_declaration.md
+[match expression]: ./match.md
+[`for`]: ./control_flow.md#for
 
 ## Pattern group
 
-TODO
+You can wrap pattern inside parentheses `()`. This isn't very useful however as patterns don't have infix operator to disambiguate the precedence.
+
+```butter
+(num) = 10;
+```
 
 ## Literal
 
 You can match against either boolean literal or numeric literal.
 
-TODO: example
+```butter
+a = 20;
+
+-- pattern match booleans
+remarks = match a > 10 {
+    true => "it's greater than 10",
+    false => "it's not greater than 10",
+};
+std.print(remarks);
+
+-- pattern match numbers
+remarks = match a {
+    1 => "it is 1",
+    2 => "it is 2",
+    _ => "it is something else",
+};
+std.print(remarks);
+```
 
 ## Wildcard
 
 You can discards the value regardless of its type or structure with `_`.
 
-TODO: better example
-
 ```butter
+-- discard the whole value
 _ = 10;
+
+-- bind the first element of the tuple but discard the rest
+pair = (10, "apples");
+(count, *_) = pair;
 ```
 
 ## Variable
@@ -34,40 +58,29 @@ You can bind a value in a variable.
 num = 10;
 ```
 
-You can mark it as mutable.
+You can mark it as mutable with `mut`.
 
 ```butter
 mut num = 10;
 num <- 20;
 ```
 
-You can bind it to a reference.
+You can bind it to a reference with `ref`. This is useful for rebinding references.
 
 ```butter
-ref num = 10;
--- num is a reference to 10
+get_name(user) => {
+    &(ref name, *_) = user;
+    name
+}
 ```
 
 You can do both.
 
 ```butter
-ref mut num = 10;
-num^ <- 20;
-```
-
-Variables can shadow previously declared variable with the same name, either on the same or on upper scope.
-
-```butter
-foo = 10;
-{
-    foo = false;
-    std.assert(foo == false);
+rename(user, new_name) => {
+    &(ref name, *_) = user;
+    name^ <- >new_name;
 }
-std.assert(foo == 10);
-foo = 20;
-std.assert(foo == 20);
-foo = foo == 20;
-std.assert(foo == true);
 ```
 
 ## Array
@@ -77,22 +90,33 @@ std.assert(foo == true);
 [array]: array.md
 
 ```butter
-arr = ["hello", "world"];
-[first, second] = arr;
-std.println(first ++ " " ++ second);
+unwrap_pair(arr) => {
+    match arr {
+        -- this matches arrays with 2 elements
+        [first, second] => (first, second),
+        _ => std.panic("passed non-singleton array"),
+    }
+}
 ```
 
 You can match against its start or its end then match against the rest as an another array. There can only be at most one rest pattern.
 
 ```butter
-[first, *rest] = arr;
+sum(arr) => {
+    match arr {
+        -- this matches empty arrays
+        [] => 0,
+        -- this matches arrays with at least 1 elements
+        [first, *rest] => first + sum(arr),
+    }
+}
 ```
 
 ## Record
 
 [record] pattern matches against record. You may use a field punning syntax where `= var` is written instead of `var = var`.
 
-[record]: record.md
+[record]: ./record.md
 
 ```butter
 user = (
@@ -115,25 +139,42 @@ car = (
 
 ## Tuple pattern
 
-TODO
+You can match against elements of the tuple.
+
+```butter
+pair = (10, apples);
+(how_many, what) = pair;
+```
+
+You can partially match against fields from the start or the end of the tuple and match against the rest as another tuple. There can be only at more one rest pattern.
+
+```butter
+triple = (10, "green", apples);
+(how_many, *pair) = triple;
+```
 
 ## Tagged pattern
 
-Tagged pattern matches against the tag and the associated value of a value.
-
-TODO: maybe use `match` expression here
+Tagged pattern matches against the tag and the associated value.
 
 ```butter
-num = @val 10;
-@val num = num;
-std.assert(num == 10);
+color = @rgb (15, 120, 211);
+value = match color {
+    @rgb (red, green, blue) => min([red, green, blue]),
+    @hsv (_, _, value) => value,
+};
 ```
 
 ## Reference
 
-TODO
+Reference pattern matches against references. These dereferences the value and you may want to rebind it as reference again with `ref`.
 
-`&more_pattern`
+```butter
+deref(val) => {
+    &val = val;
+    val;
+}
+```
 
 ## Refutability
 

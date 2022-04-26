@@ -1,3 +1,0 @@
-# Row polymorphism
-
-TODO

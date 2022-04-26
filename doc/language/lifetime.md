@@ -1,19 +1,25 @@
 # Lifetime
 
-Lifetime are region of the code at which a value is present on a certain place. In other words, when a place is [initialized].
+Lifetime defines the span of code where the place have value in it ([initialization]) and it ends when the place is last used.
 
-[initialized]: move_and_initialization.md#initialization
+[initialization]: move_and_initialization.md#initialization
 
-## Move and Assignment
+```butter
+message = "hello world";  -- here, the lifetime of `message` start
+                          -- as it is declared and initialized with a value
+std.print_line(message);  -- here, the lifetime of `message` end where it is last used
+```
 
-Lifetimes may refer to borken regions of codes. This happens when a value is [moved] from a place. TODO: explain reinitialization.
+Lifetimes can be broken when move and assignment is used
 
-[moved]: move_and_initialization.md#
+```butter
+mut message = "hello world";  -- lifetime of `message` starts here
+foo = >message;               -- the lifetime ends here
+                              -- `message` can't be used here
+message <- "hi world";        -- `message` starts here again
+std.print_line(message);      -- here, the lifetime of `message` end
+```
 
-TODO example
+Note that lifetimes aren't linear as there are control flows that can change the flow of execution and hence lifetimes can diverge and converge.
 
-## End of Scope
-
-Places never lives forever. This happens at the end of the scope where a variable is available.
-
-TODO example
+TODO: lifetimes can be granular over record and tuples, maybe an explanation for those

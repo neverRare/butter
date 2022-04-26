@@ -22,14 +22,16 @@ fruits <- >fruits ++ ["banana"];
 
 Splatting and concatenation can serve similar purposes, the 2 examples above does similar task.
 
-**Note:** `>` is a [move operator](./move_and_initialization.md)
+**Note:** `>` is a [move] operator
+
+[move]: ./move_and_initialization.md
 
 ## Range notation
 
 When defining an array of consecutive integers, you can use range notation. This is often used with [`for`] loops. This uses [range syntax].
 
 [range syntax]: #range-syntax
-[`for`]: control_flow.md#for
+[`for`]: loop.md#for
 
 ```butter
 range = [0.<3];

@@ -1,12 +1,12 @@
 # ![Butter](butter_text_only.svg)
 
-[Documents](doc/README.md) | [Contributing Guidelines](CONTRIBUTING.md)
+[Documents](./doc/README.md) | [Contributing Guidelines](./CONTRIBUTING.md)
 
 A tasty language for building efficient software.
 
 **Note:** Still work in progress and experimental. [Contributions] are welcome.
 
-[contributions]: CONTRIBUTING.md
+[contributions]: ./CONTRIBUTING.md
 
 ## A small taste
 

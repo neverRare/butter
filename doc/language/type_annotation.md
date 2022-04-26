@@ -37,7 +37,7 @@ TODO: explain what generics do
 You want type annotation but you don't want full type annotation on a single value, this is where wildcard type can help. This is represented by `_`. This let Butter infer it.
 
 ```butter
--- `arr` is explicitly an array but the type of the element is inferred
+-- `arr` is explicitly an array but the type of the element is left inferred
 arr: [_] = [];
 ```
 
@@ -45,21 +45,41 @@ arr: [_] = [];
 
 Numbers have type `Num` and booleans have type `Bool`. There is also `Char` and `Str` which are simply `Num` and `[Num]` respectively
 
-TODO: example
+```butter
+num: Num = 10;
+truth: Bool = true;
+char: Char = 'a';
+string: Str = "Hello World";
+```
 
 ## Array types
 
 Array types are expressed as `[ty]` where `ty` is the type of the element.
 
-TODO: example
+```butter
+fruits: [Str] = ["apple", "banana", "cherry"];
+```
 
 ## Record types
 
-TODO
+TODO: explanation
+
+```butter
+name(user: &{name: Str, *_}) -> Str {
+    &user^.name
+}
+```
 
 ## Tuple types
 
-TODO
+TODO: explanation
+
+```butter
+:(a)
+first(tuple: &(a, *_)) -> a {
+    &tuple^.0
+}
+```
 
 ## Tagged union types
 

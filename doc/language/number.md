@@ -45,6 +45,6 @@ Also pretty straight-forward.
 - Less than `A < B`
 - Less than or equal to `A <= B`
 
-## Number representation and integer ranges
+## Number representation and precision
 
 TODO

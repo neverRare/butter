@@ -24,13 +24,45 @@ map_option(match val, mapper) => {
 }
 ```
 
+## Or Pattern
+
+```butter
+match num {
+    1 | 2 | 3 => ...,
+    _ => ...,
+}
+```
+
+## Range Pattern
+
+```butter
+match num {
+    1..3 => ...,
+    _ => ...,
+}
+```
+
+## As Var Pattern
+
+```butter
+match num {
+    1..3 as num => ...,
+    _ => ...,
+}
+-- or
+match num {
+    num as 1..3 => ...,
+    _ => ...,
+}
+```
+
 ## Equal to pattern
 
 Also known as pin pattern or pin operator.
 
 ```butter
 match foo {
-    == bar => std.println("it's equal to bar!"),
+    == bar => std.print_line("it's equal to bar!"),
 }
 ```
 

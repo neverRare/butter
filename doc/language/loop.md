@@ -6,11 +6,11 @@ Butter have various kinds of expression for loops.
 
 `for` iterates over an [array].
 
-[array]: array.md
+[array]: ./array.md
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
-    std.println(fruit ++ " is yummy!");
+    std.print_line(fruit ++ " is yummy!");
 }
 ```
 
@@ -21,7 +21,7 @@ for fruit in ["apple", "banana", "cherry"] {
 ```butter
 mut counter = 0;
 while counter < 10 {
-    std.println("hello!");
+    std.print_line("hello!");
     counter <- counter + 1;
 }
 ```
@@ -32,7 +32,7 @@ while counter < 10 {
 
 ```butter
 loop {
-    std.println("this is an infinite loop!");
+    std.print_line("this is an infinite loop!");
 }
 ```
 
