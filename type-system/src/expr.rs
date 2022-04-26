@@ -11,7 +11,7 @@ use crate::{
 use hir::{
     expr::{
         Arg, Assign, Binary, BinaryType, Block, Bound, Call, ControlFlow, Element, ElementKind,
-        Expr, Field, FieldAccess, Fun, Index, Jump, Literal, PlaceExpr, Range, Record,
+        Expr, Field, FieldAccess, Fun, If, Index, Jump, Literal, PlaceExpr, Range, Record,
         RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
     keyword, pattern,
@@ -1015,6 +1015,46 @@ impl Inferable for Block<()> {
         })
     }
 }
+impl Inferable for If<()> {
+    type TypedSelf = If<Type>;
+
+    fn infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError>
+    where
+        Self: Sized,
+    {
+        let typed_condition = self.condition.infer(subs, var_state, env)?;
+        typed_condition
+            .ty
+            .unify_with(Type::Cons(Cons::Bool), subs, var_state)?;
+        let typed_body = self.body.infer(subs, var_state, env)?;
+        let typed_else = match self.else_part {
+            Some(else_part) => else_part.infer(subs, var_state, env)?.map(Some),
+            None => Typed {
+                ty: unit(),
+                value: None,
+            },
+        };
+        let mut ty = typed_body.ty;
+        let mut more_subs = Subs::new();
+        ty.clone()
+            .unify_with(typed_else.ty, &mut more_subs, var_state)?;
+        ty.substitute(&more_subs)?;
+        subs.compose_with(more_subs)?;
+        Ok(Typed {
+            ty,
+            value: If {
+                condition: Box::new(typed_condition.value),
+                body: typed_body.value,
+                else_part: typed_else.value.map(Box::new),
+            },
+        })
+    }
+}
 impl Inferable for ControlFlow<()> {
     type TypedSelf = ControlFlow<Type>;
 
@@ -1025,12 +1065,12 @@ impl Inferable for ControlFlow<()> {
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
-            ControlFlow::Block(block) => block.infer(subs, var_state, env)?.map(ControlFlow::Block),
-            ControlFlow::If(_) => todo!(),
-            ControlFlow::For(_) => todo!(),
-            ControlFlow::While(_) => todo!(),
-            ControlFlow::Loop(_) => todo!(),
-            ControlFlow::Match(_) => todo!(),
+            Self::Block(block) => block.infer(subs, var_state, env)?.map(ControlFlow::Block),
+            Self::If(if_expr) => if_expr.infer(subs, var_state, env)?.map(ControlFlow::If),
+            Self::For(_) => todo!(),
+            Self::While(_) => todo!(),
+            Self::Loop(_) => todo!(),
+            Self::Match(_) => todo!(),
         };
         Ok(typed)
     }
