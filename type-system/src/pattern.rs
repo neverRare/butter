@@ -60,10 +60,22 @@ impl InferablePattern for Pattern<()> {
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
             Pattern::Var(var) => var.infer(var_state, env)?.map(Pattern::Var),
-            Pattern::True => todo!(),
-            Pattern::False => todo!(),
-            Pattern::UInt(_) => todo!(),
-            Pattern::Int(_) => todo!(),
+            Pattern::True => Typed {
+                ty: Type::Cons(Cons::Bool),
+                value: Pattern::True,
+            },
+            Pattern::False => Typed {
+                ty: Type::Cons(Cons::Bool),
+                value: Pattern::False,
+            },
+            Pattern::UInt(num) => Typed {
+                ty: Type::Cons(Cons::Num),
+                value: Pattern::UInt(num),
+            },
+            Pattern::Int(num) => Typed {
+                ty: Type::Cons(Cons::Num),
+                value: Pattern::Int(num),
+            },
             Pattern::Ignore => todo!(),
             Pattern::Record(_) => todo!(),
             Pattern::Tuple(_) => todo!(),
