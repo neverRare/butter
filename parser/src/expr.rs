@@ -51,11 +51,13 @@ where
     choice((
         lex(keyword("break"))
             .with(optional(expr(0)))
-            .map(|expr| Jump::Break(expr.map(Box::new))),
+            .map(|expr| expr.map(Box::new))
+            .map(Jump::Break),
         lex(keyword("continue")).with(value(Jump::Continue)),
         lex(keyword("return"))
             .with(optional(expr(0)))
-            .map(|expr| Jump::Return(expr.map(Box::new))),
+            .map(|expr| expr.map(Box::new))
+            .map(Jump::Return),
     ))
 }
 fn unary<I>() -> impl Parser<I, Output = Unary<()>>
@@ -124,11 +126,15 @@ where
             (optional(lex(char(','))), lex(char(')'))),
             expr(0),
         ))
-        .map(|expr| ExprKind::Splat(Box::new(expr)).into_untyped())
+        .map(Box::new)
+        .map(ExprKind::Splat)
+        .map(ExprKind::into_untyped)
         .silent(),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))).expected("group"),
-        attempt(tuple()).map(|tuple| ExprKind::Tuple(tuple).into_untyped()),
-        record().map(|record| ExprKind::Record(record).into_untyped()),
+        attempt(tuple())
+            .map(ExprKind::Tuple)
+            .map(ExprKind::into_untyped),
+        record().map(ExprKind::Record).map(ExprKind::into_untyped),
     ))
 }
 fn prefix_expr_<I>() -> impl Parser<I, Output = Expr<()>>
@@ -150,13 +156,19 @@ where
                 .collect();
             ExprKind::Array(vec).into_untyped()
         }),
-        unary().map(|unary| ExprKind::Unary(unary).into_untyped()),
-        tag().map(|tag| ExprKind::Tag(tag).into_untyped()),
-        attempt(lex(ident())).map(|ident| ExprKind::Place(PlaceExpr::Var(ident)).into_untyped()),
+        unary().map(ExprKind::Unary).map(ExprKind::into_untyped),
+        tag().map(ExprKind::Tag).map(ExprKind::into_untyped),
+        attempt(lex(ident()))
+            .map(PlaceExpr::Var)
+            .map(ExprKind::Place)
+            .map(ExprKind::into_untyped),
         control_flow::control_flow()
-            .map(|control_flow| ExprKind::ControlFlow(control_flow).into_untyped()),
-        lex(literal()).map(|literal| ExprKind::Literal(literal).into_untyped()),
-        jump().map(|jump| ExprKind::Jump(jump).into_untyped()),
+            .map(ExprKind::ControlFlow)
+            .map(ExprKind::into_untyped),
+        lex(literal())
+            .map(ExprKind::Literal)
+            .map(ExprKind::into_untyped),
+        jump().map(ExprKind::Jump).map(ExprKind::into_untyped),
     ))
 }
 combine::parser! {

@@ -136,7 +136,8 @@ where
             }),
         lex(char('&'))
             .with(pattern())
-            .map(|pattern| Pattern::Ref(Box::new(pattern))),
+            .map(Box::new)
+            .map(Pattern::Ref),
         // TODO: minus integer
         integer_u64().map(Pattern::UInt),
         attempt(between(lex(char('(')), lex(char(')')), pattern())).expected("group"),

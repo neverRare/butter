@@ -41,7 +41,8 @@ where
         choice((
             control_flow()
                 .skip(optional(lex(char(';'))))
-                .map(|control_flow| ExprKind::ControlFlow(control_flow).into_untyped()),
+                .map(ExprKind::ControlFlow)
+                .map(ExprKind::into_untyped),
             expr(0).skip(lex(char(';'))),
         ))
     };

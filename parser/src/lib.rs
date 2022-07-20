@@ -76,7 +76,7 @@ where
     let have_rest = move || {
         (
             attempt((many(element().skip(sep())), rest)),
-            optional(sep().with(no_rest())).map(|right| right.unwrap_or_default()),
+            optional(sep().with(no_rest())).map(Option::unwrap_or_default),
         )
     };
     choice((
