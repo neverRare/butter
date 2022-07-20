@@ -14,26 +14,23 @@ use combine::{
     value, ParseError, Parser, Stream,
 };
 use hir::{
-    expr::{Assign, Expr, Fun},
+    expr::{Assign, Expr, ExprKind, Fun},
     statement::{Declare, FunDeclare, Statement},
 };
 
-pub(crate) enum StatementReturn<T> {
-    Statement(Statement<T>),
-    Return(Expr<T>),
+pub(crate) enum StatementReturn {
+    Statement(Statement<()>),
+    Return(Expr<()>),
 }
-pub(crate) fn statement_return<I, P, T>(
-    end_look_ahead: P,
-) -> impl Parser<I, Output = StatementReturn<T>>
+pub(crate) fn statement_return<I, P>(end_look_ahead: P) -> impl Parser<I, Output = StatementReturn>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
     P: Parser<I>,
-    T: Default + Clone,
 {
     let control_flow_statement = || {
         (control_flow(), optional(lex(char(';')))).map(|(control_flow, semicolon)| {
-            let expr = Expr::ControlFlow(control_flow);
+            let expr = ExprKind::ControlFlow(control_flow).into_untyped();
             match semicolon {
                 Some(_) => StatementReturn::Statement(Statement::Expr(expr)),
                 None => StatementReturn::Return(expr),
@@ -44,7 +41,7 @@ where
         choice((
             control_flow()
                 .skip(optional(lex(char(';'))))
-                .map(|control_flow| Expr::ControlFlow(control_flow)),
+                .map(|control_flow| ExprKind::ControlFlow(control_flow).into_untyped()),
             expr(0).skip(lex(char(';'))),
         ))
     };
@@ -60,13 +57,13 @@ where
                         param,
                         body: Box::new(body),
                     },
-                    ty: T::default(),
+                    ty: (),
                 })
             })
     };
     let place = || {
         expr(1).and_then(|expr| {
-            if let Expr::Place(place) = expr {
+            if let ExprKind::Place(place) = expr.expr {
                 Ok(place)
             } else {
                 Err(<StreamErrorFor<I>>::expected_static_message(
@@ -100,7 +97,7 @@ where
                     .zip(expr.into_iter())
                     .map(|(place, expr)| Assign { place, expr })
                     .collect();
-                Ok(Expr::Assign(assign))
+                Ok(ExprKind::Assign(assign).into_untyped())
             })
     };
     let expr = || {
@@ -126,11 +123,10 @@ where
         expr(),
     ))
 }
-pub(crate) fn statement<T, I>() -> impl Parser<I, Output = Statement<T>>
+pub(crate) fn statement<I>() -> impl Parser<I, Output = Statement<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     statement_return(char(';')).map(|statement_return| match statement_return {
         StatementReturn::Statement(statement) => statement,
@@ -140,7 +136,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        statement::{statement, Assign, Expr},
+        statement::{statement, Assign, ExprKind},
         test::{var_expr, var_place},
         Statement,
     };
@@ -155,37 +151,44 @@ mod test {
     #[test]
     fn parallel_assign() {
         let src = "foo, bar <- bar, foo;";
-        let expected: Statement<()> = Statement::Expr(Expr::Assign(
-            vec![
-                Assign {
-                    place: var_place("foo"),
-                    expr: var_expr("bar"),
-                },
-                Assign {
-                    place: var_place("bar"),
-                    expr: var_expr("foo"),
-                },
-            ]
-            .into(),
-        ));
+        let expected = Statement::Expr(
+            ExprKind::Assign(
+                vec![
+                    Assign {
+                        place: var_place("foo"),
+                        expr: var_expr("bar"),
+                    },
+                    Assign {
+                        place: var_place("bar"),
+                        expr: var_expr("foo"),
+                    },
+                ]
+                .into(),
+            )
+            .into_untyped(),
+        );
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn chain_assign() {
         let src = "foo <- bar <- baz;";
-        let expected: Statement<()> = Statement::Expr(Expr::Assign(
-            vec![Assign {
-                place: var_place("foo"),
-                expr: Expr::Assign(
-                    vec![Assign {
-                        place: var_place("bar"),
-                        expr: var_expr("baz"),
-                    }]
-                    .into(),
-                ),
-            }]
-            .into(),
-        ));
+        let expected: Statement<()> = Statement::Expr(
+            ExprKind::Assign(
+                vec![Assign {
+                    place: var_place("foo"),
+                    expr: ExprKind::Assign(
+                        vec![Assign {
+                            place: var_place("bar"),
+                            expr: var_expr("baz"),
+                        }]
+                        .into(),
+                    )
+                    .into_untyped(),
+                }]
+                .into(),
+            )
+            .into_untyped(),
+        );
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));
     }
     #[test]
@@ -198,7 +201,7 @@ mod test {
                 bind_to_ref: false,
                 ty: (),
             }),
-            expr: Expr::Literal(Literal::UInt(10)),
+            expr: ExprKind::Literal(Literal::UInt(10)).into_untyped(),
         });
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));
     }

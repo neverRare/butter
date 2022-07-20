@@ -21,11 +21,10 @@ where
     )
         .expected("range operator")
 }
-pub(crate) fn range<T, I>() -> impl Parser<I, Output = Range<T>>
+pub(crate) fn range<I>() -> impl Parser<I, Output = Range<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let range = || {
         (optional(expr(0)), lex(range_operator()), optional(expr(0))).map(
@@ -44,11 +43,10 @@ where
     };
     between(lex(char('[')), lex(char(']')), range()).expected("range array")
 }
-pub(crate) fn array<T, I>() -> impl Parser<I, Output = Box<[Element<T>]>>
+pub(crate) fn array<I>() -> impl Parser<I, Output = Box<[Element<()>]>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let element_kind = || {
         choice((

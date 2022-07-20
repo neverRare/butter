@@ -11,8 +11,8 @@ use crate::{
 use hir::{
     expr::{
         Arg, Assign, Binary, BinaryType, Block, Bound, Call, ControlFlow, Element, ElementKind,
-        Expr, Field, FieldAccess, Fun, If, Index, Jump, Literal, PlaceExpr, Range, Record,
-        RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
+        Expr, ExprKind, Field, FieldAccess, Fun, If, Index, Jump, Literal, PlaceExpr, Range,
+        Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
     keyword, pattern,
     statement::{Declare, FunDeclare, Statement},
@@ -1075,8 +1075,8 @@ impl Inferable for ControlFlow<()> {
         Ok(typed)
     }
 }
-impl Inferable for Expr<()> {
-    type TypedSelf = Expr<Type>;
+impl Inferable for ExprKind<()> {
+    type TypedSelf = ExprKind<Type>;
 
     fn infer(
         self,
@@ -1085,16 +1085,16 @@ impl Inferable for Expr<()> {
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let ty_expr = match self {
-            Self::Literal(literal) => literal.infer(subs, var_state, env)?.map(Expr::Literal),
-            Self::Place(place) => place.infer(subs, var_state, env)?.map(Expr::Place),
-            Self::Array(elements) => elements.infer(subs, var_state, env)?.map(Expr::Array),
-            Self::ArrayRange(range) => range.infer(subs, var_state, env)?.map(Expr::ArrayRange),
-            Self::Tag(tag) => tag.infer(subs, var_state, env)?.map(Expr::Tag),
-            Self::Record(record) => record.infer(subs, var_state, env)?.map(Expr::Record),
-            Self::Tuple(tuple) => tuple.infer(subs, var_state, env)?.map(Expr::Tuple),
+            Self::Literal(literal) => literal.infer(subs, var_state, env)?.map(ExprKind::Literal),
+            Self::Place(place) => place.infer(subs, var_state, env)?.map(ExprKind::Place),
+            Self::Array(elements) => elements.infer(subs, var_state, env)?.map(ExprKind::Array),
+            Self::ArrayRange(range) => range.infer(subs, var_state, env)?.map(ExprKind::ArrayRange),
+            Self::Tag(tag) => tag.infer(subs, var_state, env)?.map(ExprKind::Tag),
+            Self::Record(record) => record.infer(subs, var_state, env)?.map(ExprKind::Record),
+            Self::Tuple(tuple) => tuple.infer(subs, var_state, env)?.map(ExprKind::Tuple),
             Self::Unit => Typed {
                 ty: unit(),
-                value: Expr::Unit,
+                value: ExprKind::Unit,
             },
             Self::Splat(splat) => {
                 let splat = splat.infer(subs, var_state, env)?;
@@ -1112,18 +1112,18 @@ impl Inferable for Expr<()> {
                 subs.compose_with(more_subs)?;
                 Typed {
                     ty,
-                    value: Expr::Splat(Box::new(splat.value)),
+                    value: ExprKind::Splat(Box::new(splat.value)),
                 }
             }
-            Self::Unary(unary) => unary.infer(subs, var_state, env)?.map(Expr::Unary),
-            Self::Binary(binary) => binary.infer(subs, var_state, env)?.map(Expr::Binary),
-            Self::Fun(fun) => fun.infer(subs, var_state, env)?.map(Expr::Fun),
-            Self::Call(call) => call.infer(subs, var_state, env)?.map(Expr::Call),
-            Self::Assign(assigns) => assigns.infer(subs, var_state, env)?.map(Expr::Assign),
-            Self::Jump(jump) => jump.infer(subs, var_state, env)?.map(Expr::Jump),
+            Self::Unary(unary) => unary.infer(subs, var_state, env)?.map(ExprKind::Unary),
+            Self::Binary(binary) => binary.infer(subs, var_state, env)?.map(ExprKind::Binary),
+            Self::Fun(fun) => fun.infer(subs, var_state, env)?.map(ExprKind::Fun),
+            Self::Call(call) => call.infer(subs, var_state, env)?.map(ExprKind::Call),
+            Self::Assign(assigns) => assigns.infer(subs, var_state, env)?.map(ExprKind::Assign),
+            Self::Jump(jump) => jump.infer(subs, var_state, env)?.map(ExprKind::Jump),
             Self::ControlFlow(control_flow) => control_flow
                 .infer(subs, var_state, env)?
-                .map(Expr::ControlFlow),
+                .map(ExprKind::ControlFlow),
         };
         Ok(ty_expr)
     }
@@ -1132,13 +1132,35 @@ impl Inferable for Expr<()> {
         subs: &mut Subs,
         var_state: &mut VarState,
         env: &Env,
-    ) -> Result<(Option<Var>, Typed<Expr<Type>>), TypeError> {
+    ) -> Result<(Option<Var>, Typed<ExprKind<Type>>), TypeError> {
         let mut_typed = if let Self::Place(place) = self {
             let (mut_var, typed) = place.infer_with_mut(subs, var_state, env)?;
-            (mut_var, typed.map(Expr::Place))
+            (mut_var, typed.map(ExprKind::Place))
         } else {
             (None, self.infer(subs, var_state, env)?)
         };
         Ok(mut_typed)
+    }
+}
+impl Inferable for Expr<()> {
+    type TypedSelf = Expr<Type>;
+    fn infer(
+        self,
+        subs: &mut Subs,
+        var_state: &mut VarState,
+        env: &Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError>
+    where
+        Self: Sized,
+    {
+        let typed = self.expr.infer(subs, var_state, env)?;
+        let ty = typed.ty.clone();
+        Ok(Typed {
+            ty,
+            value: Expr {
+                expr: typed.value,
+                ty: typed.ty,
+            },
+        })
     }
 }

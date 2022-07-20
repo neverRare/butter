@@ -16,7 +16,9 @@ use combine::{
     parser::char::{char, string},
     value, ParseError, Parser, Stream,
 };
-use hir::expr::{Element, ElementKind, Expr, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType};
+use hir::expr::{
+    Element, ElementKind, Expr, ExprKind, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType,
+};
 
 mod array;
 pub(crate) mod control_flow;
@@ -41,11 +43,10 @@ where
         attempt(keyword("true")).with(value(Literal::True)),
     ))
 }
-fn jump<T, I>() -> impl Parser<I, Output = Jump<T>>
+fn jump<I>() -> impl Parser<I, Output = Jump<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     choice((
         lex(keyword("break"))
@@ -57,11 +58,10 @@ where
             .map(|expr| Jump::Return(expr.map(Box::new))),
     ))
 }
-fn unary<T, I>() -> impl Parser<I, Output = Unary<T>>
+fn unary<I>() -> impl Parser<I, Output = Unary<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let kind = || {
         choice((
@@ -77,11 +77,10 @@ where
         expr: Box::new(expr),
     })
 }
-fn tag<T, I>() -> impl Parser<I, Output = Tag<T>>
+fn tag<I>() -> impl Parser<I, Output = Tag<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     lex(char('@'))
         .with((lex(ident()), optional(expr(6))))
@@ -90,93 +89,89 @@ where
             expr: expr.map(Box::new),
         })
 }
-fn fun<T, I>() -> impl Parser<I, Output = Fun<T>>
+fn fun<I>() -> impl Parser<I, Output = Fun<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     (attempt(parameter().skip(lex(string("=>")))), expr(0)).map(|(param, body)| Fun {
         param,
         body: Box::new(body),
     })
 }
-fn array_range<T, I>() -> impl Parser<I, Output = Expr<T>>
+fn array_range<I>() -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     choice((
-        attempt(range()).map(Expr::ArrayRange),
-        array().map(Expr::Array),
+        attempt(range()).map(ExprKind::ArrayRange),
+        array().map(ExprKind::Array),
     ))
+    .map(ExprKind::into_untyped)
 }
-fn tuple_record_group<T, I>() -> impl Parser<I, Output = Expr<T>>
+fn tuple_record_group<I>() -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     choice((
         attempt((lex(char('(')), lex(char(')'))))
-            .with(value(Expr::Unit))
+            .with(value(ExprKind::Unit.into_untyped()))
             .silent(),
         attempt(between(
             (lex(char('(')), lex(char('*'))),
             (optional(lex(char(','))), lex(char(')'))),
             expr(0),
         ))
-        .map(|expr| Expr::Splat(Box::new(expr)))
+        .map(|expr| ExprKind::Splat(Box::new(expr)).into_untyped())
         .silent(),
         attempt(between(lex(char('(')), lex(char(')')), expr(0))).expected("group"),
-        attempt(tuple()).map(Expr::Tuple),
-        record().map(Expr::Record),
+        attempt(tuple()).map(|tuple| ExprKind::Tuple(tuple).into_untyped()),
+        record().map(|record| ExprKind::Record(record).into_untyped()),
     ))
 }
-fn prefix_expr_<T, I>() -> impl Parser<I, Output = Expr<T>>
+fn prefix_expr_<I>() -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     choice((
-        fun().map(Expr::Fun),
+        fun().map(|fun| ExprKind::Fun(fun).into_untyped()),
         tuple_record_group(),
         array_range(),
         lex(string_literal()).map(|vec| {
             let vec = vec
                 .into_iter()
                 .map(|byte| Element {
-                    expr: Expr::Literal(Literal::UInt(byte as u64)),
+                    expr: ExprKind::Literal(Literal::UInt(byte as u64)).into_untyped(),
                     kind: ElementKind::Element,
                 })
                 .collect();
-            Expr::Array(vec)
+            ExprKind::Array(vec).into_untyped()
         }),
-        unary().map(Expr::Unary),
-        tag().map(Expr::Tag),
-        attempt(lex(ident())).map(|ident| Expr::Place(PlaceExpr::Var(ident))),
-        control_flow::control_flow().map(Expr::ControlFlow),
-        lex(literal()).map(Expr::Literal),
-        jump().map(Expr::Jump),
+        unary().map(|unary| ExprKind::Unary(unary).into_untyped()),
+        tag().map(|tag| ExprKind::Tag(tag).into_untyped()),
+        attempt(lex(ident())).map(|ident| ExprKind::Place(PlaceExpr::Var(ident)).into_untyped()),
+        control_flow::control_flow()
+            .map(|control_flow| ExprKind::ControlFlow(control_flow).into_untyped()),
+        lex(literal()).map(|literal| ExprKind::Literal(literal).into_untyped()),
+        jump().map(|jump| ExprKind::Jump(jump).into_untyped()),
     ))
 }
 combine::parser! {
-    fn prefix_expr[T, I]()(I) -> Expr<T>
+    fn prefix_expr[I]()(I) -> Expr<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default + Clone,
     ] {
         prefix_expr_()
     }
 }
-fn expr_<T, I>(precedence: u8) -> impl Parser<I, Output = Expr<T>>
+fn expr_<I>(precedence: u8) -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     match precedence {
         0 => expr_0().left().left(),
@@ -188,11 +183,10 @@ where
     }
 }
 combine::parser! {
-    pub(crate) fn expr[T, I](precedence: u8)(I) -> Expr<T>
+    pub(crate) fn expr[I](precedence: u8)(I) -> Expr<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default + Clone,
     ] {
         expr_(*precedence)
     }
@@ -200,7 +194,7 @@ combine::parser! {
 #[cfg(test)]
 mod test {
     use crate::{
-        expr::{expr, Expr},
+        expr::{expr, ExprKind},
         test::{var_expr, var_place},
     };
     use combine::EasyParser;
@@ -215,57 +209,67 @@ mod test {
     #[test]
     fn precedence() {
         let src = "foo + bar * baz";
-        let expected = Expr::Binary(Binary {
+        let expected = ExprKind::Binary(Binary {
             kind: BinaryType::Add,
             left: Box::new(var_expr("foo")),
-            right: Box::new(Expr::Binary(Binary {
-                kind: BinaryType::Multiply,
-                left: Box::new(var_expr("bar")),
-                right: Box::new(var_expr("baz")),
-            })),
-        });
+            right: Box::new(
+                ExprKind::Binary(Binary {
+                    kind: BinaryType::Multiply,
+                    left: Box::new(var_expr("bar")),
+                    right: Box::new(var_expr("baz")),
+                })
+                .into_untyped(),
+            ),
+        })
+        .into_untyped();
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
         let src = "foo * bar + baz";
-        let expected = Expr::Binary(Binary {
+        let expected = ExprKind::Binary(Binary {
             kind: BinaryType::Add,
-            left: Box::new(Expr::Binary(Binary {
-                kind: BinaryType::Multiply,
-                left: Box::new(var_expr("foo")),
-                right: Box::new(var_expr("bar")),
-            })),
+            left: Box::new(
+                ExprKind::Binary(Binary {
+                    kind: BinaryType::Multiply,
+                    left: Box::new(var_expr("foo")),
+                    right: Box::new(var_expr("bar")),
+                })
+                .into_untyped(),
+            ),
             right: Box::new(var_expr("baz")),
-        });
+        })
+        .into_untyped();
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn right_associative() {
         let src = "foo <- bar <- baz";
-        let expected = Expr::Assign(
+        let expected = ExprKind::Assign(
             vec![Assign {
                 place: var_place("foo"),
-                expr: Expr::Assign(
+                expr: ExprKind::Assign(
                     vec![Assign {
                         place: var_place("bar"),
                         expr: var_expr("baz"),
                     }]
                     .into(),
-                ),
+                )
+                .into_untyped(),
             }]
             .into(),
-        );
+        )
+        .into_untyped();
         assert_eq!(expr(0).easy_parse(src), Ok((expected, "")));
     }
     #[test]
     fn ignore_higher_precedence() {
         let src = "foo + bar";
-        let expected: Expr<()> = var_expr("foo");
+        let expected = var_expr("foo");
         let left = "+ bar";
         assert_eq!(expr(6).easy_parse(src), Ok((expected, left)));
     }
     #[test]
     fn ignore_range() {
         let src = "foo..";
-        let expected: Expr<()> = var_expr("foo");
+        let expected = var_expr("foo");
         let left = "..";
         assert_eq!(expr(0).easy_parse(src), Ok((expected, left)));
     }

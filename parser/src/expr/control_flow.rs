@@ -11,16 +11,16 @@ use combine::{
     value, ParseError, Parser, Stream,
 };
 use hir::{
-    expr::{Block, ControlFlow, Expr, For, If, Match, MatchArm, While},
+    expr::{Block, ControlFlow, Expr, ExprKind, For, If, Match, MatchArm, While},
     statement::Statement,
 };
 
 #[derive(Debug, Clone, PartialEq)]
-struct StatementExpr<T> {
-    statement: Vec<Statement<T>>,
-    expr: Option<Expr<T>>,
+struct StatementExpr {
+    statement: Vec<Statement<()>>,
+    expr: Option<Expr<()>>,
 }
-impl<T> Default for StatementExpr<T> {
+impl Default for StatementExpr {
     fn default() -> Self {
         Self {
             statement: Vec::new(),
@@ -28,10 +28,10 @@ impl<T> Default for StatementExpr<T> {
         }
     }
 }
-impl<T> Extend<StatementReturn<T>> for StatementExpr<T> {
+impl Extend<StatementReturn> for StatementExpr {
     fn extend<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = StatementReturn<T>>,
+        I: IntoIterator<Item = StatementReturn>,
     {
         let iter = iter.into_iter();
         let (min_count, _) = iter.size_hint();
@@ -46,11 +46,10 @@ impl<T> Extend<StatementReturn<T>> for StatementExpr<T> {
         }
     }
 }
-pub(crate) fn block<T, I>() -> impl Parser<I, Output = Block<T>>
+pub(crate) fn block<I>() -> impl Parser<I, Output = Block<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     between(
         lex(char('{')),
@@ -66,11 +65,10 @@ where
     })
     .expected("block")
 }
-fn if_<T, I>() -> impl Parser<I, Output = If<T>>
+fn if_<I>() -> impl Parser<I, Output = If<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let else_part = || {
         lex(keyword("else")).with(choice((
@@ -87,20 +85,18 @@ where
         })
 }
 combine::parser! {
-    fn if_expression[T, I]()(I) -> If<T>
+    fn if_expression[I]()(I) -> If<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default + Clone,
     ] {
         if_()
     }
 }
-fn for_expression<T, I>() -> impl Parser<I, Output = For<T>>
+fn for_expression<I>() -> impl Parser<I, Output = For<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     attempt(lex(keyword("for")))
         .with((pattern(), lex(keyword("in")), expr(0), block()))
@@ -110,11 +106,10 @@ where
             body,
         })
 }
-fn while_expression<T, I>() -> impl Parser<I, Output = While<T>>
+fn while_expression<I>() -> impl Parser<I, Output = While<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     attempt(lex(keyword("while")))
         .with((expr(0), block()))
@@ -123,25 +118,24 @@ where
             body,
         })
 }
-fn loop_expression<T, I>() -> impl Parser<I, Output = Block<T>>
+fn loop_expression<I>() -> impl Parser<I, Output = Block<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     attempt(lex(keyword("loop"))).with(block())
 }
-fn match_expression<T, I>() -> impl Parser<I, Output = Match<T>>
+fn match_expression<I>() -> impl Parser<I, Output = Match<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let arm_expr = || {
         choice((
             attempt(control_flow())
                 .skip(optional(lex(char(','))))
-                .map(Expr::ControlFlow),
+                .map(ExprKind::ControlFlow)
+                .map(ExprKind::into_untyped),
             expr(0).skip(choice((
                 lex(char(',')).with(value(())),
                 look_ahead(char('}')).with(value(())),
@@ -164,11 +158,10 @@ where
             arm,
         })
 }
-fn control_flow_<T, I>() -> impl Parser<I, Output = ControlFlow<T>>
+fn control_flow_<I>() -> impl Parser<I, Output = ControlFlow<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     choice((
         block().map(ControlFlow::Block),
@@ -180,11 +173,10 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn control_flow[T, I]()(I) -> ControlFlow<T>
+    pub(crate) fn control_flow[I]()(I) -> ControlFlow<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default + Clone,
     ] {
         control_flow_()
     }

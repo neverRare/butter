@@ -17,11 +17,10 @@ mod pattern;
 mod statement;
 
 combine::parser! {
-    pub fn ast[T, I]()(I) -> Vec<Statement<T>>
+    pub fn ast[I]()(I) -> Vec<Statement<()>>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default + Clone,
     ] {
         optional(attempt(string("#!")).with(skip_many(none_of(['\n']))))
             .with(insignificants())
@@ -30,11 +29,10 @@ combine::parser! {
     }
 }
 combine::parser! {
-    pub fn expr_parser[T, I]()(I) -> Expr<T>
+    pub fn expr_parser[I]()(I) -> Expr<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default + Clone,
     ] {
         insignificants().with(expr::expr(0)).skip(eof())
     }
@@ -91,12 +89,12 @@ mod test {
     use crate::insignificants;
     use combine::Parser;
     use hir::{
-        expr::{Expr, PlaceExpr},
+        expr::{Expr, ExprKind, PlaceExpr},
         Atom,
     };
 
     pub(super) fn var_expr(var: &str) -> Expr<()> {
-        Expr::Place(var_place(var))
+        ExprKind::Place(var_place(var)).into_untyped()
     }
     pub(super) fn var_place(var: &str) -> PlaceExpr<()> {
         PlaceExpr::Var(Atom::from(var))

@@ -8,11 +8,10 @@ use hir::{
     Atom,
 };
 
-pub(crate) fn record<T, I>() -> impl Parser<I, Output = Record<T>>
+pub(crate) fn record<I>() -> impl Parser<I, Output = Record<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(expr(0))).and_then(|(name, expr)| {

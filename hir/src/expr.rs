@@ -14,7 +14,17 @@ pub enum Literal {
     Float(f64),
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Expr<T> {
+pub struct Expr<T> {
+    pub expr: ExprKind<T>,
+    pub ty: T,
+}
+impl<T> Expr<T> {
+    pub fn field_name(&self) -> Option<Atom> {
+        self.expr.field_name()
+    }
+}
+#[derive(Debug, PartialEq, Clone)]
+pub enum ExprKind<T> {
     Literal(Literal),
 
     Tag(Tag<T>),
@@ -39,14 +49,22 @@ pub enum Expr<T> {
     Fun(Fun<T>),
     Jump(Jump<T>),
 }
-impl<T> Expr<T> {
+impl<T> ExprKind<T> {
     pub fn field_name(&self) -> Option<Atom> {
         match self {
-            Self::Tag(tag) => tag.expr.as_ref().and_then(|expr| Expr::field_name(expr)),
+            Self::Tag(tag) => tag
+                .expr
+                .as_ref()
+                .and_then(|expr| ExprKind::field_name(&expr.expr)),
             Self::Unary(unary) => unary.expr.field_name(),
             Self::Place(place) => place.field_name(),
             _ => None,
         }
+    }
+}
+impl ExprKind<()> {
+    pub fn into_untyped(self) -> Expr<()> {
+        Expr { expr: self, ty: () }
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -75,8 +93,8 @@ impl<T> PlaceExpr<T> {
             | PlaceExpr::Slice(Slice { expr, range: _ })
             | PlaceExpr::Deref(expr)
             | PlaceExpr::Len(expr) => {
-                let expr: &Expr<_> = expr;
-                if let Expr::Place(place) = expr {
+                let expr: &ExprKind<_> = &expr.expr;
+                if let ExprKind::Place(place) = expr {
                     place.var()
                 } else {
                     None

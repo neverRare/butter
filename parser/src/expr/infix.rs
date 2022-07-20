@@ -13,65 +13,65 @@ use combine::{
 };
 use hir::{
     expr::{
-        Arg, Assign, Binary, BinaryType, Call, Expr, FieldAccess, Index, PlaceExpr, Range, Record,
-        Slice, Tuple,
+        Arg, Assign, Binary, BinaryType, Call, Expr, ExprKind, FieldAccess, Index, PlaceExpr,
+        Range, Record, Slice, Tuple,
     },
     keyword, Atom,
 };
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) enum PartialAst<T> {
+pub(crate) enum PartialAst {
     Property(Atom),
-    Index(Expr<T>),
-    Slice(Range<T>),
+    Index(Expr<()>),
+    Slice(Range<()>),
     UnitCall,
-    SplatCall(Expr<T>),
-    RecordCall(Record<T>),
-    TupleCall(Tuple<T>),
+    SplatCall(Expr<()>),
+    RecordCall(Record<()>),
+    TupleCall(Tuple<()>),
     Deref,
     Len,
 }
-impl<T> PartialAst<T> {
-    pub(crate) fn combine_from(self, left: Expr<T>) -> Expr<T> {
-        match self {
-            Self::Property(name) => Expr::Place(PlaceExpr::FieldAccess(FieldAccess {
+impl PartialAst {
+    pub(crate) fn combine_from(self, left: Expr<()>) -> Expr<()> {
+        let res = match self {
+            Self::Property(name) => ExprKind::Place(PlaceExpr::FieldAccess(FieldAccess {
                 expr: Box::new(left),
                 name,
             })),
-            Self::Index(index) => Expr::Place(PlaceExpr::Index(Index {
+            Self::Index(index) => ExprKind::Place(PlaceExpr::Index(Index {
                 expr: Box::new(left),
                 index: Box::new(index),
             })),
-            Self::Slice(range) => Expr::Place(PlaceExpr::Slice(Slice {
+            Self::Slice(range) => ExprKind::Place(PlaceExpr::Slice(Slice {
                 expr: Box::new(left),
                 range,
             })),
-            Self::UnitCall => Expr::Call(Call {
+            Self::UnitCall => ExprKind::Call(Call {
                 expr: Box::new(left),
                 arg: Arg::Unit,
             }),
-            Self::SplatCall(arg) => Expr::Call(Call {
+            Self::SplatCall(arg) => ExprKind::Call(Call {
                 expr: Box::new(left),
                 arg: Arg::Splat(Box::new(arg)),
             }),
-            Self::RecordCall(arg) => Expr::Call(Call {
+            Self::RecordCall(arg) => ExprKind::Call(Call {
                 expr: Box::new(left),
                 arg: Arg::Record(arg),
             }),
-            Self::TupleCall(arg) => Expr::Call(Call {
+            Self::TupleCall(arg) => ExprKind::Call(Call {
                 expr: Box::new(left),
                 arg: Arg::Tuple(arg),
             }),
-            Self::Deref => Expr::Place(PlaceExpr::Deref(Box::new(left))),
-            Self::Len => Expr::Place(PlaceExpr::Len(Box::new(left))),
-        }
+            Self::Deref => ExprKind::Place(PlaceExpr::Deref(Box::new(left))),
+            Self::Len => ExprKind::Place(PlaceExpr::Len(Box::new(left))),
+        };
+        res.into_untyped()
     }
 }
-fn infix_6<T, I>() -> impl Parser<I, Output = PartialAst<T>>
+fn infix_6<I>() -> impl Parser<I, Output = PartialAst>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let property_or_len = || {
         lex(attempt(
@@ -115,11 +115,10 @@ where
         lex(char('^')).with(value(PartialAst::Deref)),
     ))
 }
-pub(crate) fn expr_6<T, I>() -> impl Parser<I, Output = Expr<T>>
+pub(crate) fn expr_6<I>() -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     (expr(7), many(infix_6())).map(|(prefix, infixes)| {
         let infixes: Vec<_> = infixes;
@@ -130,17 +129,16 @@ where
         expr
     })
 }
-pub(crate) fn expr_0<T, I>() -> impl Parser<I, Output = Expr<T>>
+pub(crate) fn expr_0<I>() -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     (expr(1), optional(lex(attempt(string("<-"))).with(expr(0)))).and_then(|(place, expr)| {
         match expr {
             Some(expr) => {
-                if let Expr::Place(place) = place {
-                    Ok(Expr::Assign(vec![Assign { place, expr }].into()))
+                if let ExprKind::Place(place) = place.expr {
+                    Ok(ExprKind::Assign(vec![Assign { place, expr }].into()).into_untyped())
                 } else {
                     Err(<StreamErrorFor<I>>::expected_static_message(
                         "place expression",
@@ -151,9 +149,9 @@ where
         }
     })
 }
-pub(crate) fn infix_expr_op<T, I>(
+pub(crate) fn infix_expr_op<I>(
     precedence: u8,
-) -> impl Parser<I, Output = impl Fn(Expr<T>, Expr<T>) -> Expr<T>>
+) -> impl Parser<I, Output = impl Fn(Expr<()>, Expr<()>) -> Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -201,11 +199,12 @@ where
     };
     op.map(|op| {
         move |left, right| {
-            Expr::Binary(Binary {
+            ExprKind::Binary(Binary {
                 kind: op,
                 left: Box::new(left),
                 right: Box::new(right),
             })
+            .into_untyped()
         }
     })
 }
