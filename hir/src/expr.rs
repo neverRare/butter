@@ -1,9 +1,4 @@
-use crate::{
-    all_unique,
-    pattern::{Pattern},
-    statement::Statement,
-    Atom,
-};
+use crate::{all_unique, pattern::Pattern, statement::Statement, Atom};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {

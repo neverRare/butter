@@ -16,10 +16,8 @@ use combine::{
     parser::char::{char, string},
     value, ParseError, Parser, Stream,
 };
-use hir::{
-    expr::{
-        Element, ElementKind, Expr, ExprKind, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType,
-    },
+use hir::expr::{
+    Element, ElementKind, Expr, ExprKind, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType,
 };
 
 mod array;

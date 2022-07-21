@@ -3,25 +3,21 @@ use crate::{
     ty::{
         cons::OrderedAnd,
         cons::{Cons, Keyed},
-        Env, MutType, Subs, Substitutable, Type, TypeError, Unifiable, Var,
-        VarState,
+        Env, MutType, Subs, Substitutable, Type, TypeError, Unifiable, Var, VarState,
     },
     Typed,
 };
 use hir::{
     expr::{
         Arg, Assign, Binary, BinaryType, Block, Bound, Call, ControlFlow, Element, ElementKind,
-        Expr, ExprKind, Field, FieldAccess, If, Index, Jump, Literal, PlaceExpr, Range,
-        Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
+        Expr, ExprKind, Field, FieldAccess, If, Index, Jump, Literal, PlaceExpr, Range, Record,
+        RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
     keyword,
     statement::{Declare, Statement},
     Atom,
 };
-use std::{
-    collections::{HashMap},
-    iter::once,
-};
+use std::{collections::HashMap, iter::once};
 
 fn unit() -> Type {
     Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(vec![].into())))
