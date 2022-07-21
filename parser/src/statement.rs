@@ -144,7 +144,7 @@ mod test {
     use combine::EasyParser;
     use hir::{
         expr::Literal,
-        pattern::{Pattern, Var},
+        pattern::{PatternKind, Var},
         statement::Declare,
         Atom,
     };
@@ -195,13 +195,13 @@ mod test {
     #[test]
     fn var() {
         let src = "foo = 10;";
-        let expected: Statement<()> = Statement::Declare(Declare {
-            pattern: Pattern::Var(Var {
+        let expected = Statement::Declare(Declare {
+            pattern: PatternKind::Var(Var {
                 ident: Atom::from("foo"),
                 mutable: false,
                 bind_to_ref: false,
-                ty: (),
-            }),
+            })
+            .into_untyped(),
             expr: ExprKind::Literal(Literal::UInt(10)).into_untyped(),
         });
         assert_eq!(statement().easy_parse(src), Ok((expected, "")));

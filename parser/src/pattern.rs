@@ -8,16 +8,15 @@ use combine::{
     stream::StreamErrorFor, value, ParseError, Parser, Stream,
 };
 use hir::{
-    pattern::{ListPattern, ListWithRest, Pattern, RecordPattern, TaggedPattern, Var},
+    pattern::{ListPattern, ListWithRest, Pattern, PatternKind, RecordPattern, TaggedPattern, Var},
     Atom,
 };
 use std::collections::HashMap;
 
-fn var<T, I>() -> impl Parser<I, Output = Var<T>>
+fn var<I>() -> impl Parser<I, Output = Var>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
 {
     (
         optional(attempt(lex(keyword("ref")))),
@@ -28,14 +27,12 @@ where
             ident,
             mutable: mutability.is_some(),
             bind_to_ref: bind_to_ref.is_some(),
-            ty: T::default(),
         })
 }
-fn list<T, I>() -> impl Parser<I, Output = ListPattern<T>>
+fn list<I>() -> impl Parser<I, Output = ListPattern<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     sep_optional_between(pattern, lex(char('*')).with(pattern()), || lex(char(','))).map(
         |(left, rest_right)| {
@@ -51,41 +48,42 @@ where
         },
     )
 }
-fn array<T, I>() -> impl Parser<I, Output = ListPattern<T>>
+fn array<I>() -> impl Parser<I, Output = ListPattern<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     between(lex(char('[')), lex(char(']')), list()).expected("array pattern")
 }
-fn tuple<T, I>() -> impl Parser<I, Output = ListPattern<T>>
+fn tuple<I>() -> impl Parser<I, Output = ListPattern<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     between(lex(char('(')), lex(char(')')), list()).expected("tuple pattern")
 }
-pub(crate) fn parameter<T, I>() -> impl Parser<I, Output = Box<[Var<T>]>>
+pub(crate) fn parameter<I>() -> impl Parser<I, Output = Pattern<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default,
 {
     between(
         lex(char('(')),
         lex(char(')')),
-        sep_end_by(var(), lex(char(','))),
+        sep_end_by(
+            var().map(PatternKind::Var).map(PatternKind::into_untyped),
+            lex(char(',')),
+        ),
     )
     .map(Vec::into)
+    .map(PatternKind::Param)
+    .map(PatternKind::into_untyped)
     .expected("parameter")
 }
-fn record<T, I>() -> impl Parser<I, Output = RecordPattern<T>>
+fn record<I>() -> impl Parser<I, Output = RecordPattern<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     let field = || {
         (optional(lex(ident())), lex(char('=')).with(pattern())).and_then(|(name, pattern)| {
@@ -119,43 +117,51 @@ where
     })
     .expected("record pattern")
 }
-fn pattern_<T, I>() -> impl Parser<I, Output = Pattern<T>>
+fn pattern_<I>() -> impl Parser<I, Output = Pattern<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
-    T: Default + Clone,
 {
     choice((
         lex(char('@'))
             .with((lex(ident()), optional(pattern())))
             .map(|(tag, pattern)| {
-                Pattern::Tag(TaggedPattern {
+                PatternKind::Tag(TaggedPattern {
                     tag,
                     pattern: pattern.map(Box::new),
                 })
-            }),
+            })
+            .map(PatternKind::into_untyped),
         lex(char('&'))
             .with(pattern())
             .map(Box::new)
-            .map(Pattern::Ref),
+            .map(PatternKind::Ref)
+            .map(PatternKind::into_untyped),
         // TODO: minus integer
-        integer_u64().map(Pattern::UInt),
+        integer_u64()
+            .map(PatternKind::UInt)
+            .map(PatternKind::into_untyped),
         attempt(between(lex(char('(')), lex(char(')')), pattern())).expected("group"),
-        record().map(Pattern::Record),
-        tuple().map(Pattern::Tuple),
-        array().map(Pattern::Array),
-        attempt(lex(keyword("_"))).with(value(Pattern::Ignore)),
-        attempt(lex(keyword("true"))).with(value(Pattern::True)),
-        attempt(lex(keyword("false"))).with(value(Pattern::False)),
-        var().map(Pattern::Var),
+        record()
+            .map(PatternKind::Record)
+            .map(PatternKind::into_untyped),
+        tuple()
+            .map(PatternKind::Tuple)
+            .map(PatternKind::into_untyped),
+        array()
+            .map(PatternKind::Array)
+            .map(PatternKind::into_untyped),
+        attempt(lex(keyword("_"))).with(value(PatternKind::Ignore.into_untyped())),
+        attempt(lex(keyword("true"))).with(value(PatternKind::True.into_untyped())),
+        attempt(lex(keyword("false"))).with(value(PatternKind::False.into_untyped())),
+        var().map(PatternKind::Var).map(PatternKind::into_untyped),
     ))
 }
 combine::parser! {
-    pub(crate) fn pattern[T, I]()(I) -> Pattern<T>
+    pub(crate) fn pattern[I]()(I) -> Pattern<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
-        T: Default + Clone,
     ] {
         pattern_()
     }

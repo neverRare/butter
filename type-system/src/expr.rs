@@ -3,7 +3,7 @@ use crate::{
     ty::{
         cons::OrderedAnd,
         cons::{Cons, Keyed},
-        Env, MutType, Scheme, SchemeMut, Subs, Substitutable, Type, TypeError, Unifiable, Var,
+        Env, MutType, Subs, Substitutable, Type, TypeError, Unifiable, Var,
         VarState,
     },
     Typed,
@@ -11,15 +11,15 @@ use crate::{
 use hir::{
     expr::{
         Arg, Assign, Binary, BinaryType, Block, Bound, Call, ControlFlow, Element, ElementKind,
-        Expr, ExprKind, Field, FieldAccess, Fun, If, Index, Jump, Literal, PlaceExpr, Range,
+        Expr, ExprKind, Field, FieldAccess, If, Index, Jump, Literal, PlaceExpr, Range,
         Record, RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
     },
-    keyword, pattern,
-    statement::{Declare, FunDeclare, Statement},
+    keyword,
+    statement::{Declare, Statement},
     Atom,
 };
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap},
     iter::once,
 };
 
@@ -657,96 +657,96 @@ impl Inferable for Binary<()> {
         })
     }
 }
-impl Inferable for Fun<()> {
-    type TypedSelf = Fun<Type>;
+// impl Inferable for Fun<()> {
+//     type TypedSelf = Fun<Type>;
 
-    fn infer(
-        self,
-        subs: &mut Subs,
-        var_state: &mut VarState,
-        env: &Env,
-    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        // TODO: handle `ref` parameters
-        let param_map: HashMap<_, _> = self
-            .param
-            .iter()
-            .map(|var| {
-                (
-                    var.ident.clone(),
-                    (var_state.new_named(var.ident.clone()), var.clone()),
-                )
-            })
-            .collect();
-        let mut env = env.clone();
-        env.extend(param_map.iter().map(|(var, (new_var, var_hir))| {
-            (
-                Var::new_bare(var.clone()),
-                SchemeMut {
-                    is_mut: var_hir.mutable,
-                    scheme: Scheme {
-                        for_all: HashSet::new(),
-                        ty: Type::Var(new_var.clone()),
-                    },
-                },
-            )
-        }));
-        let return_var = var_state.new_var();
-        env.insert(
-            Var::new_bare(keyword!("return")),
-            SchemeMut {
-                is_mut: false,
-                scheme: Scheme {
-                    for_all: HashSet::new(),
-                    ty: Type::Var(return_var.clone()),
-                },
-            },
-        );
-        let mut param_ty = Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(
-            self.param
-                .iter()
-                .map(|var| {
-                    (
-                        var.ident.clone(),
-                        Type::Var(param_map.get(&var.ident).unwrap().0.clone()),
-                    )
-                })
-                .collect::<Vec<_>>()
-                .into(),
-        )));
-        let mut body_subs = Subs::new();
-        let body = self.body.infer(&mut body_subs, var_state, &env)?;
-        let mut return_ty = Type::Var(return_var);
-        return_ty.substitute(&body_subs)?;
-        param_ty.substitute(&body_subs)?;
-        let param: Vec<_> = self.param.into();
-        let typed_param = param
-            .into_iter()
-            .map(|var| {
-                let mut ty = Type::Var(param_map.get(&var.ident).unwrap().0.clone());
-                ty.substitute(&body_subs)?;
-                Ok(pattern::Var {
-                    ident: var.ident,
-                    mutable: var.mutable,
-                    bind_to_ref: var.bind_to_ref,
-                    ty,
-                })
-            })
-            .collect::<Result<Vec<_>, TypeError>>()?;
-        subs.compose_with(body_subs)?;
-        let mut body_ty = body.ty;
-        let mut body_return_subs = Subs::new();
-        return_ty.unify_with(body_ty.clone(), &mut body_return_subs, var_state)?;
-        body_ty.substitute(&body_return_subs)?;
-        subs.compose_with(body_return_subs)?;
-        Ok(Typed {
-            ty: Type::Cons(Cons::Fun(Box::new(param_ty), Box::new(body_ty))),
-            value: Fun {
-                param: typed_param.into(),
-                body: Box::new(body.value),
-            },
-        })
-    }
-}
+//     fn infer(
+//         self,
+//         subs: &mut Subs,
+//         var_state: &mut VarState,
+//         env: &Env,
+//     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+//         // TODO: handle `ref` parameters
+//         let param_map: HashMap<_, _> = self
+//             .param
+//             .iter()
+//             .map(|var| {
+//                 (
+//                     var.ident.clone(),
+//                     (var_state.new_named(var.ident.clone()), var.clone()),
+//                 )
+//             })
+//             .collect();
+//         let mut env = env.clone();
+//         env.extend(param_map.iter().map(|(var, (new_var, var_hir))| {
+//             (
+//                 Var::new_bare(var.clone()),
+//                 SchemeMut {
+//                     is_mut: var_hir.mutable,
+//                     scheme: Scheme {
+//                         for_all: HashSet::new(),
+//                         ty: Type::Var(new_var.clone()),
+//                     },
+//                 },
+//             )
+//         }));
+//         let return_var = var_state.new_var();
+//         env.insert(
+//             Var::new_bare(keyword!("return")),
+//             SchemeMut {
+//                 is_mut: false,
+//                 scheme: Scheme {
+//                     for_all: HashSet::new(),
+//                     ty: Type::Var(return_var.clone()),
+//                 },
+//             },
+//         );
+//         let mut param_ty = Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(
+//             self.param
+//                 .iter()
+//                 .map(|var| {
+//                     (
+//                         var.ident.clone(),
+//                         Type::Var(param_map.get(&var.ident).unwrap().0.clone()),
+//                     )
+//                 })
+//                 .collect::<Vec<_>>()
+//                 .into(),
+//         )));
+//         let mut body_subs = Subs::new();
+//         let body = self.body.infer(&mut body_subs, var_state, &env)?;
+//         let mut return_ty = Type::Var(return_var);
+//         return_ty.substitute(&body_subs)?;
+//         param_ty.substitute(&body_subs)?;
+//         let param: Vec<_> = self.param.into();
+//         let typed_param = param
+//             .into_iter()
+//             .map(|var| {
+//                 let mut ty = Type::Var(param_map.get(&var.ident).unwrap().0.clone());
+//                 ty.substitute(&body_subs)?;
+//                 Ok(pattern::Var {
+//                     ident: var.ident,
+//                     mutable: var.mutable,
+//                     bind_to_ref: var.bind_to_ref,
+//                     ty,
+//                 })
+//             })
+//             .collect::<Result<Vec<_>, TypeError>>()?;
+//         subs.compose_with(body_subs)?;
+//         let mut body_ty = body.ty;
+//         let mut body_return_subs = Subs::new();
+//         return_ty.unify_with(body_ty.clone(), &mut body_return_subs, var_state)?;
+//         body_ty.substitute(&body_return_subs)?;
+//         subs.compose_with(body_return_subs)?;
+//         Ok(Typed {
+//             ty: Type::Cons(Cons::Fun(Box::new(param_ty), Box::new(body_ty))),
+//             value: Fun {
+//                 param: typed_param.into(),
+//                 body: Box::new(body.value),
+//             },
+//         })
+//     }
+// }
 impl Inferable for Arg<()> {
     type TypedSelf = Arg<Type>;
 
@@ -938,43 +938,44 @@ fn infer_statement(
                 expr: typed_expr.value,
             })
         }
-        Statement::FunDeclare(fun) => {
-            let var = Var::new_bare(fun.ident.clone());
-            env.remove(var.clone());
-            let mut ty = Type::Cons(Cons::Fun(
-                Box::new(Type::Var(var_state.new_var())),
-                Box::new(Type::Var(var_state.new_var())),
-            ));
-            env.insert(
-                var.clone(),
-                SchemeMut {
-                    is_mut: false,
-                    scheme: Scheme {
-                        for_all: HashSet::new(),
-                        ty: ty.clone(),
-                    },
-                },
-            );
-            let typed_fun = fun.fun.infer(subs, var_state, env)?;
-            let mut more_subs = Subs::new();
-            typed_fun
-                .ty
-                .unify_with(ty.clone(), &mut more_subs, var_state)?;
-            ty.substitute(&more_subs)?;
-            subs.compose_with(more_subs)?;
-            env.insert(
-                var,
-                SchemeMut {
-                    is_mut: false,
-                    scheme: env.generalize(ty.clone()),
-                },
-            );
-            Statement::FunDeclare(FunDeclare {
-                ident: fun.ident,
-                fun: typed_fun.value,
-                ty,
-            })
-        }
+        Statement::FunDeclare(fun) => todo!(),
+        // Statement::FunDeclare(fun) => {
+        //     let var = Var::new_bare(fun.ident.clone());
+        //     env.remove(var.clone());
+        //     let mut ty = Type::Cons(Cons::Fun(
+        //         Box::new(Type::Var(var_state.new_var())),
+        //         Box::new(Type::Var(var_state.new_var())),
+        //     ));
+        //     env.insert(
+        //         var.clone(),
+        //         SchemeMut {
+        //             is_mut: false,
+        //             scheme: Scheme {
+        //                 for_all: HashSet::new(),
+        //                 ty: ty.clone(),
+        //             },
+        //         },
+        //     );
+        //     let typed_fun = fun.fun.infer(subs, var_state, env)?;
+        //     let mut more_subs = Subs::new();
+        //     typed_fun
+        //         .ty
+        //         .unify_with(ty.clone(), &mut more_subs, var_state)?;
+        //     ty.substitute(&more_subs)?;
+        //     subs.compose_with(more_subs)?;
+        //     env.insert(
+        //         var,
+        //         SchemeMut {
+        //             is_mut: false,
+        //             scheme: env.generalize(ty.clone()),
+        //         },
+        //     );
+        //     Statement::FunDeclare(FunDeclare {
+        //         ident: fun.ident,
+        //         fun: typed_fun.value,
+        //         ty,
+        //     })
+        // }
         Statement::Expr(expr) => Statement::Expr(expr.infer(subs, var_state, env)?.value),
     };
     Ok(typed)
@@ -1117,7 +1118,7 @@ impl Inferable for ExprKind<()> {
             }
             Self::Unary(unary) => unary.infer(subs, var_state, env)?.map(ExprKind::Unary),
             Self::Binary(binary) => binary.infer(subs, var_state, env)?.map(ExprKind::Binary),
-            Self::Fun(fun) => fun.infer(subs, var_state, env)?.map(ExprKind::Fun),
+            Self::Fun(fun) => todo!(),
             Self::Call(call) => call.infer(subs, var_state, env)?.map(ExprKind::Call),
             Self::Assign(assigns) => assigns.infer(subs, var_state, env)?.map(ExprKind::Assign),
             Self::Jump(jump) => jump.infer(subs, var_state, env)?.map(ExprKind::Jump),

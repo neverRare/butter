@@ -1,6 +1,6 @@
 use crate::{
     all_unique,
-    pattern::{Pattern, Var},
+    pattern::{Pattern},
     statement::Statement,
     Atom,
 };
@@ -105,7 +105,7 @@ impl<T> PlaceExpr<T> {
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Fun<T> {
-    pub param: Box<[Var<T>]>,
+    pub param: Pattern<T>,
     pub body: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
