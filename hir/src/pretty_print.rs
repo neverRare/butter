@@ -50,6 +50,19 @@ impl PrettyPrintState {
         Ok(())
     }
 }
+impl<T: PrettyPrint + ?Sized> PrettyPrint for Box<T> {
+    fn write_len(&self) -> Option<usize> {
+        <T as PrettyPrint>::write_len(self)
+    }
+    fn write_line(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
+        <T as PrettyPrint>::write_line(self, writer, state)?;
+        Ok(())
+    }
+    fn write_multiline(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
+        <T as PrettyPrint>::write_multiline(self, writer, state)?;
+        Ok(())
+    }
+}
 impl PrettyPrint for str {
     fn write_len(&self) -> Option<usize> {
         Some(self.len())
@@ -169,17 +182,34 @@ where
         Ok(())
     }
 }
+pub type ArraySequence<const L: usize> = Sequence<[Box<dyn PrettyPrint>; L]>;
 pub fn indent(content: impl PrettyPrint + 'static) -> Indent {
     Indent(Box::new(content))
 }
 pub fn array_sequence<const L: usize>(
     content: [Box<dyn PrettyPrint>; L],
     multiline_override: Option<bool>,
-) -> Sequence<[Box<dyn PrettyPrint>; L]> {
+) -> ArraySequence<L> {
     Sequence {
         content,
         multiline_override,
     }
+}
+pub fn singleline_sequence<const L: usize>(content: [Box<dyn PrettyPrint>; L]) -> ArraySequence<L> {
+    Sequence {
+        content,
+        multiline_override: Some(false),
+    }
+}
+pub fn bracket(open: &str, close: &str, content: impl PrettyPrint + 'static) -> ArraySequence<3> {
+    array_sequence(
+        [
+            Box::new(open.to_string()),
+            Box::new(indent(content)),
+            Box::new(close.to_string()),
+        ],
+        None,
+    )
 }
 #[cfg(test)]
 mod test {

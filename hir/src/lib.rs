@@ -2,6 +2,7 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
+use pretty_print::PrettyPrint;
 use std::collections::HashSet;
 use std::hash::Hash;
 
@@ -17,6 +18,19 @@ pub mod hir_string_cache {
 
 pub use hir_string_cache::Atom;
 
+pub trait PrettyType {
+    type PrettyPrint: PrettyPrint + 'static;
+    const TYPED: bool;
+    fn pretty_print(&self) -> Option<Self::PrettyPrint>;
+}
+impl PrettyType for () {
+    type PrettyPrint = String;
+    const TYPED: bool = false;
+
+    fn pretty_print(&self) -> Option<Self::PrettyPrint> {
+        None
+    }
+}
 fn all_unique<I>(iter: I) -> bool
 where
     I: IntoIterator,

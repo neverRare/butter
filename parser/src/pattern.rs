@@ -124,11 +124,11 @@ where
 {
     choice((
         lex(char('@'))
-            .with((lex(ident()), optional(pattern())))
+            .with((lex(ident()), pattern()))
             .map(|(tag, pattern)| {
                 PatternKind::Tag(TaggedPattern {
                     tag,
-                    pattern: pattern.map(Box::new),
+                    pattern: Box::new(pattern),
                 })
             })
             .map(PatternKind::into_untyped),
