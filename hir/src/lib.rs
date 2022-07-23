@@ -7,6 +7,7 @@ use std::hash::Hash;
 
 pub mod expr;
 pub mod pattern;
+pub mod pretty_print;
 pub mod statement;
 
 #[doc(hidden)]
