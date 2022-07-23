@@ -1,5 +1,5 @@
 use crate::{
-    pretty_print::{bracket, singleline_sequence, ArraySequence, PrettyPrint},
+    pretty_print::{bracket, line, postfix, sequence, ArraySequence, PrettyPrint},
     Atom, PrettyType,
 };
 use std::collections::HashMap;
@@ -18,11 +18,7 @@ impl<T: PrettyType> Pattern<T> {
     pub fn pretty_print(&self) -> Box<dyn PrettyPrint> {
         let pattern = self.pattern.pretty_print();
         match self.ty.pretty_print() {
-            Some(ty) => Box::new(singleline_sequence([
-                Box::new(ty),
-                Box::new(": ".to_string()),
-                pattern,
-            ])),
+            Some(ty) => Box::new(line([Box::new(ty), Box::new(": ".to_string()), pattern])),
             None => pattern,
         }
     }
@@ -62,13 +58,18 @@ impl<T> PatternKind<T> {
             Self::Var(var) => Box::new(var.pretty_print()),
             Self::Record(_) => todo!(),
             Self::Tuple(_) => todo!(),
-            Self::Param(_) => todo!(),
+            Self::Param(param) => {
+                let iter = param
+                    .iter()
+                    .map(TypedVar::pretty_print)
+                    .map(|var| postfix(", ", var));
+                Box::new(bracket("(", ")", sequence(iter)))
+            }
             Self::Array(_) => todo!(),
             Self::Tag(tag) => Box::new(tag.pretty_print()),
-            Self::Ref(pattern) => Box::new(singleline_sequence([
-                Box::new("&".to_string()),
-                pattern.pretty_print(),
-            ])),
+            Self::Ref(pattern) => {
+                Box::new(line([Box::new("&".to_string()), pattern.pretty_print()]))
+            }
         }
     }
 }
@@ -100,6 +101,21 @@ impl Var {
 pub struct TypedVar<T> {
     pub var: Var,
     pub ty: T,
+}
+impl<T> TypedVar<T> {
+    pub fn pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        let mut s = self.var.pretty_print();
+        match self.ty.pretty_print() {
+            Some(ty) => {
+                s.push_str(": ");
+                Box::new(line([Box::new(s), Box::new(ty)]))
+            }
+            None => Box::new(s),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ListPattern<T> {
@@ -134,6 +150,6 @@ impl<T> TaggedPattern<T> {
             Box::new(bracket("(", ")", pattern))
         };
         let s = format!("{} ", self.tag);
-        singleline_sequence([Box::new("@".to_string()), Box::new(s), pattern])
+        line([Box::new("@".to_string()), Box::new(s), pattern])
     }
 }

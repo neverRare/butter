@@ -195,12 +195,6 @@ pub fn array_sequence<const L: usize>(
         multiline_override,
     }
 }
-pub fn singleline_sequence<const L: usize>(content: [Box<dyn PrettyPrint>; L]) -> ArraySequence<L> {
-    Sequence {
-        content,
-        multiline_override: Some(false),
-    }
-}
 pub fn bracket(open: &str, close: &str, content: impl PrettyPrint + 'static) -> ArraySequence<3> {
     array_sequence(
         [
@@ -210,6 +204,36 @@ pub fn bracket(open: &str, close: &str, content: impl PrettyPrint + 'static) -> 
         ],
         None,
     )
+}
+pub fn line<const L: usize>(content: [Box<dyn PrettyPrint>; L]) -> ArraySequence<L> {
+    Sequence {
+        content,
+        multiline_override: Some(false),
+    }
+}
+pub fn prefix(prefix: &str, content: impl PrettyPrint + 'static) -> ArraySequence<2> {
+    array_sequence(
+        [Box::new(prefix.to_string()), Box::new(indent(content))],
+        None,
+    )
+}
+pub fn postfix(postfix: &str, content: impl PrettyPrint + 'static) -> ArraySequence<2> {
+    array_sequence(
+        [Box::new(indent(content)), Box::new(postfix.to_string())],
+        None,
+    )
+}
+pub fn sequence(
+    content: impl IntoIterator<Item = impl PrettyPrint + 'static>,
+) -> Sequence<Vec<Box<dyn PrettyPrint>>> {
+    Sequence {
+        content: content
+            .into_iter()
+            .map(Box::new)
+            .map(|a| a as Box<dyn PrettyPrint>)
+            .collect(),
+        multiline_override: None,
+    }
 }
 #[cfg(test)]
 mod test {
