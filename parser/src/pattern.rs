@@ -70,10 +70,7 @@ where
     between(
         lex(char('(')),
         lex(char(')')),
-        sep_end_by(
-            var().map(PatternKind::Var).map(PatternKind::into_untyped),
-            lex(char(',')),
-        ),
+        sep_end_by(var().map(Var::into_untyped), lex(char(','))),
     )
     .map(Vec::into)
     .map(PatternKind::Param)

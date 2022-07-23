@@ -37,7 +37,7 @@ pub enum PatternKind<T> {
     Var(Var),
     Record(RecordPattern<T>),
     Tuple(ListPattern<T>),
-    Param(Box<[Pattern<T>]>),
+    Param(Box<[TypedVar<T>]>),
     Array(ListPattern<T>),
     Tag(TaggedPattern<T>),
     Ref(Box<Pattern<T>>),
@@ -87,11 +87,19 @@ pub struct Var {
     pub bind_to_ref: bool,
 }
 impl Var {
+    pub fn into_untyped(self) -> TypedVar<()> {
+        TypedVar { var: self, ty: () }
+    }
     pub fn pretty_print(&self) -> String {
         let mutable = if self.mutable { "mut " } else { "" };
         let bind_to_ref = if self.bind_to_ref { "ref " } else { "" };
         format!("{mutable}{bind_to_ref}{}", self.ident)
     }
+}
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct TypedVar<T> {
+    pub var: Var,
+    pub ty: T,
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ListPattern<T> {
