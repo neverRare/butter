@@ -15,18 +15,10 @@ use hir::{
     statement::Statement,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 struct StatementExpr {
     statement: Vec<Statement<()>>,
     expr: Option<Expr<()>>,
-}
-impl Default for StatementExpr {
-    fn default() -> Self {
-        Self {
-            statement: Vec::new(),
-            expr: None,
-        }
-    }
 }
 impl Extend<StatementReturn> for StatementExpr {
     fn extend<I>(&mut self, iter: I)

@@ -431,7 +431,7 @@ where
         })
         .collect()
 }
-impl<'a> Display for Cons {
+impl Display for Cons {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
             Self::Num => write!(fmt, "Num"),
