@@ -27,7 +27,7 @@ pub enum Cons {
     Union(Keyed),
 }
 impl Cons {
-    pub fn pretty_print(&self) -> Box<dyn PrettyPrint> {
+    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
         match self {
             Self::Num => Box::new("Num".to_string()),
             Self::Bool => Box::new("Bool".to_string()),
@@ -35,7 +35,7 @@ impl Cons {
                 Box::new("&:".to_string()),
                 Box::new(mut_type.to_string()),
                 Box::new(" ".to_string()),
-                ty.pretty_print(),
+                ty.to_pretty_print(),
             ])),
             Self::Array(_) => todo!(),
             Self::Fun(_, _) => todo!(),

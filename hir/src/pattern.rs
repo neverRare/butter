@@ -2,7 +2,10 @@ use crate::{
     pretty_print::{bracket, line, postfix, sequence, ArraySequence, PrettyPrint},
     Atom, PrettyType,
 };
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Pattern<T> {
@@ -15,9 +18,9 @@ impl<T> Pattern<T> {
     }
 }
 impl<T: PrettyType> Pattern<T> {
-    pub fn pretty_print(&self) -> Box<dyn PrettyPrint> {
-        let pattern = self.pattern.pretty_print();
-        match self.ty.pretty_print() {
+    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
+        let pattern = self.pattern.to_pretty_print();
+        match self.ty.to_pretty_print() {
             Some(ty) => Box::new(line([Box::new(ty), Box::new(": ".to_string()), pattern])),
             None => pattern,
         }
@@ -45,7 +48,7 @@ impl<T> PatternKind<T> {
             _ => None,
         }
     }
-    pub fn pretty_print(&self) -> Box<dyn PrettyPrint>
+    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
     where
         T: PrettyType,
     {
@@ -55,20 +58,20 @@ impl<T> PatternKind<T> {
             Self::UInt(uint) => Box::new(uint.to_string()),
             Self::Int(int) => Box::new(int.to_string()),
             Self::Ignore => Box::new("_".to_string()),
-            Self::Var(var) => Box::new(var.pretty_print()),
+            Self::Var(var) => Box::new(var.to_string()),
             Self::Record(_) => todo!(),
             Self::Tuple(_) => todo!(),
             Self::Param(param) => {
                 let iter = param
                     .iter()
-                    .map(TypedVar::pretty_print)
+                    .map(TypedVar::to_pretty_print)
                     .map(|var| postfix(", ", var));
                 Box::new(bracket("(", ")", sequence(iter)))
             }
             Self::Array(_) => todo!(),
-            Self::Tag(tag) => Box::new(tag.pretty_print()),
+            Self::Tag(tag) => Box::new(tag.to_pretty_print()),
             Self::Ref(pattern) => {
-                Box::new(line([Box::new("&".to_string()), pattern.pretty_print()]))
+                Box::new(line([Box::new("&".to_string()), pattern.to_pretty_print()]))
             }
         }
     }
@@ -91,10 +94,13 @@ impl Var {
     pub fn into_untyped(self) -> TypedVar<()> {
         TypedVar { var: self, ty: () }
     }
-    pub fn pretty_print(&self) -> String {
+}
+impl Display for Var {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         let mutable = if self.mutable { "mut " } else { "" };
         let bind_to_ref = if self.bind_to_ref { "ref " } else { "" };
-        format!("{mutable}{bind_to_ref}{}", self.ident)
+        write!(fmt, "{mutable}{bind_to_ref}{}", self.ident)?;
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -103,12 +109,12 @@ pub struct TypedVar<T> {
     pub ty: T,
 }
 impl<T> TypedVar<T> {
-    pub fn pretty_print(&self) -> Box<dyn PrettyPrint>
+    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
     where
         T: PrettyType,
     {
-        let mut s = self.var.pretty_print();
-        match self.ty.pretty_print() {
+        let mut s = self.var.to_string();
+        match self.ty.to_pretty_print() {
             Some(ty) => {
                 s.push_str(": ");
                 Box::new(line([Box::new(s), Box::new(ty)]))
@@ -139,11 +145,11 @@ pub struct TaggedPattern<T> {
     pub pattern: Box<Pattern<T>>,
 }
 impl<T> TaggedPattern<T> {
-    fn pretty_print(&self) -> ArraySequence<3>
+    fn to_pretty_print(&self) -> ArraySequence<3>
     where
         T: PrettyType,
     {
-        let pattern = self.pattern.pretty_print();
+        let pattern = self.pattern.to_pretty_print();
         let pattern = if T::TYPED {
             pattern
         } else {

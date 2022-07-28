@@ -1,4 +1,5 @@
 use crate::{all_unique, pattern::Pattern, statement::Statement, Atom};
+use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
@@ -8,14 +9,15 @@ pub enum Literal {
     UInt(u64),
     Float(f64),
 }
-impl Literal {
-    pub fn pretty_print(&self) -> String {
+impl Display for Literal {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::True => "true".to_string(),
-            Self::False => "false".to_string(),
-            Self::UInt(num) => num.to_string(),
-            Self::Float(num) => num.to_string(),
+            Self::True => write!(fmt, "true")?,
+            Self::False => write!(fmt, "false")?,
+            Self::UInt(num) => write!(fmt, "{num}")?,
+            Self::Float(num) => write!(fmt, "{num}")?,
         }
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Clone)]

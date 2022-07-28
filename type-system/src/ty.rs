@@ -76,10 +76,10 @@ pub enum Type {
     Cons(Cons),
 }
 impl Type {
-    fn pretty_print(&self) -> Box<dyn PrettyPrint> {
+    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
         match self {
             Self::Var(var) => Box::new(var.to_string()),
-            Self::Cons(cons) => cons.pretty_print(),
+            Self::Cons(cons) => cons.to_pretty_print(),
         }
     }
 }

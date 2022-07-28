@@ -21,13 +21,13 @@ pub use hir_string_cache::Atom;
 pub trait PrettyType {
     type PrettyPrint: PrettyPrint + 'static;
     const TYPED: bool;
-    fn pretty_print(&self) -> Option<Self::PrettyPrint>;
+    fn to_pretty_print(&self) -> Option<Self::PrettyPrint>;
 }
 impl PrettyType for () {
     type PrettyPrint = String;
     const TYPED: bool = false;
 
-    fn pretty_print(&self) -> Option<Self::PrettyPrint> {
+    fn to_pretty_print(&self) -> Option<Self::PrettyPrint> {
         None
     }
 }
