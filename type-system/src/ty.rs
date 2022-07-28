@@ -1,5 +1,5 @@
 use crate::ty::cons::Cons;
-use hir::{keyword, Atom};
+use hir::{keyword, pretty_print::PrettyPrint, Atom};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -17,6 +17,16 @@ pub struct Var {
 impl Var {
     pub(super) fn new_bare(name: Atom) -> Self {
         Self { name, id: 0 }
+    }
+}
+impl Display for Var {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        match (self.name.as_ref(), self.id) {
+            ("", 0) => write!(fmt, "#")?,
+            (var, 0) => write!(fmt, "{var}")?,
+            (var, id) => write!(fmt, "{var}#{id}")?,
+        }
+        Ok(())
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -64,6 +74,22 @@ pub(super) trait Unifiable {
 pub enum Type {
     Var(Var),
     Cons(Cons),
+}
+impl Type {
+    fn pretty_print(&self) -> Box<dyn PrettyPrint> {
+        match self {
+            Self::Var(var) => Box::new(var.to_string()),
+            Self::Cons(cons) => cons.pretty_print(),
+        }
+    }
+}
+impl Display for Type {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        match &self {
+            Type::Var(var) => write!(fmt, "{}", var),
+            Type::Cons(cons) => write!(fmt, "{}", cons),
+        }
+    }
 }
 impl FreeVars for Type {
     fn free_vars(&self) -> HashSet<KindedVar> {
@@ -151,6 +177,15 @@ pub enum MutType {
     Var(Var),
     Imm,
     Mut,
+}
+impl Display for MutType {
+    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
+        match &self {
+            Self::Var(var) => write!(fmt, "{}", var),
+            Self::Imm => write!(fmt, "imm"),
+            Self::Mut => write!(fmt, "mut"),
+        }
+    }
 }
 impl FreeVars for MutType {
     fn free_vars(&self) -> HashSet<KindedVar> {
@@ -409,45 +444,5 @@ pub enum TypeError {
 impl Display for TypeError {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         write!(fmt, "TypeError")
-    }
-}
-impl Display for Var {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        write!(fmt, "{}#{}", self.name, self.id)
-    }
-}
-impl Display for KindedVar {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        write!(fmt, "{}", self.var)
-    }
-}
-impl Display for Type {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        match &self {
-            Type::Var(var) => write!(fmt, "{}", var),
-            Type::Cons(cons) => write!(fmt, "{}", cons),
-        }
-    }
-}
-impl Display for MutType {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        match &self {
-            Self::Var(var) => write!(fmt, "{}", var),
-            Self::Imm => write!(fmt, "imm"),
-            Self::Mut => write!(fmt, "mut"),
-        }
-    }
-}
-impl Display for Scheme {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        if !self.for_all.is_empty() {
-            write!(fmt, ":(")?;
-            for var in &self.for_all {
-                write!(fmt, "{}, ", var)?;
-            }
-            write!(fmt, ") ")?;
-        }
-        write!(fmt, "{}", &self.ty)?;
-        Ok(())
     }
 }

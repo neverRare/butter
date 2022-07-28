@@ -2,7 +2,10 @@ use super::FreeVars;
 use crate::ty::{
     Kind, KindedVar, MutType, Subs, Substitutable, Type, Type1, TypeError, Unifiable, Var, VarState,
 };
-use hir::Atom;
+use hir::{
+    pretty_print::{line, PrettyPrint},
+    Atom,
+};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -22,6 +25,26 @@ pub enum Cons {
     Record(Keyed),
     Tuple(OrderedAnd<Type>),
     Union(Keyed),
+}
+impl Cons {
+    pub fn pretty_print(&self) -> Box<dyn PrettyPrint> {
+        match self {
+            Self::Num => Box::new("Num".to_string()),
+            Self::Bool => Box::new("Bool".to_string()),
+            Self::Ref(mut_type, ty) => Box::new(line([
+                Box::new("&:".to_string()),
+                Box::new(mut_type.to_string()),
+                Box::new(" ".to_string()),
+                ty.pretty_print(),
+            ])),
+            Self::Array(_) => todo!(),
+            Self::Fun(_, _) => todo!(),
+            Self::RecordTuple(_) => todo!(),
+            Self::Record(_) => todo!(),
+            Self::Tuple(_) => todo!(),
+            Self::Union(_) => todo!(),
+        }
+    }
 }
 impl FreeVars for Cons {
     fn free_vars(&self) -> HashSet<KindedVar> {
