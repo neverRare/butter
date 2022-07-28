@@ -431,7 +431,7 @@ impl<T> OrderedAnd<T> {
                     Type1::Type(Type::Cons(cons(Self::NonRow(rest2.into())))),
                 )
             }
-            (Self::Row(left1, rest1, right1), Self::Row(left2, rest2, right2)) => todo!(),
+            (Self::Row(_left1, _rest1, _right1), Self::Row(_left2, _rest2, _right2)) => todo!(),
         }
         Ok(())
     }

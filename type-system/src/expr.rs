@@ -934,7 +934,7 @@ fn infer_statement(
                 expr: typed_expr.value,
             })
         }
-        Statement::FunDeclare(fun) => todo!(),
+        Statement::FunDeclare(_fun) => todo!(),
         // Statement::FunDeclare(fun) => {
         //     let var = Var::new_bare(fun.ident.clone());
         //     env.remove(var.clone());
@@ -1114,7 +1114,7 @@ impl Inferable for ExprKind<()> {
             }
             Self::Unary(unary) => unary.infer(subs, var_state, env)?.map(ExprKind::Unary),
             Self::Binary(binary) => binary.infer(subs, var_state, env)?.map(ExprKind::Binary),
-            Self::Fun(fun) => todo!(),
+            Self::Fun(_fun) => todo!(),
             Self::Call(call) => call.infer(subs, var_state, env)?.map(ExprKind::Call),
             Self::Assign(assigns) => assigns.infer(subs, var_state, env)?.map(ExprKind::Assign),
             Self::Jump(jump) => jump.infer(subs, var_state, env)?.map(ExprKind::Jump),

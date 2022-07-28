@@ -26,7 +26,7 @@ impl<T> Typed<T> {
         }
     }
 }
-pub fn infer(statements: Vec<Statement<()>>) -> Result<Vec<Statement<Type>>, TypeError> {
+pub fn infer(_statements: Vec<Statement<()>>) -> Result<Vec<Statement<Type>>, TypeError> {
     todo!()
 }
 pub fn test_infer(expr: Expr<()>) -> Result<Type, TypeError> {

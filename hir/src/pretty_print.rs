@@ -1,6 +1,7 @@
 use std::{
+    convert::Infallible,
     io::{self, Write},
-    iter::{once, repeat}, convert::Infallible,
+    iter::{once, repeat},
 };
 
 pub trait PrettyPrint {
