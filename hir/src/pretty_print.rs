@@ -1,6 +1,6 @@
 use std::{
     io::{self, Write},
-    iter::{once, repeat},
+    iter::{once, repeat}, convert::Infallible,
 };
 
 pub trait PrettyPrint {
@@ -61,6 +61,17 @@ impl<T: PrettyPrint + ?Sized> PrettyPrint for Box<T> {
     fn write_multiline(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
         <T as PrettyPrint>::write_multiline(self, writer, state)?;
         Ok(())
+    }
+}
+impl PrettyPrint for Infallible {
+    fn write_len(&self) -> Option<usize> {
+        unreachable!();
+    }
+    fn write_line(&self, _: &mut dyn Write, _: PrettyPrintState) -> io::Result<()> {
+        unreachable!();
+    }
+    fn write_multiline(&self, _: &mut dyn Write, _: PrettyPrintState) -> io::Result<()> {
+        unreachable!();
     }
 }
 impl PrettyPrint for str {

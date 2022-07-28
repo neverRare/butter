@@ -1,5 +1,5 @@
 use crate::ty::cons::Cons;
-use hir::{keyword, pretty_print::PrettyPrint, Atom};
+use hir::{keyword, pretty_print::PrettyPrint, Atom, PrettyType};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -89,6 +89,14 @@ impl Display for Type {
             Type::Var(var) => write!(fmt, "{}", var),
             Type::Cons(cons) => write!(fmt, "{}", cons),
         }
+    }
+}
+impl PrettyType for Type {
+    type PrettyPrint = Box<dyn PrettyPrint>;
+    const TYPED: bool = true;
+
+    fn to_pretty_print(&self) -> Option<Self::PrettyPrint> {
+        Some(self.to_pretty_print())
     }
 }
 impl FreeVars for Type {

@@ -4,6 +4,7 @@
 
 use pretty_print::PrettyPrint;
 use std::collections::HashSet;
+use std::convert::Infallible;
 use std::hash::Hash;
 
 pub mod expr;
@@ -24,7 +25,7 @@ pub trait PrettyType {
     fn to_pretty_print(&self) -> Option<Self::PrettyPrint>;
 }
 impl PrettyType for () {
-    type PrettyPrint = String;
+    type PrettyPrint = Infallible;
     const TYPED: bool = false;
 
     fn to_pretty_print(&self) -> Option<Self::PrettyPrint> {
