@@ -8,6 +8,16 @@ pub enum Literal {
     UInt(u64),
     Float(f64),
 }
+impl Literal {
+    pub fn pretty_print(&self) -> String {
+        match self {
+            Self::True => "true".to_string(),
+            Self::False => "false".to_string(),
+            Self::UInt(num) => num.to_string(),
+            Self::Float(num) => num.to_string(),
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Expr<T> {
     pub expr: ExprKind<T>,
