@@ -114,12 +114,11 @@ impl Cons {
                 if tup.is_empty() {
                     Box::new("()".to_string())
                 } else {
-                    let mut fields =
-                        sequence(tup.iter().map(|ty| postfix(", ", ty.to_pretty_print())));
-                    if tup.len() > 1 {
-                        fields.multiline_override = Some(true);
-                    }
-                    Box::new(bracket("(", ")", fields))
+                    Box::new(bracket(
+                        "(",
+                        ")",
+                        sequence(tup.iter().map(|ty| postfix(", ", ty.to_pretty_print()))),
+                    ))
                 }
             }
             Self::Tuple(OrderedAnd::Row(left, row, right)) => {
@@ -157,7 +156,13 @@ impl Cons {
                         ))
                     }
                     None if union.fields.is_empty() => Box::new("(@)".to_string()),
-                    None => Box::new(bracket("(", ")", sequence(iter))),
+                    None => {
+                        let mut list = sequence(iter);
+                        if union.fields.len() > 1 {
+                            list.multiline_override = Some(true);
+                        }
+                        Box::new(bracket("(", ")", list))
+                    }
                 }
             }
         }
