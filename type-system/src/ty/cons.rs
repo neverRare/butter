@@ -119,7 +119,7 @@ impl Cons {
                     if tup.len() > 1 {
                         fields.multiline_override = Some(true);
                     }
-                    Box::new(prefix("ordered", bracket("(", ")", fields)))
+                    Box::new(bracket("(", ")", fields))
                 }
             }
             Self::Tuple(OrderedAnd::Row(left, row, right)) => {
@@ -133,7 +133,7 @@ impl Cons {
                 let list = left
                     .chain(once(Box::new(row) as Box<dyn PrettyPrint>))
                     .chain(right);
-                Box::new(prefix("ordered", bracket("(", ")", sequence(list))))
+                Box::new(bracket("(", ")", sequence(list)))
             }
             Self::Union(union) => {
                 let iter = union.fields.iter().map(|(name, ty)| {
