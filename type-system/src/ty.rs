@@ -83,14 +83,6 @@ impl Type {
         }
     }
 }
-impl Display for Type {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        match &self {
-            Type::Var(var) => write!(fmt, "{}", var),
-            Type::Cons(cons) => write!(fmt, "{}", cons),
-        }
-    }
-}
 impl PrettyType for Type {
     type PrettyPrint = Box<dyn PrettyPrint>;
     const TYPED: bool = true;

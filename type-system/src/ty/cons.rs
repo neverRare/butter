@@ -8,7 +8,6 @@ use hir::{
 };
 use std::{
     collections::{HashMap, HashSet},
-    fmt::{self, Display, Formatter},
     hash::Hash,
     iter::once,
     mem::{replace, swap},
@@ -577,77 +576,4 @@ where
             (key, (a, b))
         })
         .collect()
-}
-impl Display for Cons {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        match self {
-            Self::Num => write!(fmt, "Num"),
-            Self::Bool => write!(fmt, "Bool"),
-            Self::Ref(mutability, ty) => write!(fmt, "&:{} {}", mutability, ty),
-            Self::Array(ty) => write!(fmt, "[{}]", ty),
-            Self::Record(record) => {
-                write!(fmt, "(")?;
-                for (name, ty) in &record.fields {
-                    write!(fmt, "{} = {}, ", name, ty)?
-                }
-                if let Some(rest) = &record.rest {
-                    write!(fmt, "*{}", rest)?;
-                }
-                write!(fmt, ")")?;
-                Ok(())
-            }
-            Self::Tuple(tuple) => {
-                write!(fmt, "(")?;
-                match tuple {
-                    OrderedAnd::NonRow(tuple) => {
-                        for ty in &tuple[..] {
-                            write!(fmt, "{}, ", ty)?;
-                        }
-                    }
-                    OrderedAnd::Row(left, rest, right) => {
-                        for ty in left {
-                            write!(fmt, "{}, ", ty)?;
-                        }
-                        write!(fmt, "*{}, ", rest)?;
-                        for ty in right {
-                            write!(fmt, "{}, ", ty)?;
-                        }
-                    }
-                }
-                write!(fmt, ")")?;
-                Ok(())
-            }
-            Self::RecordTuple(record_tuple) => {
-                write!(fmt, "(")?;
-                match record_tuple {
-                    OrderedAnd::NonRow(record_tuple) => {
-                        for (name, ty) in &record_tuple[..] {
-                            write!(fmt, "{} = {}, ", name, ty)?;
-                        }
-                    }
-                    OrderedAnd::Row(left, rest, right) => {
-                        for (name, ty) in left {
-                            write!(fmt, "{} = {}, ", name, ty)?;
-                        }
-                        write!(fmt, "*{}, ", rest)?;
-                        for (name, ty) in right {
-                            write!(fmt, "{} = {}, ", name, ty)?;
-                        }
-                    }
-                }
-                write!(fmt, ")")?;
-                Ok(())
-            }
-            Self::Fun(param, ret) => write!(fmt, "{} -> {}", param, ret),
-            Self::Union(union) => {
-                for (tag, assoc) in union.fields.iter() {
-                    write!(fmt, "@{} {} | ", tag, assoc)?;
-                }
-                if let Some(rest) = &union.rest {
-                    write!(fmt, "*{} | ", rest)?;
-                }
-                Ok(())
-            }
-        }
-    }
 }

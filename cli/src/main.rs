@@ -45,7 +45,8 @@ fn type_repl() -> io::Result<()> {
                 continue;
             }
         };
-        println!("type: {}", ty);
+        ty.to_pretty_print().write(&mut stdout, "  ", 80)?;
+        println!();
     }
     Ok(())
 }
