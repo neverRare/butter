@@ -157,13 +157,7 @@ impl Cons {
                         ))
                     }
                     None if union.fields.is_empty() => Box::new("(@)".to_string()),
-                    None => {
-                        let mut list = sequence(iter);
-                        if union.fields.len() > 1 {
-                            list.multiline_override = Some(true);
-                        }
-                        Box::new(bracket("(", ")", list))
-                    }
+                    None => Box::new(bracket("(", ")", sequence(iter))),
                 }
             }
         }
