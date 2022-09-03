@@ -1,12 +1,10 @@
 # ![Butter](butter_text_only.svg)
 
+⚠ Butter is no longer in development
+
 [Documents](./doc/README.md) | [Contributing Guidelines](./CONTRIBUTING.md)
 
 A tasty language for building efficient software.
-
-**Note:** Still work in progress and experimental. [Contributions] are welcome.
-
-[contributions]: ./CONTRIBUTING.md
 
 ## A small taste
 
@@ -37,12 +35,6 @@ Butter is a personal and experimental language that seeks balance for these aspe
 I also to want to experiment with novel features deemed necessary for these goals such refinement types.
 
 Being my personal project, designs and features are ultimately up for my decision and taste. Some features can help with some aspect while also hurt other, this is where I weigh in the pros and cons. Of course, this doesn't mean I won't listen to suggestions, I can be naive on these decisions, I'll be happy to hear your thoughts about Butter's design by opening an issue.
-
-## Road map
-
-![A road map for the Butter programming language, depicted in the form style a retro video game map. A single road snakes from right-to-left, with multiple stops, ending with a causeway leading to a castle in the middle of a lake. A flag is placed on the first stop. The project mascot (a cute yellow bear) is at the second stop and exclaims "Let's Go!". The stops on the road are: parser, Hindley-Milner with row polymorphism, IR, lifetime analysis, refinement types, and finally LLVM. An enormous dragon looms behind the castle.](./roadmap.webp)
-
-[More details](https://github.com/neverRare/butter/projects/1)
 
 ## Planned features
 
