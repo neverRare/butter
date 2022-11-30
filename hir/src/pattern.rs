@@ -1,5 +1,7 @@
 use crate::{
-    pretty_print::{bracket, line, postfix, prefix, sequence, ArraySequence, PrettyPrint},
+    pretty_print::{
+        bracket, line, postfix, prefix, sequence, ArraySequence, PrettyPrint, Sequence,
+    },
     Atom, PrettyType,
 };
 use std::{
@@ -76,25 +78,7 @@ impl<T> PatternKind<T> {
                     .map(|pattern| postfix(", ", pattern));
                 Box::new(bracket("(", ")", sequence(iter)))
             }
-            Self::Tuple(ListPattern::List(tuple)) => {
-                let iter = tuple
-                    .iter()
-                    .map(Pattern::to_pretty_print)
-                    .map(|pattern| postfix(", ", pattern));
-                Box::new(bracket("(", ")", sequence(iter)))
-            }
-            Self::Tuple(ListPattern::ListWithRest(tuple)) => {
-                let iter = tuple
-                    .left
-                    .iter()
-                    .map(Pattern::to_pretty_print)
-                    .chain(once(
-                        Box::new(prefix("*", tuple.rest.to_pretty_print())) as Box<dyn PrettyPrint>
-                    ))
-                    .chain(tuple.right.iter().map(Pattern::to_pretty_print))
-                    .map(|pattern| postfix(", ", pattern));
-                Box::new(bracket("(", ")", sequence(iter)))
-            }
+            Self::Tuple(tuple) => Box::new(bracket("(", ")", tuple.to_pretty_print())),
             Self::Param(param) => {
                 let iter = param
                     .iter()
@@ -102,7 +86,7 @@ impl<T> PatternKind<T> {
                     .map(|var| postfix(", ", var));
                 Box::new(bracket("(", ")", sequence(iter)))
             }
-            Self::Array(_) => todo!(),
+            Self::Array(arr) => Box::new(bracket("(", ")", arr.to_pretty_print())),
             Self::Tag(tag) => Box::new(tag.to_pretty_print()),
             Self::Ref(pattern) => {
                 Box::new(line([Box::new("&".to_string()), pattern.to_pretty_print()]))
@@ -161,6 +145,33 @@ impl<T> TypedVar<T> {
 pub enum ListPattern<T> {
     List(Box<[Pattern<T>]>),
     ListWithRest(ListWithRest<T>),
+}
+impl<T> ListPattern<T> {
+    fn to_pretty_print(&self) -> Sequence<Vec<Box<dyn PrettyPrint>>>
+    where
+        T: PrettyType,
+    {
+        match self {
+            ListPattern::List(list) => {
+                let iter = list
+                    .iter()
+                    .map(Pattern::to_pretty_print)
+                    .map(|pattern| postfix(", ", pattern));
+                sequence(iter)
+            }
+            ListPattern::ListWithRest(list) => {
+                let iter =
+                    list.left
+                        .iter()
+                        .map(Pattern::to_pretty_print)
+                        .chain(once(Box::new(prefix("*", list.rest.to_pretty_print()))
+                            as Box<dyn PrettyPrint>))
+                        .chain(list.right.iter().map(Pattern::to_pretty_print))
+                        .map(|pattern| postfix(", ", pattern));
+                sequence(iter)
+            }
+        }
+    }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct ListWithRest<T> {
