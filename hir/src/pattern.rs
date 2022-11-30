@@ -5,6 +5,7 @@ use crate::{
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
+    iter::once,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -60,7 +61,23 @@ impl<T> PatternKind<T> {
             Self::Ignore => Box::new("_".to_string()),
             Self::Var(var) => Box::new(var.to_string()),
             Self::Record(_) => todo!(),
-            Self::Tuple(_) => todo!(),
+            Self::Tuple(ListPattern::List(tuple)) => {
+                let iter = tuple
+                    .iter()
+                    .map(Pattern::to_pretty_print)
+                    .map(|pattern| postfix(", ", pattern));
+                Box::new(bracket("(", ")", sequence(iter)))
+            }
+            Self::Tuple(ListPattern::ListWithRest(tuple)) => {
+                let iter = tuple
+                    .left
+                    .iter()
+                    .map(Pattern::to_pretty_print)
+                    .chain(once(tuple.rest.to_pretty_print()))
+                    .chain(tuple.right.iter().map(Pattern::to_pretty_print))
+                    .map(|pattern| postfix(", ", pattern));
+                Box::new(bracket("(", ")", sequence(iter)))
+            }
             Self::Param(param) => {
                 let iter = param
                     .iter()
