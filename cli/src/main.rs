@@ -94,3 +94,8 @@ fn parser_repl() -> io::Result<()> {
     }
     Ok(())
 }
+#[test]
+fn cli_test() {
+    use clap::CommandFactory;
+    Command::command().debug_assert()
+}
