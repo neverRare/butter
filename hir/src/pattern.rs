@@ -1,5 +1,5 @@
 use crate::{
-    pretty_print::{bracket, line, postfix, sequence, ArraySequence, PrettyPrint},
+    pretty_print::{bracket, line, postfix, prefix, sequence, ArraySequence, PrettyPrint},
     Atom, PrettyType,
 };
 use std::{
@@ -60,7 +60,22 @@ impl<T> PatternKind<T> {
             Self::Int(int) => Box::new(int.to_string()),
             Self::Ignore => Box::new("_".to_string()),
             Self::Var(var) => Box::new(var.to_string()),
-            Self::Record(_) => todo!(),
+            Self::Record(record) => {
+                let iter = record
+                    .fields
+                    .iter()
+                    .map(|(key, pattern)| {
+                        line([Box::new(format!("{key} = ")), pattern.to_pretty_print()])
+                    })
+                    .chain(
+                        record
+                            .rest
+                            .iter()
+                            .map(|pattern| prefix("*", pattern.to_pretty_print())),
+                    )
+                    .map(|pattern| postfix(", ", pattern));
+                Box::new(bracket("(", ")", sequence(iter)))
+            }
             Self::Tuple(ListPattern::List(tuple)) => {
                 let iter = tuple
                     .iter()
@@ -73,7 +88,9 @@ impl<T> PatternKind<T> {
                     .left
                     .iter()
                     .map(Pattern::to_pretty_print)
-                    .chain(once(tuple.rest.to_pretty_print()))
+                    .chain(once(
+                        Box::new(prefix("*", tuple.rest.to_pretty_print())) as Box<dyn PrettyPrint>
+                    ))
                     .chain(tuple.right.iter().map(Pattern::to_pretty_print))
                     .map(|pattern| postfix(", ", pattern));
                 Box::new(bracket("(", ")", sequence(iter)))
