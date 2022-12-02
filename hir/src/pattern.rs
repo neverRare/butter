@@ -24,7 +24,7 @@ impl<T: PrettyType> Pattern<T> {
     pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
         let pattern = self.pattern.to_pretty_print();
         match self.ty.to_pretty_print() {
-            Some(ty) => Box::new(line([Box::new(ty), Box::new(": ".to_string()), pattern])),
+            Some(ty) => Box::new(line([Box::new(ty), Box::new(" : ".to_string()), pattern])),
             None => pattern,
         }
     }

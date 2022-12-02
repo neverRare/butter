@@ -2,14 +2,14 @@
 
 **Note:** these are not implemented yet
 
-While Butter can infer most types of such value according to how it is used, sometimes it can fail and we need to explicitly annotate it. It's also sometimes good to explicitly annotate types, Butter can wrongly infer types when there's a mistake on the code, this can happen on a huge codebase.
+While Butter can infer most types of such value according to how it is used, sometimes it can fail and we need to explicitly annotate it. It's also sometimes good to explicitly annotate types, Butter can wrongly infer types when there's a mistake on the code, this can happen on huge codes.
 
 Type annotation are used to explicitly define the type of expression, pattern, and function parameter and return type (also known as function signature).
 
 For type annotation of expressions and patterns, we use `:`.
 
 ```butter
-val: Num = 10;
+val : Num = 10;
 
 -- you can directly annotate expression as well
 val = 10 : Num;
@@ -20,14 +20,14 @@ val = 10 : Num;
 For function signature, we use `:` for parameters and `->` for return type.
 
 ```butter
-say_hello(name: Str) -> Str => "hello " ++ name ++ "!";
+say_hello(name : Str) -> Str => "hello " ++ name ++ "!";
 ```
 
 We can define generics by using `:()`.
 
 ```butter
 :(a)
-concatenate(left: [a], right: [a]) -> [a] => left ++ right;
+concatenate(left : [a], right : [a]) -> [a] => left ++ right;
 ```
 
 TODO: explain what generics do
@@ -38,7 +38,7 @@ You want type annotation but you don't want full type annotation on a single val
 
 ```butter
 -- `arr` is explicitly an array but the type of the element is left inferred
-arr: [_] = [];
+arr : [_] = [];
 ```
 
 ## Predefined types
@@ -46,10 +46,10 @@ arr: [_] = [];
 Numbers have type `Num` and booleans have type `Bool`. There is also `Char` and `Str` which are simply `Num` and `[Num]` respectively
 
 ```butter
-num: Num = 10;
-truth: Bool = true;
-char: Char = 'a';
-string: Str = "Hello World";
+num : Num = 10;
+truth : Bool = true;
+char : Char = 'a';
+string : Str = "Hello World";
 ```
 
 ## Array types
@@ -57,7 +57,7 @@ string: Str = "Hello World";
 Array types are expressed as `[ty]` where `ty` is the type of the element.
 
 ```butter
-fruits: [Str] = ["apple", "banana", "cherry"];
+fruits : [Str] = ["apple", "banana", "cherry"];
 ```
 
 ## Record types
@@ -65,7 +65,7 @@ fruits: [Str] = ["apple", "banana", "cherry"];
 TODO: explanation
 
 ```butter
-name(user: &{name: Str, *_}) -> Str {
+name(user : &{name : Str, *_}) -> Str {
     &user^.name
 }
 ```
@@ -76,7 +76,7 @@ TODO: explanation
 
 ```butter
 :(a)
-first(tuple: &(a, *_)) -> a {
+first(tuple : &(a, *_)) -> a {
     &tuple^.0
 }
 ```
@@ -86,10 +86,10 @@ first(tuple: &(a, *_)) -> a {
 TODO: explanation and better example
 
 ```butter
-val: @val _ | @none
+val : (@val _, @none)
 
 -- row
-val: @val _ | *_
+val : (@val _, *_)
 ```
 
 ## Reference types
@@ -97,7 +97,7 @@ val: @val _ | *_
 TODO: explanation and better example
 
 ```butter
-val: &:mut_var /l_var ty
+val : &:mut_var /l_var ty
 ```
 
 ## Function types

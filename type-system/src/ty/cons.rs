@@ -66,7 +66,7 @@ impl Cons {
                         .iter()
                         .map(|(name, ty)| {
                             line([
-                                Box::new(format!("{name} = ")),
+                                Box::new(format!("{name} : ")),
                                 Box::new(ty.to_pretty_print()),
                                 Box::new(", ".to_string()),
                             ])
@@ -82,7 +82,7 @@ impl Cons {
             Self::Record(rec) => {
                 let iter = rec.fields.iter().map(|(name, ty)| {
                     line([
-                        Box::new(format!("{name} = ")),
+                        Box::new(format!("{name} : ")),
                         Box::new(ty.to_pretty_print()),
                         Box::new(", ".to_string()),
                     ])
