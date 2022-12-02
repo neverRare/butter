@@ -4,7 +4,7 @@ use combine::{
 };
 use hir::expr::{Bound, BoundType, Element, ElementKind, Range};
 
-pub(crate) fn range_operator<I>() -> impl Parser<I, Output = (BoundType, BoundType)>
+pub(super) fn range_operator<I>() -> impl Parser<I, Output = (BoundType, BoundType)>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -21,7 +21,7 @@ where
     )
         .expected("range operator")
 }
-pub(crate) fn range<I>() -> impl Parser<I, Output = Range<()>>
+pub(super) fn range<I>() -> impl Parser<I, Output = Range<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -43,7 +43,7 @@ where
     };
     between(lex(char('[')), lex(char(']')), range()).expected("range array")
 }
-pub(crate) fn array<I>() -> impl Parser<I, Output = Box<[Element<()>]>>
+pub(super) fn array<I>() -> impl Parser<I, Output = Box<[Element<()>]>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

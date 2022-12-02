@@ -8,7 +8,7 @@ use hir::{
     Atom,
 };
 
-pub(crate) fn record<I>() -> impl Parser<I, Output = Record<()>>
+pub(super) fn record<I>() -> impl Parser<I, Output = Record<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

@@ -1,5 +1,6 @@
 use crate::{
-    expr::{control_flow::control_flow, expr},
+    control_flow::control_flow,
+    expr::expr,
     ident_keyword::ident,
     lex,
     pattern::{parameter, pattern},
@@ -18,11 +19,11 @@ use hir::{
     statement::{Declare, FunDeclare, Statement},
 };
 
-pub(crate) enum StatementReturn {
+pub(super) enum StatementReturn {
     Statement(Statement<()>),
     Return(Expr<()>),
 }
-pub(crate) fn statement_return<I, P>(end_look_ahead: P) -> impl Parser<I, Output = StatementReturn>
+pub(super) fn statement_return<I, P>(end_look_ahead: P) -> impl Parser<I, Output = StatementReturn>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -124,7 +125,7 @@ where
         expr(),
     ))
 }
-pub(crate) fn statement<I>() -> impl Parser<I, Output = Statement<()>>
+pub(super) fn statement<I>() -> impl Parser<I, Output = Statement<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

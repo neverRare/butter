@@ -1,7 +1,8 @@
 use crate::{
-    expr::integer::integer_u64,
     ident_keyword::{ident, keyword},
-    lex, sep_optional_between,
+    lex,
+    number::integer_u64,
+    sep_optional_between,
 };
 use combine::{
     attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
@@ -62,7 +63,7 @@ where
 {
     between(lex(char('(')), lex(char(')')), list()).expected("tuple pattern")
 }
-pub(crate) fn parameter<I>() -> impl Parser<I, Output = Pattern<()>>
+pub(super) fn parameter<I>() -> impl Parser<I, Output = Pattern<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -155,7 +156,7 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn pattern[I]()(I) -> Pattern<()>
+    pub(super) fn pattern[I]()(I) -> Pattern<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,

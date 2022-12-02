@@ -20,7 +20,7 @@ use hir::{
 };
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) enum PartialAst {
+pub(super) enum PartialAst {
     Property(Atom),
     Index(Expr<()>),
     Slice(Range<()>),
@@ -32,7 +32,7 @@ pub(crate) enum PartialAst {
     Len,
 }
 impl PartialAst {
-    pub(crate) fn combine_from(self, left: Expr<()>) -> Expr<()> {
+    pub(super) fn combine_from(self, left: Expr<()>) -> Expr<()> {
         let res = match self {
             Self::Property(name) => ExprKind::Place(PlaceExpr::FieldAccess(FieldAccess {
                 expr: Box::new(left),
@@ -115,7 +115,7 @@ where
         lex(char('^')).with(value(PartialAst::Deref)),
     ))
 }
-pub(crate) fn expr_6<I>() -> impl Parser<I, Output = Expr<()>>
+pub(super) fn expr_6<I>() -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -129,7 +129,7 @@ where
         expr
     })
 }
-pub(crate) fn expr_0<I>() -> impl Parser<I, Output = Expr<()>>
+pub(super) fn expr_0<I>() -> impl Parser<I, Output = Expr<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -149,7 +149,7 @@ where
         }
     })
 }
-pub(crate) fn infix_expr_op<I>(
+pub(super) fn infix_expr_op<I>(
     precedence: u8,
 ) -> impl Parser<I, Output = impl Fn(Expr<()>, Expr<()>) -> Expr<()>>
 where

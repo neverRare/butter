@@ -1,4 +1,4 @@
-use crate::expr::integer::parse_digit;
+use crate::number::parse_digit;
 use combine::{
     between, choice,
     error::StreamError,
@@ -42,7 +42,7 @@ where
         satisfy(move |ch: char| ch != delimiter && ch != '\n').map(Char::Char),
     ))
 }
-pub(crate) fn char_literal<I>() -> impl Parser<I, Output = u64>
+pub(super) fn char_literal<I>() -> impl Parser<I, Output = u64>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -85,7 +85,7 @@ impl Extend<Char> for StringLiteral {
         }
     }
 }
-pub(crate) fn string_literal<I>() -> impl Parser<I, Output = Vec<u8>>
+pub(super) fn string_literal<I>() -> impl Parser<I, Output = Vec<u8>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

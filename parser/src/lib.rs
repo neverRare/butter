@@ -11,8 +11,10 @@ use hir::{expr::Expr, statement::Statement};
 
 pub use combine::{EasyParser, Parser};
 
+mod control_flow;
 mod expr;
 mod ident_keyword;
+mod number;
 mod pattern;
 mod statement;
 

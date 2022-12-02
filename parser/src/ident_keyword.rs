@@ -11,7 +11,7 @@ use hir::{keyword, Atom};
 fn rest(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'
 }
-pub(crate) fn ident_or_keyword<I>() -> impl Parser<I, Output = Atom>
+pub(super) fn ident_or_keyword<I>() -> impl Parser<I, Output = Atom>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -21,7 +21,7 @@ where
         .map(Atom::from)
         .expected("identifier")
 }
-pub(crate) fn keyword<I>(keyword: &'static str) -> impl Parser<I, Output = ()>
+pub(super) fn keyword<I>(keyword: &'static str) -> impl Parser<I, Output = ()>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -30,7 +30,7 @@ where
         .skip(not_followed_by(satisfy(rest)))
         .with(value(()))
 }
-pub(crate) fn ident<I>() -> impl Parser<I, Output = Atom>
+pub(super) fn ident<I>() -> impl Parser<I, Output = Atom>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,

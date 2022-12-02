@@ -1,14 +1,15 @@
 use crate::{
+    control_flow::control_flow,
     expr::{
         array::{array, range},
         infix::{expr_0, expr_6, infix_expr_op},
-        integer::integer_u64,
         record::record,
         string::{char_literal, string_literal},
         tuple::tuple,
     },
     ident_keyword::{ident, keyword},
     lex,
+    number::{float, integer_u64},
     pattern::parameter,
 };
 use combine::{
@@ -21,10 +22,7 @@ use hir::expr::{
 };
 
 mod array;
-pub(crate) mod control_flow;
-mod float;
 mod infix;
-pub(crate) mod integer;
 mod record;
 mod string;
 mod tuple;
@@ -36,7 +34,7 @@ where
 {
     choice((
         char_literal().map(Literal::UInt),
-        float::float().map(Literal::Float),
+        float().map(Literal::Float),
         integer_u64().map(Literal::UInt),
         // TODO: minus integer parser
         attempt(keyword("false")).with(value(Literal::False)),
@@ -162,7 +160,7 @@ where
             .map(PlaceExpr::Var)
             .map(ExprKind::Place)
             .map(ExprKind::into_untyped),
-        control_flow::control_flow()
+        control_flow()
             .map(ExprKind::ControlFlow)
             .map(ExprKind::into_untyped),
         lex(literal())
@@ -195,7 +193,7 @@ where
     }
 }
 combine::parser! {
-    pub(crate) fn expr[I](precedence: u8)(I) -> Expr<()>
+    pub(super) fn expr[I](precedence: u8)(I) -> Expr<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,

@@ -38,7 +38,7 @@ impl Extend<StatementReturn> for StatementExpr {
         }
     }
 }
-pub(crate) fn block<I>() -> impl Parser<I, Output = Block<()>>
+pub(super) fn block<I>() -> impl Parser<I, Output = Block<()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -165,7 +165,7 @@ where
     ))
 }
 combine::parser! {
-    pub(crate) fn control_flow[I]()(I) -> ControlFlow<()>
+    pub(super) fn control_flow[I]()(I) -> ControlFlow<()>
     where [
         I: Stream<Token = char>,
         I::Error: ParseError<I::Token, I::Range, I::Position>,
