@@ -1,4 +1,10 @@
-use crate::{all_unique, pattern::Pattern, statement::Statement, Atom};
+use crate::{
+    all_unique,
+    pattern::Pattern,
+    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint},
+    statement::Statement,
+    Atom, PrettyType,
+};
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -28,6 +34,26 @@ pub struct Expr<T> {
 impl<T> Expr<T> {
     pub fn field_name(&self) -> Option<Atom> {
         self.expr.field_name()
+    }
+    fn precedence(&self) -> u8
+    where
+        T: PrettyType,
+    {
+        if T::TYPED {
+            9
+        } else {
+            self.expr.precedence()
+        }
+    }
+    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        let pattern = self.expr.to_pretty_print();
+        match self.ty.to_pretty_print() {
+            Some(ty) => Box::new(line([Box::new(ty), Box::new(" : ".to_string()), pattern])),
+            None => pattern,
+        }
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -68,6 +94,57 @@ impl<T> ExprKind<T> {
             _ => None,
         }
     }
+    pub fn precedence(&self) -> u8 {
+        match self {
+            ExprKind::Literal(_) => 0,
+            ExprKind::Tag(_) => 1,
+            ExprKind::Assign(_) => 7,
+            ExprKind::Array(_) => 0,
+            ExprKind::ArrayRange(_) => 0,
+            ExprKind::Unit => 0,
+            ExprKind::Splat(_) => 0,
+            ExprKind::Record(_) => 0,
+            ExprKind::Tuple(_) => 0,
+            ExprKind::Unary(_) => 1,
+            ExprKind::Binary(binary) => binary.kind.precedence(),
+            ExprKind::Place(place) => place.precedence(),
+            ExprKind::Call(_) => 0,
+            ExprKind::ControlFlow(_) => 0,
+            ExprKind::Fun(_) => 8,
+            ExprKind::Jump(jump) => jump.precedence(),
+        }
+    }
+    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        match self {
+            ExprKind::Literal(literal) => Box::new(literal.to_string()),
+            ExprKind::Tag(_) => todo!(),
+            ExprKind::Assign(_) => todo!(),
+            ExprKind::Array(array) => {
+                let iter = array
+                    .iter()
+                    .map(Element::to_pretty_print)
+                    .map(|element| postfix(", ", element));
+                Box::new(bracket("[", "]", sequence(iter)))
+            }
+            ExprKind::ArrayRange(array) => array.to_pretty_print(),
+            ExprKind::Unit => Box::new("()".to_string()),
+            ExprKind::Splat(expr) => {
+                Box::new(bracket("(", ")", prefix("*", expr.to_pretty_print())))
+            }
+            ExprKind::Record(_) => todo!(),
+            ExprKind::Tuple(_) => todo!(),
+            ExprKind::Unary(_) => todo!(),
+            ExprKind::Binary(_) => todo!(),
+            ExprKind::Place(_) => todo!(),
+            ExprKind::Call(_) => todo!(),
+            ExprKind::ControlFlow(_) => todo!(),
+            ExprKind::Fun(_) => todo!(),
+            ExprKind::Jump(_) => todo!(),
+        }
+    }
 }
 impl ExprKind<()> {
     pub fn into_untyped(self) -> Expr<()> {
@@ -82,6 +159,14 @@ pub enum PlaceExpr<T> {
     Slice(Slice<T>),
     Deref(Box<Expr<T>>),
     Len(Box<Expr<T>>),
+}
+impl<T> PlaceExpr<T> {
+    fn precedence(&self) -> u8 {
+        match self {
+            PlaceExpr::Var(_) => 0,
+            _ => 1,
+        }
+    }
 }
 impl<T> PlaceExpr<T> {
     pub fn field_name(&self) -> Option<Atom> {
@@ -120,6 +205,15 @@ pub enum Jump<T> {
     Break(Option<Box<Expr<T>>>),
     Continue,
     Return(Option<Box<Expr<T>>>),
+}
+impl<T> Jump<T> {
+    fn precedence(&self) -> u8 {
+        match self {
+            Jump::Break(_) => 8,
+            Jump::Continue => 0,
+            Jump::Return(_) => 8,
+        }
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Unary<T> {
@@ -160,6 +254,22 @@ pub enum BinaryType {
     LessEqual,
     Concatenate,
 }
+impl BinaryType {
+    fn precedence(&self) -> u8 {
+        match self {
+            Self::Multiply | Self::Div | Self::FloorDiv | Self::Mod => 2,
+            Self::Add | Self::Sub | Self::Concatenate => 3,
+            Self::Equal
+            | Self::NotEqual
+            | Self::Greater
+            | Self::GreaterEqual
+            | Self::Less
+            | Self::LessEqual => 4,
+            Self::And | Self::LazyAnd => 5,
+            Self::Or | Self::LazyOr => 6,
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Index<T> {
     pub expr: Box<Expr<T>>,
@@ -169,6 +279,15 @@ pub struct Index<T> {
 pub struct Element<T> {
     pub expr: Expr<T>,
     pub kind: ElementKind,
+}
+impl<T: PrettyType> Element<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
+        let expr = self.expr.to_pretty_print();
+        match self.kind {
+            ElementKind::Element => expr,
+            ElementKind::Splat => Box::new(prefix("*", expr)),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ElementKind {
@@ -308,4 +427,39 @@ pub struct Bound<T> {
 pub struct Range<T> {
     pub left: Option<Bound<T>>,
     pub right: Option<Bound<T>>,
+}
+impl<T: PrettyType> Range<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
+        let range = match (&self.left, &self.right) {
+            (None, None) => Box::new("..".to_string()) as Box<dyn PrettyPrint>,
+            (None, Some(range)) => {
+                let expr = range.expr.to_pretty_print();
+                let op = match range.kind {
+                    BoundType::Inclusive => "..",
+                    BoundType::Exclusive => ".<",
+                };
+                Box::new(prefix(op, expr))
+            }
+            (Some(range), None) => {
+                let expr = range.expr.to_pretty_print();
+                let op = match range.kind {
+                    BoundType::Inclusive => "..",
+                    BoundType::Exclusive => ">.",
+                };
+                Box::new(postfix(op, expr))
+            }
+            (Some(left), Some(right)) => {
+                let op = match (left.kind, right.kind) {
+                    (BoundType::Inclusive, BoundType::Inclusive) => "..",
+                    (BoundType::Inclusive, BoundType::Exclusive) => ".<",
+                    (BoundType::Exclusive, BoundType::Inclusive) => ">.",
+                    (BoundType::Exclusive, BoundType::Exclusive) => "><",
+                };
+                let left = left.expr.to_pretty_print();
+                let right = right.expr.to_pretty_print();
+                Box::new(line([left, Box::new(op.to_string()), right]))
+            }
+        };
+        Box::new(bracket("[", "]", range))
+    }
 }
