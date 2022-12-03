@@ -226,13 +226,13 @@ pub fn line<const L: usize>(content: [Box<dyn PrettyPrint>; L]) -> ArraySequence
 pub fn prefix(prefix: &str, content: impl PrettyPrint + 'static) -> ArraySequence<2> {
     array_sequence(
         [Box::new(prefix.to_string()), Box::new(indent(content))],
-        None,
+        Some(false),
     )
 }
 pub fn postfix(postfix: &str, content: impl PrettyPrint + 'static) -> ArraySequence<2> {
     array_sequence(
         [Box::new(indent(content)), Box::new(postfix.to_string())],
-        None,
+        Some(false),
     )
 }
 pub fn sequence(
