@@ -4,7 +4,6 @@
 
 use pretty_print::PrettyPrintTree;
 use std::collections::HashSet;
-use std::convert::Infallible;
 use std::hash::Hash;
 
 pub mod expr;
@@ -20,15 +19,13 @@ pub mod hir_string_cache {
 pub use hir_string_cache::Atom;
 
 pub trait PrettyPrintType {
-    type PrettyPrint: PrettyPrintTree + 'static;
     const TYPED: bool;
-    fn to_pretty_print(&self) -> Option<Self::PrettyPrint>;
+    fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>>;
 }
 impl PrettyPrintType for () {
-    type PrettyPrint = Infallible;
     const TYPED: bool = false;
 
-    fn to_pretty_print(&self) -> Option<Self::PrettyPrint> {
+    fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>> {
         None
     }
 }

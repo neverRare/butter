@@ -53,10 +53,10 @@ impl<T> Expr<T> {
 }
 impl<T: PrettyPrintType> PrettyPrint for Expr<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let pattern = self.expr.to_pretty_print();
+        let expr = self.expr.to_pretty_print();
         match self.ty.to_pretty_print() {
-            Some(ty) => line([Box::new(ty), Box::new(" : ".to_string()), pattern]),
-            None => pattern,
+            Some(ty) => line([expr, Box::new(" : ".to_string()), ty]),
+            None => expr,
         }
     }
 }

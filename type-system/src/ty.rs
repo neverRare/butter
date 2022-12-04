@@ -88,10 +88,9 @@ impl PrettyPrint for Type {
     }
 }
 impl PrettyPrintType for Type {
-    type PrettyPrint = Box<dyn PrettyPrintTree>;
     const TYPED: bool = true;
 
-    fn to_pretty_print(&self) -> Option<Self::PrettyPrint> {
+    fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>> {
         Some(PrettyPrint::to_pretty_print(self))
     }
 }

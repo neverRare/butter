@@ -22,7 +22,7 @@ impl<T: PrettyPrintType> PrettyPrint for Pattern<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let pattern = self.pattern.to_pretty_print();
         match self.ty.to_pretty_print() {
-            Some(ty) => line([pattern, Box::new(" : ".to_string()), Box::new(ty)]),
+            Some(ty) => line([pattern, Box::new(" : ".to_string()), ty]),
             None => pattern,
         }
     }
@@ -130,7 +130,7 @@ impl<T: PrettyPrintType> PrettyPrint for TypedVar<T> {
         match self.ty.to_pretty_print() {
             Some(ty) => {
                 s.push_str(": ");
-                line([Box::new(s), Box::new(ty)])
+                line([Box::new(s), ty])
             }
             None => Box::new(s),
         }

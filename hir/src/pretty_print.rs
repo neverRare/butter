@@ -1,5 +1,4 @@
 use std::{
-    convert::Infallible,
     io::{self, Write},
     iter::{once, repeat},
 };
@@ -60,30 +59,6 @@ impl PrettyPrintState {
             write!(writer, "{}", self.indent)?;
         }
         Ok(())
-    }
-}
-impl<T: PrettyPrintTree + ?Sized> PrettyPrintTree for Box<T> {
-    fn write_len(&self) -> Option<usize> {
-        <T as PrettyPrintTree>::write_len(self)
-    }
-    fn write_line(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
-        <T as PrettyPrintTree>::write_line(self, writer, state)?;
-        Ok(())
-    }
-    fn write_multiline(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
-        <T as PrettyPrintTree>::write_multiline(self, writer, state)?;
-        Ok(())
-    }
-}
-impl PrettyPrintTree for Infallible {
-    fn write_len(&self) -> Option<usize> {
-        unreachable!();
-    }
-    fn write_line(&self, _: &mut dyn Write, _: PrettyPrintState) -> io::Result<()> {
-        unreachable!();
-    }
-    fn write_multiline(&self, _: &mut dyn Write, _: PrettyPrintState) -> io::Result<()> {
-        unreachable!();
     }
 }
 impl PrettyPrintTree for str {
