@@ -236,7 +236,6 @@ pub fn multiline_sequence(
 }
 #[cfg(test)]
 mod test {
-    use super::PrettyPrintTree;
     use crate::pretty_print::{array_sequence, indent};
 
     #[test]
