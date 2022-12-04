@@ -1,7 +1,9 @@
 use crate::{
     all_unique,
     pattern::Pattern,
-    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree},
+    pretty_print::{
+        bracket, line, multiline_sequence, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree,
+    },
     statement::Statement,
     Atom, PrettyPrintType,
 };
@@ -139,7 +141,7 @@ impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
             ExprKind::Binary(_) => todo!(),
             ExprKind::Place(_) => todo!(),
             ExprKind::Call(_) => todo!(),
-            ExprKind::ControlFlow(_) => todo!(),
+            ExprKind::ControlFlow(control_flow) => control_flow.to_pretty_print(),
             ExprKind::Fun(_) => todo!(),
             ExprKind::Jump(_) => todo!(),
         }
@@ -376,10 +378,48 @@ pub enum ControlFlow<T> {
     Loop(Block<T>),
     Match(Match<T>),
 }
+impl<T: PrettyPrintType> PrettyPrint for ControlFlow<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        match self {
+            ControlFlow::Block(block) => block.to_pretty_print(),
+            ControlFlow::If(if_statement) => if_statement.to_pretty_print(),
+            ControlFlow::For(for_statement) => for_statement.to_pretty_print(),
+            ControlFlow::While(while_statement) => while_statement.to_pretty_print(),
+            ControlFlow::Loop(loop_statement) => line([
+                Box::new("loop ".to_string()),
+                loop_statement.to_pretty_print(),
+            ]),
+            ControlFlow::Match(match_statement) => match_statement.to_pretty_print(),
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block<T> {
     pub statement: Box<[Statement<T>]>,
     pub expr: Option<Box<Expr<T>>>,
+}
+impl<T: PrettyPrintType> PrettyPrint for Block<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        if self.statement.is_empty() {
+            match &self.expr {
+                Some(expr) => bracket("{ ", " }", expr.to_pretty_print()),
+                None => Box::new("{}".to_string()),
+            }
+        } else {
+            let iter = self
+                .statement
+                .iter()
+                .map(PrettyPrint::to_pretty_print)
+                .map(|statement| postfix(";", statement))
+                .chain(
+                    self.expr
+                        .iter()
+                        .map(Box::as_ref)
+                        .map(PrettyPrint::to_pretty_print),
+                );
+            bracket("{", "}", multiline_sequence(iter))
+        }
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct If<T> {
@@ -387,26 +427,97 @@ pub struct If<T> {
     pub body: Block<T>,
     pub else_part: Option<Box<ControlFlow<T>>>,
 }
+impl<T: PrettyPrintType> PrettyPrint for If<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        match &self.else_part {
+            Some(else_part) => line([
+                Box::new("if ".to_string()),
+                self.condition.to_pretty_print(),
+                Box::new(" ".to_string()),
+                self.body.to_pretty_print(),
+                Box::new(" else ".to_string()),
+                else_part.to_pretty_print(),
+            ]),
+            None => line([
+                Box::new("if ".to_string()),
+                self.condition.to_pretty_print(),
+                Box::new(" ".to_string()),
+                self.body.to_pretty_print(),
+            ]),
+        }
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct For<T> {
     pub pattern: Pattern<T>,
     pub expr: Box<Expr<T>>,
     pub body: Block<T>,
 }
+impl<T: PrettyPrintType> PrettyPrint for For<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
+            Box::new("for ".to_string()),
+            self.pattern.to_pretty_print(),
+            Box::new(" in ".to_string()),
+            self.expr.to_pretty_print(),
+            Box::new(" ".to_string()),
+            self.body.to_pretty_print(),
+        ])
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct While<T> {
     pub condition: Box<Expr<T>>,
     pub body: Block<T>,
+}
+impl<T: PrettyPrintType> PrettyPrint for While<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
+            Box::new("while ".to_string()),
+            self.condition.to_pretty_print(),
+            Box::new(" ".to_string()),
+            self.body.to_pretty_print(),
+        ])
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Match<T> {
     pub expr: Box<Expr<T>>,
     pub arm: Box<[MatchArm<T>]>,
 }
+impl<T: PrettyPrintType> PrettyPrint for Match<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        let body = if self.arm.is_empty() {
+            Box::new("{}".to_string())
+        } else {
+            let iter = self
+                .arm
+                .iter()
+                .map(PrettyPrint::to_pretty_print)
+                .map(|arm| postfix(",", arm));
+            bracket("{ ", " }", multiline_sequence(iter))
+        };
+        line([
+            Box::new("match ".to_string()),
+            self.expr.to_pretty_print(),
+            Box::new(" ".to_string()),
+            body,
+        ])
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct MatchArm<T> {
     pub pattern: Pattern<T>,
     pub expr: Expr<T>,
+}
+impl<T: PrettyPrintType> PrettyPrint for MatchArm<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
+            self.pattern.to_pretty_print(),
+            Box::new(" => ".to_string()),
+            self.expr.to_pretty_print(),
+        ])
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Assign<T> {
