@@ -9,9 +9,9 @@ use crate::{
 };
 use hir::{
     expr::{
-        Arg, Assign, Binary, BinaryType, Block, Bound, Call, ControlFlow, Element, ElementKind,
-        Expr, ExprKind, Field, FieldAccess, If, Index, Jump, Literal, PlaceExpr, Range, Record,
-        RecordWithSplat, Slice, Tag, Tuple, TupleWithSplat, Unary, UnaryType,
+        Arg, Assign, Binary, BinaryType, Block, Bound, Call, Collection, ControlFlow, Element,
+        ElementKind, Expr, ExprKind, Field, FieldAccess, If, Index, Jump, Literal, PlaceExpr,
+        Range, Slice, Tag, Unary, UnaryType, WithSplat,
     },
     keyword,
     statement::{Declare, Statement},
@@ -404,8 +404,8 @@ impl Inferable for Box<[Field<()>]> {
         })
     }
 }
-impl Inferable for RecordWithSplat<()> {
-    type TypedSelf = RecordWithSplat<Type>;
+impl Inferable for WithSplat<Field<()>, ()> {
+    type TypedSelf = WithSplat<Field<Type>, Type>;
 
     fn infer(
         self,
@@ -430,7 +430,7 @@ impl Inferable for RecordWithSplat<()> {
         subs.compose_with(more_subs)?;
         Ok(Typed {
             ty,
-            value: RecordWithSplat {
+            value: WithSplat {
                 left: typed_left,
                 splat: Box::new(typed_splat.value),
                 right: typed_right,
@@ -438,8 +438,8 @@ impl Inferable for RecordWithSplat<()> {
         })
     }
 }
-impl Inferable for Record<()> {
-    type TypedSelf = Record<Type>;
+impl Inferable for Collection<Field<()>, ()> {
+    type TypedSelf = Collection<Field<Type>, Type>;
 
     fn infer(
         self,
@@ -448,10 +448,12 @@ impl Inferable for Record<()> {
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
-            Self::Record(record) => record.infer(subs, var_state, env)?.map(Record::Record),
-            Self::RecordWithSplat(record) => record
+            Self::Collection(record) => record
                 .infer(subs, var_state, env)?
-                .map(Record::RecordWithSplat),
+                .map(Collection::Collection),
+            Self::WithSplat(record) => record
+                .infer(subs, var_state, env)?
+                .map(Collection::WithSplat),
         };
         Ok(typed)
     }
@@ -491,8 +493,8 @@ impl Inferable for Box<[Expr<()>]> {
         })
     }
 }
-impl Inferable for TupleWithSplat<()> {
-    type TypedSelf = TupleWithSplat<Type>;
+impl Inferable for WithSplat<Expr<()>, ()> {
+    type TypedSelf = WithSplat<Expr<Type>, Type>;
 
     fn infer(
         self,
@@ -517,7 +519,7 @@ impl Inferable for TupleWithSplat<()> {
         subs.compose_with(more_subs)?;
         Ok(Typed {
             ty,
-            value: TupleWithSplat {
+            value: WithSplat {
                 left: left_expr.into(),
                 splat: Box::new(splat.value),
                 right: right_expr.into(),
@@ -525,8 +527,8 @@ impl Inferable for TupleWithSplat<()> {
         })
     }
 }
-impl Inferable for Tuple<()> {
-    type TypedSelf = Tuple<Type>;
+impl Inferable for Collection<Expr<()>, ()> {
+    type TypedSelf = Collection<Expr<Type>, Type>;
 
     fn infer(
         self,
@@ -535,10 +537,12 @@ impl Inferable for Tuple<()> {
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
-            Self::Tuple(tuple) => tuple.infer(subs, var_state, env)?.map(Tuple::Tuple),
-            Self::TupleWithSplat(tuple) => tuple
+            Self::Collection(tuple) => tuple
                 .infer(subs, var_state, env)?
-                .map(Tuple::TupleWithSplat),
+                .map(Collection::Collection),
+            Self::WithSplat(tuple) => tuple
+                .infer(subs, var_state, env)?
+                .map(Collection::WithSplat),
         };
         Ok(typed)
     }

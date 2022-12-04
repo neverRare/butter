@@ -13,8 +13,8 @@ use combine::{
 };
 use hir::{
     expr::{
-        Arg, Assign, Binary, BinaryType, Call, Expr, ExprKind, FieldAccess, Index, PlaceExpr,
-        Range, Record, Slice, Tuple,
+        Arg, Assign, Binary, BinaryType, Call, Collection, Expr, ExprKind, Field, FieldAccess,
+        Index, PlaceExpr, Range, Slice,
     },
     keyword, Atom,
 };
@@ -26,8 +26,8 @@ pub(super) enum PartialAst {
     Slice(Range<()>),
     UnitCall,
     SplatCall(Expr<()>),
-    RecordCall(Record<()>),
-    TupleCall(Tuple<()>),
+    RecordCall(Collection<Field<()>, ()>),
+    TupleCall(Collection<Expr<()>, ()>),
     Deref,
     Len,
 }

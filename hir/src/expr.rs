@@ -71,8 +71,8 @@ pub enum ExprKind<T> {
 
     Unit,
     Splat(Box<Expr<T>>),
-    Record(Record<T>),
-    Tuple(Tuple<T>),
+    Record(Collection<Field<T>, T>),
+    Tuple(Collection<Expr<T>, T>),
 
     Unary(Unary<T>),
     Binary(Binary<T>),
@@ -293,57 +293,16 @@ pub enum ElementKind {
     Element,
     Splat,
 }
-// TODO: Tuple<T> and TupleWithSplat<T> is roughly the same with Record<T> and
-// RecordWithSplat<T>, maybe generalized them
 #[derive(Debug, PartialEq, Clone)]
-pub enum Tuple<T> {
-    Tuple(Box<[Expr<T>]>),
-    TupleWithSplat(TupleWithSplat<T>),
+pub enum Collection<T, U> {
+    Collection(Box<[T]>),
+    WithSplat(WithSplat<T, U>),
 }
-impl<T: PrettyPrintType> PrettyPrint for Tuple<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match self {
-            Self::Tuple(tuple) => {
-                let iter = tuple
-                    .iter()
-                    .map(Expr::to_pretty_print)
-                    .map(|field| postfix(", ", field));
-                bracket("(", ")", sequence(iter))
-            }
-            Self::TupleWithSplat(tuple) => tuple.to_pretty_print(),
-        }
-    }
-}
-#[derive(Debug, PartialEq, Clone)]
-pub struct TupleWithSplat<T> {
-    pub left: Box<[Expr<T>]>,
-    pub splat: Box<Expr<T>>,
-    pub right: Box<[Expr<T>]>,
-}
-impl<T: PrettyPrintType> PrettyPrint for TupleWithSplat<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let iter = self
-            .left
-            .iter()
-            .map(Expr::to_pretty_print)
-            .chain(once(
-                prefix("*", self.splat.to_pretty_print()) as Box<dyn PrettyPrintTree>
-            ))
-            .chain(self.right.iter().map(Expr::to_pretty_print))
-            .map(|field| postfix(", ", field));
-        bracket("(", ")", sequence(iter))
-    }
-}
-#[derive(Debug, PartialEq, Clone)]
-pub enum Record<T> {
-    Record(Box<[Field<T>]>),
-    RecordWithSplat(RecordWithSplat<T>),
-}
-impl<T> Record<T> {
+impl<T> Collection<Field<T>, T> {
     pub fn all_name_unique(&self) -> bool {
         match self {
-            Self::Record(record) => all_unique(record.iter().map(|field| field.name.clone())),
-            Self::RecordWithSplat(record) => all_unique(
+            Self::Collection(record) => all_unique(record.iter().map(|field| field.name.clone())),
+            Self::WithSplat(record) => all_unique(
                 record
                     .left
                     .iter()
@@ -353,34 +312,44 @@ impl<T> Record<T> {
         }
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Record<T> {
+impl<T, U> PrettyPrint for Collection<T, U>
+where
+    T: PrettyPrint,
+    U: PrettyPrintType,
+{
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
-            Record::Record(record) => {
-                let iter = record
+            Self::Collection(tuple) => {
+                let iter = tuple
                     .iter()
-                    .map(Field::to_pretty_print)
+                    .map(T::to_pretty_print)
                     .map(|field| postfix(", ", field));
                 bracket("(", ")", sequence(iter))
             }
-            Record::RecordWithSplat(record) => record.to_pretty_print(),
+            Self::WithSplat(tuple) => tuple.to_pretty_print(),
         }
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct RecordWithSplat<T> {
-    pub left: Box<[Field<T>]>,
-    pub splat: Box<Expr<T>>,
-    pub right: Box<[Field<T>]>,
+pub struct WithSplat<T, U> {
+    pub left: Box<[T]>,
+    pub splat: Box<Expr<U>>,
+    pub right: Box<[T]>,
 }
-impl<T: PrettyPrintType> PrettyPrint for RecordWithSplat<T> {
+impl<T, U> PrettyPrint for WithSplat<T, U>
+where
+    T: PrettyPrint,
+    U: PrettyPrintType,
+{
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let iter = self
             .left
             .iter()
-            .map(Field::to_pretty_print)
-            .chain(once(prefix("*", self.splat.to_pretty_print())))
-            .chain(self.right.iter().map(Field::to_pretty_print))
+            .map(T::to_pretty_print)
+            .chain(once(
+                prefix("*", self.splat.to_pretty_print()) as Box<dyn PrettyPrintTree>
+            ))
+            .chain(self.right.iter().map(T::to_pretty_print))
             .map(|field| postfix(", ", field));
         bracket("(", ")", sequence(iter))
     }
@@ -468,8 +437,8 @@ pub struct Call<T> {
 pub enum Arg<T> {
     Unit,
     Splat(Box<Expr<T>>),
-    Record(Record<T>),
-    Tuple(Tuple<T>),
+    Record(Collection<Field<T>, T>),
+    Tuple(Collection<Expr<T>, T>),
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Tag<T> {

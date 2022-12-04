@@ -4,11 +4,11 @@ use combine::{
     Parser, Stream,
 };
 use hir::{
-    expr::{Field, Record, RecordWithSplat},
+    expr::{Collection, Field, WithSplat},
     Atom,
 };
 
-pub(super) fn record<I>() -> impl Parser<I, Output = Record<()>>
+pub(super) fn record<I>() -> impl Parser<I, Output = Collection<Field<()>, ()>>
 where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
@@ -28,12 +28,12 @@ where
             .map(|(left, rest_right)| {
                 let left: Vec<_> = left;
                 match rest_right {
-                    Some((rest, right)) => Record::RecordWithSplat(RecordWithSplat {
+                    Some((rest, right)) => Collection::WithSplat(WithSplat {
                         left: left.into(),
                         splat: Box::new(rest),
                         right: right.into(),
                     }),
-                    None => Record::Record(left.into()),
+                    None => Collection::Collection(left.into()),
                 }
             })
             .and_then(|record| {
