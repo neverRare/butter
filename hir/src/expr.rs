@@ -5,7 +5,10 @@ use crate::{
     statement::Statement,
     Atom, PrettyType,
 };
-use std::fmt::{self, Display, Formatter};
+use std::{
+    fmt::{self, Display, Formatter},
+    iter::once,
+};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
@@ -134,8 +137,8 @@ impl<T> ExprKind<T> {
             ExprKind::Splat(expr) => {
                 Box::new(bracket("(", ")", prefix("*", expr.to_pretty_print())))
             }
-            ExprKind::Record(_) => todo!(),
-            ExprKind::Tuple(_) => todo!(),
+            ExprKind::Record(record) => record.to_pretty_print(),
+            ExprKind::Tuple(tuple) => tuple.to_pretty_print(),
             ExprKind::Unary(_) => todo!(),
             ExprKind::Binary(_) => todo!(),
             ExprKind::Place(_) => todo!(),
@@ -294,16 +297,52 @@ pub enum ElementKind {
     Element,
     Splat,
 }
+// TODO: Tuple<T> and TupleWithSplat<T> is roughly the same with Record<T> and
+// RecordWithSplat<T>, maybe generalized them
 #[derive(Debug, PartialEq, Clone)]
 pub enum Tuple<T> {
     Tuple(Box<[Expr<T>]>),
     TupleWithSplat(TupleWithSplat<T>),
+}
+impl<T> Tuple<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        match self {
+            Self::Tuple(tuple) => {
+                let iter = tuple
+                    .iter()
+                    .map(Expr::to_pretty_print)
+                    .map(|field| Box::new(postfix(", ", field)));
+                Box::new(bracket("(", ")", sequence(iter)))
+            }
+            Self::TupleWithSplat(tuple) => tuple.to_pretty_print(),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct TupleWithSplat<T> {
     pub left: Box<[Expr<T>]>,
     pub splat: Box<Expr<T>>,
     pub right: Box<[Expr<T>]>,
+}
+impl<T> TupleWithSplat<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        let iter = self
+            .left
+            .iter()
+            .map(Expr::to_pretty_print)
+            .chain(once(
+                Box::new(prefix("*", self.splat.to_pretty_print())) as Box<dyn PrettyPrint>
+            ))
+            .chain(self.right.iter().map(Expr::to_pretty_print))
+            .map(|field| Box::new(postfix(", ", field)));
+        Box::new(bracket("(", ")", sequence(iter)))
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum Record<T> {
@@ -323,6 +362,21 @@ impl<T> Record<T> {
             ),
         }
     }
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        match self {
+            Record::Record(record) => {
+                let iter = record
+                    .iter()
+                    .map(Field::to_pretty_print)
+                    .map(|field| Box::new(postfix(", ", field)));
+                Box::new(bracket("(", ")", sequence(iter)))
+            }
+            Record::RecordWithSplat(record) => record.to_pretty_print(),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct RecordWithSplat<T> {
@@ -330,10 +384,38 @@ pub struct RecordWithSplat<T> {
     pub splat: Box<Expr<T>>,
     pub right: Box<[Field<T>]>,
 }
+impl<T> RecordWithSplat<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        let iter = self
+            .left
+            .iter()
+            .map(Field::to_pretty_print)
+            .chain(once(
+                Box::new(prefix("*", self.splat.to_pretty_print())) as Box<dyn PrettyPrint>
+            ))
+            .chain(self.right.iter().map(Field::to_pretty_print))
+            .map(|field| Box::new(postfix(", ", field)));
+        Box::new(bracket("(", ")", sequence(iter)))
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Field<T> {
     pub name: Atom,
     pub expr: Expr<T>,
+}
+impl<T> Field<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
+    where
+        T: PrettyType,
+    {
+        Box::new(line([
+            Box::new(format!("{} = ", self.name)),
+            self.expr.to_pretty_print(),
+        ]))
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum ControlFlow<T> {
