@@ -1,5 +1,9 @@
 use crate::ty::cons::Cons;
-use hir::{keyword, pretty_print::PrettyPrint, Atom, PrettyType};
+use hir::{
+    keyword,
+    pretty_print::{PrettyPrint, PrettyPrintTree},
+    Atom, PrettyPrintType,
+};
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -75,20 +79,20 @@ pub enum Type {
     Var(Var),
     Cons(Cons),
 }
-impl Type {
-    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
+impl PrettyPrint for Type {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             Self::Var(var) => Box::new(var.to_string()),
             Self::Cons(cons) => cons.to_pretty_print(),
         }
     }
 }
-impl PrettyType for Type {
-    type PrettyPrint = Box<dyn PrettyPrint>;
+impl PrettyPrintType for Type {
+    type PrettyPrint = Box<dyn PrettyPrintTree>;
     const TYPED: bool = true;
 
     fn to_pretty_print(&self) -> Option<Self::PrettyPrint> {
-        Some(self.to_pretty_print())
+        Some(PrettyPrint::to_pretty_print(self))
     }
 }
 impl FreeVars for Type {

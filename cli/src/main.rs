@@ -1,4 +1,5 @@
 use clap::Parser;
+use hir::pretty_print::PrettyPrint;
 use parser::{expr_parser, EasyParser};
 use std::io::{self, Write};
 use type_system::test_infer;
@@ -45,7 +46,7 @@ fn type_repl() -> io::Result<()> {
                 continue;
             }
         };
-        ty.to_pretty_print().write(&mut stdout, "  ", 80)?;
+        ty.pretty_print(&mut stdout, "  ", 80)?;
         println!();
     }
     Ok(())

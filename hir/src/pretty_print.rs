@@ -5,6 +5,17 @@ use std::{
 };
 
 pub trait PrettyPrint {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree>;
+    fn pretty_print(
+        &self,
+        writer: &mut dyn Write,
+        indent: &'static str,
+        max: usize,
+    ) -> io::Result<()> {
+        self.to_pretty_print().write(writer, indent, max)
+    }
+}
+pub trait PrettyPrintTree {
     fn write_len(&self) -> Option<usize>;
     fn write_line(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()>;
     fn write_multiline(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()>;
@@ -35,10 +46,10 @@ pub trait PrettyPrint {
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct PrettyPrintState {
-    pub level: usize,
-    pub indent: &'static str,
-    pub max: usize,
-    pub newline: bool,
+    level: usize,
+    indent: &'static str,
+    max: usize,
+    newline: bool,
 }
 impl PrettyPrintState {
     fn incr(&mut self) {
@@ -51,20 +62,20 @@ impl PrettyPrintState {
         Ok(())
     }
 }
-impl<T: PrettyPrint + ?Sized> PrettyPrint for Box<T> {
+impl<T: PrettyPrintTree + ?Sized> PrettyPrintTree for Box<T> {
     fn write_len(&self) -> Option<usize> {
-        <T as PrettyPrint>::write_len(self)
+        <T as PrettyPrintTree>::write_len(self)
     }
     fn write_line(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
-        <T as PrettyPrint>::write_line(self, writer, state)?;
+        <T as PrettyPrintTree>::write_line(self, writer, state)?;
         Ok(())
     }
     fn write_multiline(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
-        <T as PrettyPrint>::write_multiline(self, writer, state)?;
+        <T as PrettyPrintTree>::write_multiline(self, writer, state)?;
         Ok(())
     }
 }
-impl PrettyPrint for Infallible {
+impl PrettyPrintTree for Infallible {
     fn write_len(&self) -> Option<usize> {
         unreachable!();
     }
@@ -75,7 +86,7 @@ impl PrettyPrint for Infallible {
         unreachable!();
     }
 }
-impl PrettyPrint for str {
+impl PrettyPrintTree for str {
     fn write_len(&self) -> Option<usize> {
         Some(self.len())
     }
@@ -93,12 +104,12 @@ impl PrettyPrint for str {
         Ok(())
     }
 }
-impl PrettyPrint for String {
+impl PrettyPrintTree for String {
     fn write_len(&self) -> Option<usize> {
         Some(self.len())
     }
     fn write_line(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
-        <str as PrettyPrint>::write_line(self, writer, state)?;
+        <str as PrettyPrintTree>::write_line(self, writer, state)?;
         Ok(())
     }
     fn write_multiline(&self, writer: &mut dyn Write, state: PrettyPrintState) -> io::Result<()> {
@@ -106,8 +117,8 @@ impl PrettyPrint for String {
         Ok(())
     }
 }
-pub struct Indent(pub Box<dyn PrettyPrint>);
-impl PrettyPrint for Indent {
+struct Indent(Box<dyn PrettyPrintTree>);
+impl PrettyPrintTree for Indent {
     fn write_len(&self) -> Option<usize> {
         self.0.write_len()
     }
@@ -130,13 +141,13 @@ impl PrettyPrint for Indent {
         Ok(())
     }
 }
-pub struct Sequence<T> {
-    pub content: T,
-    pub multiline_override: Option<bool>,
+struct Sequence<T> {
+    content: T,
+    multiline_override: Option<bool>,
 }
-impl<T> PrettyPrint for Sequence<T>
+impl<T> PrettyPrintTree for Sequence<T>
 where
-    for<'a> &'a T: IntoIterator<Item = &'a Box<dyn PrettyPrint>>,
+    for<'a> &'a T: IntoIterator<Item = &'a Box<dyn PrettyPrintTree>>,
 {
     fn write_len(&self) -> Option<usize> {
         if self.multiline_override == Some(true) {
@@ -194,62 +205,58 @@ where
         Ok(())
     }
 }
-pub type ArraySequence<const L: usize> = Sequence<[Box<dyn PrettyPrint>; L]>;
-pub fn indent(content: impl PrettyPrint + 'static) -> Indent {
-    Indent(Box::new(content))
+pub fn indent(content: Box<dyn PrettyPrintTree>) -> Box<dyn PrettyPrintTree> {
+    Box::new(Indent(content))
 }
 pub fn array_sequence<const L: usize>(
-    content: [Box<dyn PrettyPrint>; L],
+    content: [Box<dyn PrettyPrintTree>; L],
     multiline_override: Option<bool>,
-) -> ArraySequence<L> {
-    Sequence {
+) -> Box<dyn PrettyPrintTree> {
+    Box::new(Sequence {
         content,
         multiline_override,
-    }
+    })
 }
-pub fn bracket(open: &str, close: &str, content: impl PrettyPrint + 'static) -> ArraySequence<3> {
+pub fn bracket(
+    open: &str,
+    close: &str,
+    content: Box<dyn PrettyPrintTree>,
+) -> Box<dyn PrettyPrintTree> {
     array_sequence(
         [
             Box::new(open.to_string()),
-            Box::new(indent(content)),
+            indent(content),
             Box::new(close.to_string()),
         ],
         None,
     )
 }
-pub fn line<const L: usize>(content: [Box<dyn PrettyPrint>; L]) -> ArraySequence<L> {
-    Sequence {
+pub fn line<const L: usize>(content: [Box<dyn PrettyPrintTree>; L]) -> Box<dyn PrettyPrintTree> {
+    Box::new(Sequence {
         content,
         multiline_override: Some(false),
-    }
+    })
 }
-pub fn prefix(prefix: &str, content: impl PrettyPrint + 'static) -> ArraySequence<2> {
-    array_sequence(
-        [Box::new(prefix.to_string()), Box::new(indent(content))],
-        Some(false),
-    )
+pub fn prefix(prefix: &str, content: Box<dyn PrettyPrintTree>) -> Box<dyn PrettyPrintTree> {
+    array_sequence([Box::new(prefix.to_string()), indent(content)], Some(false))
 }
-pub fn postfix(postfix: &str, content: impl PrettyPrint + 'static) -> ArraySequence<2> {
+pub fn postfix(postfix: &str, content: Box<dyn PrettyPrintTree>) -> Box<dyn PrettyPrintTree> {
     array_sequence(
-        [Box::new(indent(content)), Box::new(postfix.to_string())],
+        [indent(content), Box::new(postfix.to_string())],
         Some(false),
     )
 }
 pub fn sequence(
-    content: impl IntoIterator<Item = impl PrettyPrint + 'static>,
-) -> Sequence<Vec<Box<dyn PrettyPrint>>> {
-    Sequence {
-        content: content
-            .into_iter()
-            .map(Box::new)
-            .map(|a| a as Box<dyn PrettyPrint>)
-            .collect(),
+    content: impl IntoIterator<Item = Box<dyn PrettyPrintTree>>,
+) -> Box<dyn PrettyPrintTree> {
+    Box::new(Sequence {
+        content: content.into_iter().collect::<Vec<_>>(),
         multiline_override: None,
-    }
+    })
 }
 #[cfg(test)]
 mod test {
-    use super::PrettyPrint;
+    use super::PrettyPrintTree;
     use crate::pretty_print::{array_sequence, indent};
 
     #[test]
@@ -262,10 +269,10 @@ mod test {
         let tree = array_sequence(
             [
                 Box::new("(".to_string()),
-                Box::new(indent(array_sequence(
+                indent(array_sequence(
                     [Box::new("a".to_string()), Box::new("b".to_string())],
                     Some(true),
-                ))),
+                )),
                 Box::new(")".to_string()),
             ],
             None,
@@ -283,14 +290,14 @@ a(
         let tree = array_sequence(
             [
                 Box::new("a".to_string()),
-                Box::new(array_sequence(
+                array_sequence(
                     [
                         Box::new("(".to_string()),
-                        Box::new(indent("b".to_string())),
+                        indent(Box::new("b".to_string())),
                         Box::new(")".to_string()),
                     ],
                     Some(true),
-                )),
+                ),
             ],
             Some(false),
         );
@@ -303,8 +310,8 @@ a(
         let expected = "    ab";
         let tree = array_sequence(
             [
-                Box::new(indent("a".to_string())),
-                Box::new(indent("b".to_string())),
+                indent(Box::new("a".to_string())),
+                indent(Box::new("b".to_string())),
             ],
             Some(false),
         );
@@ -317,8 +324,8 @@ a(
         let expected = "    a\n    b";
         let tree = array_sequence(
             [
-                Box::new(indent("a".to_string())),
-                Box::new(indent("b".to_string())),
+                indent(Box::new("a".to_string())),
+                indent(Box::new("b".to_string())),
             ],
             Some(true),
         );

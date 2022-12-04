@@ -1,9 +1,9 @@
 use crate::{
     all_unique,
     pattern::Pattern,
-    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint},
+    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree},
     statement::Statement,
-    Atom, PrettyType,
+    Atom, PrettyPrintType,
 };
 use std::{
     fmt::{self, Display, Formatter},
@@ -40,7 +40,7 @@ impl<T> Expr<T> {
     }
     fn precedence(&self) -> u8
     where
-        T: PrettyType,
+        T: PrettyPrintType,
     {
         if T::TYPED {
             9
@@ -48,13 +48,12 @@ impl<T> Expr<T> {
             self.expr.precedence()
         }
     }
-    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
-    where
-        T: PrettyType,
-    {
+}
+impl<T: PrettyPrintType> PrettyPrint for Expr<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let pattern = self.expr.to_pretty_print();
         match self.ty.to_pretty_print() {
-            Some(ty) => Box::new(line([Box::new(ty), Box::new(" : ".to_string()), pattern])),
+            Some(ty) => line([Box::new(ty), Box::new(" : ".to_string()), pattern]),
             None => pattern,
         }
     }
@@ -117,10 +116,9 @@ impl<T> ExprKind<T> {
             ExprKind::Jump(jump) => jump.precedence(),
         }
     }
-    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
-    where
-        T: PrettyType,
-    {
+}
+impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             ExprKind::Literal(literal) => Box::new(literal.to_string()),
             ExprKind::Tag(_) => todo!(),
@@ -130,13 +128,11 @@ impl<T> ExprKind<T> {
                     .iter()
                     .map(Element::to_pretty_print)
                     .map(|element| postfix(", ", element));
-                Box::new(bracket("[", "]", sequence(iter)))
+                bracket("[", "]", sequence(iter))
             }
             ExprKind::ArrayRange(array) => array.to_pretty_print(),
             ExprKind::Unit => Box::new("()".to_string()),
-            ExprKind::Splat(expr) => {
-                Box::new(bracket("(", ")", prefix("*", expr.to_pretty_print())))
-            }
+            ExprKind::Splat(expr) => bracket("(", ")", prefix("*", expr.to_pretty_print())),
             ExprKind::Record(record) => record.to_pretty_print(),
             ExprKind::Tuple(tuple) => tuple.to_pretty_print(),
             ExprKind::Unary(_) => todo!(),
@@ -283,12 +279,12 @@ pub struct Element<T> {
     pub expr: Expr<T>,
     pub kind: ElementKind,
 }
-impl<T: PrettyType> Element<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
+impl<T: PrettyPrintType> PrettyPrint for Element<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let expr = self.expr.to_pretty_print();
         match self.kind {
             ElementKind::Element => expr,
-            ElementKind::Splat => Box::new(prefix("*", expr)),
+            ElementKind::Splat => prefix("*", expr),
         }
     }
 }
@@ -304,18 +300,15 @@ pub enum Tuple<T> {
     Tuple(Box<[Expr<T>]>),
     TupleWithSplat(TupleWithSplat<T>),
 }
-impl<T> Tuple<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
-    where
-        T: PrettyType,
-    {
+impl<T: PrettyPrintType> PrettyPrint for Tuple<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             Self::Tuple(tuple) => {
                 let iter = tuple
                     .iter()
                     .map(Expr::to_pretty_print)
-                    .map(|field| Box::new(postfix(", ", field)));
-                Box::new(bracket("(", ")", sequence(iter)))
+                    .map(|field| postfix(", ", field));
+                bracket("(", ")", sequence(iter))
             }
             Self::TupleWithSplat(tuple) => tuple.to_pretty_print(),
         }
@@ -327,21 +320,18 @@ pub struct TupleWithSplat<T> {
     pub splat: Box<Expr<T>>,
     pub right: Box<[Expr<T>]>,
 }
-impl<T> TupleWithSplat<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
-    where
-        T: PrettyType,
-    {
+impl<T: PrettyPrintType> PrettyPrint for TupleWithSplat<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let iter = self
             .left
             .iter()
             .map(Expr::to_pretty_print)
             .chain(once(
-                Box::new(prefix("*", self.splat.to_pretty_print())) as Box<dyn PrettyPrint>
+                prefix("*", self.splat.to_pretty_print()) as Box<dyn PrettyPrintTree>
             ))
             .chain(self.right.iter().map(Expr::to_pretty_print))
-            .map(|field| Box::new(postfix(", ", field)));
-        Box::new(bracket("(", ")", sequence(iter)))
+            .map(|field| postfix(", ", field));
+        bracket("(", ")", sequence(iter))
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -362,17 +352,16 @@ impl<T> Record<T> {
             ),
         }
     }
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
-    where
-        T: PrettyType,
-    {
+}
+impl<T: PrettyPrintType> PrettyPrint for Record<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             Record::Record(record) => {
                 let iter = record
                     .iter()
                     .map(Field::to_pretty_print)
-                    .map(|field| Box::new(postfix(", ", field)));
-                Box::new(bracket("(", ")", sequence(iter)))
+                    .map(|field| postfix(", ", field));
+                bracket("(", ")", sequence(iter))
             }
             Record::RecordWithSplat(record) => record.to_pretty_print(),
         }
@@ -384,21 +373,16 @@ pub struct RecordWithSplat<T> {
     pub splat: Box<Expr<T>>,
     pub right: Box<[Field<T>]>,
 }
-impl<T> RecordWithSplat<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
-    where
-        T: PrettyType,
-    {
+impl<T: PrettyPrintType> PrettyPrint for RecordWithSplat<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let iter = self
             .left
             .iter()
             .map(Field::to_pretty_print)
-            .chain(once(
-                Box::new(prefix("*", self.splat.to_pretty_print())) as Box<dyn PrettyPrint>
-            ))
+            .chain(once(prefix("*", self.splat.to_pretty_print())))
             .chain(self.right.iter().map(Field::to_pretty_print))
-            .map(|field| Box::new(postfix(", ", field)));
-        Box::new(bracket("(", ")", sequence(iter)))
+            .map(|field| postfix(", ", field));
+        bracket("(", ")", sequence(iter))
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -406,15 +390,12 @@ pub struct Field<T> {
     pub name: Atom,
     pub expr: Expr<T>,
 }
-impl<T> Field<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrint>
-    where
-        T: PrettyType,
-    {
-        Box::new(line([
+impl<T: PrettyPrintType> PrettyPrint for Field<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
             Box::new(format!("{} = ", self.name)),
             self.expr.to_pretty_print(),
-        ]))
+        ])
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -510,17 +491,17 @@ pub struct Range<T> {
     pub left: Option<Bound<T>>,
     pub right: Option<Bound<T>>,
 }
-impl<T: PrettyType> Range<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
+impl<T: PrettyPrintType> PrettyPrint for Range<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let range = match (&self.left, &self.right) {
-            (None, None) => Box::new("..".to_string()) as Box<dyn PrettyPrint>,
+            (None, None) => Box::new("..".to_string()) as Box<dyn PrettyPrintTree>,
             (None, Some(range)) => {
                 let expr = range.expr.to_pretty_print();
                 let op = match range.kind {
                     BoundType::Inclusive => "..",
                     BoundType::Exclusive => ".<",
                 };
-                Box::new(prefix(op, expr))
+                prefix(op, expr)
             }
             (Some(range), None) => {
                 let expr = range.expr.to_pretty_print();
@@ -528,7 +509,7 @@ impl<T: PrettyType> Range<T> {
                     BoundType::Inclusive => "..",
                     BoundType::Exclusive => ">.",
                 };
-                Box::new(postfix(op, expr))
+                postfix(op, expr)
             }
             (Some(left), Some(right)) => {
                 let op = match (left.kind, right.kind) {
@@ -539,9 +520,9 @@ impl<T: PrettyType> Range<T> {
                 };
                 let left = left.expr.to_pretty_print();
                 let right = right.expr.to_pretty_print();
-                Box::new(line([left, Box::new(op.to_string()), right]))
+                line([left, Box::new(op.to_string()), right])
             }
         };
-        Box::new(bracket("[", "]", range))
+        bracket("[", "]", range)
     }
 }

@@ -3,7 +3,7 @@ use crate::ty::{
     Kind, KindedVar, MutType, Subs, Substitutable, Type, Type1, TypeError, Unifiable, Var, VarState,
 };
 use hir::{
-    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint},
+    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree},
     Atom,
 };
 use std::{
@@ -25,88 +25,80 @@ pub enum Cons {
     Tuple(OrderedAnd<Type>),
     Union(Keyed),
 }
-impl Cons {
-    pub fn to_pretty_print(&self) -> Box<dyn PrettyPrint> {
+impl PrettyPrint for Cons {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             Self::Num => Box::new("Num".to_string()),
             Self::Bool => Box::new("Bool".to_string()),
-            Self::Ref(mut_type, ty) => Box::new(line([
+            Self::Ref(mut_type, ty) => line([
                 Box::new("&:".to_string()),
                 Box::new(mut_type.to_string()),
                 Box::new(" ".to_string()),
                 ty.to_pretty_print(),
-            ])),
-            Self::Array(ty) => Box::new(bracket("[", "]", ty.to_pretty_print())),
-            Self::Fun(param, ret) => Box::new(line([
-                Box::new(param.to_pretty_print()),
+            ]),
+            Self::Array(ty) => bracket("[", "]", ty.to_pretty_print()),
+            Self::Fun(param, ret) => line([
+                param.to_pretty_print(),
                 Box::new(" -> ".to_string()),
-                Box::new(ret.to_pretty_print()),
-            ])),
+                ret.to_pretty_print(),
+            ]),
             Self::RecordTuple(OrderedAnd::NonRow(rec_tup)) => {
                 if rec_tup.is_empty() {
                     Box::new("()".to_string())
                 } else {
-                    let mut fields = sequence(rec_tup.iter().map(|(name, ty)| {
+                    let fields = sequence(rec_tup.iter().map(|(name, ty)| {
                         line([
                             Box::new(format!("{name} = ")),
-                            Box::new(ty.to_pretty_print()),
+                            ty.to_pretty_print(),
                             Box::new(", ".to_string()),
                         ])
                     }));
-                    if rec_tup.len() > 1 {
-                        fields.multiline_override = Some(true);
-                    }
-                    Box::new(prefix("ordered", bracket("(", ")", fields)))
+                    // if rec_tup.len() > 1 {
+                    //     fields.multiline_override = Some(true);
+                    // }
+                    prefix("ordered", bracket("(", ")", fields))
                 }
             }
             Self::RecordTuple(OrderedAnd::Row(left, row, right)) => {
                 let row = Box::new(format!("*{row}, "));
                 let [left, right] = [left, right].map(|rec_tup| {
-                    rec_tup
-                        .iter()
-                        .map(|(name, ty)| {
-                            line([
-                                Box::new(format!("{name} : ")),
-                                Box::new(ty.to_pretty_print()),
-                                Box::new(", ".to_string()),
-                            ])
-                        })
-                        .map(Box::new)
-                        .map(|item| item as Box<dyn PrettyPrint>)
+                    rec_tup.iter().map(|(name, ty)| {
+                        line([
+                            Box::new(format!("{name} : ")),
+                            ty.to_pretty_print(),
+                            Box::new(", ".to_string()),
+                        ])
+                    })
                 });
                 let list = left
-                    .chain(once(Box::new(row) as Box<dyn PrettyPrint>))
+                    .chain(once(row as Box<dyn PrettyPrintTree>))
                     .chain(right);
-                Box::new(prefix("ordered", bracket("(", ")", sequence(list))))
+                prefix("ordered", bracket("(", ")", sequence(list)))
             }
             Self::Record(rec) => {
                 let iter = rec.fields.iter().map(|(name, ty)| {
                     line([
                         Box::new(format!("{name} : ")),
-                        Box::new(ty.to_pretty_print()),
+                        ty.to_pretty_print(),
                         Box::new(", ".to_string()),
                     ])
                 });
                 match &rec.rest {
                     Some(row) => {
                         let row = Box::new(format!("*{row}, "));
-                        Box::new(bracket(
+                        bracket(
                             "(",
                             ")",
-                            sequence(
-                                iter.map(Box::new)
-                                    .map(|a| a as Box<dyn PrettyPrint>)
-                                    .chain(once(Box::new(row) as Box<dyn PrettyPrint>)),
-                            ),
-                        ))
+                            sequence(iter.chain(once(row as Box<dyn PrettyPrintTree>))),
+                        )
                     }
                     None if rec.fields.is_empty() => Box::new("()".to_string()),
                     None => {
-                        let mut list = sequence(iter);
-                        if rec.fields.len() > 1 {
-                            list.multiline_override = Some(true);
-                        }
-                        Box::new(bracket("(", ")", list))
+                        let list = sequence(iter);
+                        // if rec.fields.len() > 1 {
+                        //     list.multiline_override = Some(true);
+                        // }
+                        bracket("(", ")", list)
                     }
                 }
             }
@@ -114,54 +106,46 @@ impl Cons {
                 if tup.is_empty() {
                     Box::new("()".to_string())
                 } else {
-                    Box::new(bracket(
+                    bracket(
                         "(",
                         ")",
                         sequence(tup.iter().map(|ty| postfix(", ", ty.to_pretty_print()))),
-                    ))
+                    )
                 }
             }
             Self::Tuple(OrderedAnd::Row(left, row, right)) => {
                 let row = Box::new(format!("*{row}, "));
-                let [left, right] = [left, right].map(|tup| {
-                    tup.iter()
-                        .map(|ty| postfix(", ", ty.to_pretty_print()))
-                        .map(Box::new)
-                        .map(|item| item as Box<dyn PrettyPrint>)
-                });
+                let [left, right] = [left, right]
+                    .map(|tup| tup.iter().map(|ty| postfix(", ", ty.to_pretty_print())));
                 let list = left
-                    .chain(once(Box::new(row) as Box<dyn PrettyPrint>))
+                    .chain(once(row as Box<dyn PrettyPrintTree>))
                     .chain(right);
-                Box::new(bracket("(", ")", sequence(list)))
+                bracket("(", ")", sequence(list))
             }
             Self::Union(union) => {
                 let iter = union.fields.iter().map(|(name, ty)| {
                     line([
                         Box::new(format!("@{name} ")),
-                        Box::new(ty.to_pretty_print()),
+                        ty.to_pretty_print(),
                         Box::new(", ".to_string()),
                     ])
                 });
                 match &union.rest {
                     Some(row) => {
                         let row = Box::new(format!("*{row}, "));
-                        Box::new(bracket(
+                        bracket(
                             "(",
                             ")",
-                            sequence(
-                                iter.map(Box::new)
-                                    .map(|a| a as Box<dyn PrettyPrint>)
-                                    .chain(once(Box::new(row) as Box<dyn PrettyPrint>)),
-                            ),
-                        ))
+                            sequence(iter.chain(once(row as Box<dyn PrettyPrintTree>))),
+                        )
                     }
                     None if union.fields.is_empty() => Box::new("(@)".to_string()),
                     None => {
-                        let mut list = sequence(iter);
-                        if union.fields.len() > 1 {
-                            list.multiline_override = Some(true);
-                        }
-                        Box::new(bracket("(", ")", list))
+                        let list = sequence(iter);
+                        // if union.fields.len() > 1 {
+                        //     list.multiline_override = Some(true);
+                        // }
+                        bracket("(", ")", list)
                     }
                 }
             }

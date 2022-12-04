@@ -2,7 +2,7 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use pretty_print::PrettyPrint;
+use pretty_print::PrettyPrintTree;
 use std::collections::HashSet;
 use std::convert::Infallible;
 use std::hash::Hash;
@@ -19,12 +19,12 @@ pub mod hir_string_cache {
 
 pub use hir_string_cache::Atom;
 
-pub trait PrettyType {
-    type PrettyPrint: PrettyPrint + 'static;
+pub trait PrettyPrintType {
+    type PrettyPrint: PrettyPrintTree + 'static;
     const TYPED: bool;
     fn to_pretty_print(&self) -> Option<Self::PrettyPrint>;
 }
-impl PrettyType for () {
+impl PrettyPrintType for () {
     type PrettyPrint = Infallible;
     const TYPED: bool = false;
 
