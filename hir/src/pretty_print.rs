@@ -208,7 +208,7 @@ where
 pub fn indent(content: Box<dyn PrettyPrintTree>) -> Box<dyn PrettyPrintTree> {
     Box::new(Indent(content))
 }
-pub fn array_sequence<const L: usize>(
+fn array_sequence<const L: usize>(
     content: [Box<dyn PrettyPrintTree>; L],
     multiline_override: Option<bool>,
 ) -> Box<dyn PrettyPrintTree> {
@@ -238,13 +238,10 @@ pub fn line<const L: usize>(content: [Box<dyn PrettyPrintTree>; L]) -> Box<dyn P
     })
 }
 pub fn prefix(prefix: &str, content: Box<dyn PrettyPrintTree>) -> Box<dyn PrettyPrintTree> {
-    array_sequence([Box::new(prefix.to_string()), indent(content)], Some(false))
+    line([Box::new(prefix.to_string()), indent(content)])
 }
 pub fn postfix(postfix: &str, content: Box<dyn PrettyPrintTree>) -> Box<dyn PrettyPrintTree> {
-    array_sequence(
-        [indent(content), Box::new(postfix.to_string())],
-        Some(false),
-    )
+    line([indent(content), Box::new(postfix.to_string())])
 }
 pub fn sequence(
     content: impl IntoIterator<Item = Box<dyn PrettyPrintTree>>,
@@ -252,6 +249,14 @@ pub fn sequence(
     Box::new(Sequence {
         content: content.into_iter().collect::<Vec<_>>(),
         multiline_override: None,
+    })
+}
+pub fn multiline_sequence(
+    content: impl IntoIterator<Item = Box<dyn PrettyPrintTree>>,
+) -> Box<dyn PrettyPrintTree> {
+    Box::new(Sequence {
+        content: content.into_iter().collect::<Vec<_>>(),
+        multiline_override: Some(true),
     })
 }
 #[cfg(test)]
