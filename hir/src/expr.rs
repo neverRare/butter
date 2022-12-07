@@ -134,7 +134,24 @@ impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
         match self {
             ExprKind::Literal(literal) => Box::new(literal.to_string()),
             ExprKind::Tag(tag) => tag.to_pretty_print(),
-            ExprKind::Assign(_) => todo!(),
+            ExprKind::Assign(assign) if assign.len() == 1 => assign[0].to_pretty_print(),
+            ExprKind::Assign(assign) => sequence(
+                assign
+                    .iter()
+                    .map(|assign| &assign.place)
+                    .map(PlaceExpr::to_pretty_print)
+                    .map(|place| postfix(", ", place))
+                    .chain(once(
+                        Box::new(" <- ".to_string()) as Box<dyn PrettyPrintTree>
+                    ))
+                    .chain(
+                        assign
+                            .iter()
+                            .map(|assign| &assign.expr)
+                            .map(Expr::to_pretty_print)
+                            .map(|expr| postfix(", ", expr)),
+                    ),
+            ),
             ExprKind::Array(array) => {
                 let iter = array
                     .iter()
@@ -627,6 +644,15 @@ impl<T: PrettyPrintType> PrettyPrint for MatchArm<T> {
 pub struct Assign<T> {
     pub place: PlaceExpr<T>,
     pub expr: Expr<T>,
+}
+impl<T: PrettyPrintType> PrettyPrint for Assign<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
+            self.place.to_pretty_print(),
+            Box::new(" <- ".to_string()),
+            self.expr.to_auto_wrap(8),
+        ])
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct FieldAccess<T> {
