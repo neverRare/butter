@@ -150,10 +150,10 @@ impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
             ExprKind::Unary(unary) => unary.to_pretty_print(),
             ExprKind::Binary(binary) => binary.to_pretty_print(),
             ExprKind::Place(place) => place.to_pretty_print(),
-            ExprKind::Call(_) => todo!(),
+            ExprKind::Call(call) => call.to_pretty_print(),
             ExprKind::ControlFlow(control_flow) => control_flow.to_pretty_print(),
-            ExprKind::Fun(_) => todo!(),
-            ExprKind::Jump(_) => todo!(),
+            ExprKind::Fun(fun) => fun.to_pretty_print(),
+            ExprKind::Jump(jump) => jump.to_pretty_print(),
         }
     }
 }
@@ -175,11 +175,11 @@ impl<T: PrettyPrintType> PrettyPrint for PlaceExpr<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             PlaceExpr::Var(var) => Box::new(var.to_string()),
-            PlaceExpr::FieldAccess(_) => todo!(),
-            PlaceExpr::Index(_) => todo!(),
-            PlaceExpr::Slice(_) => todo!(),
-            PlaceExpr::Deref(_) => todo!(),
-            PlaceExpr::Len(_) => todo!(),
+            PlaceExpr::FieldAccess(field_access) => field_access.to_pretty_print(),
+            PlaceExpr::Index(index) => index.to_pretty_print(),
+            PlaceExpr::Slice(slice) => slice.to_pretty_print(),
+            PlaceExpr::Deref(expr) => postfix("^", expr.to_auto_wrap(1)),
+            PlaceExpr::Len(expr) => postfix(".len", expr.to_auto_wrap(1)),
         }
     }
 }
@@ -223,11 +223,31 @@ pub struct Fun<T> {
     pub param: Pattern<T>,
     pub body: Box<Expr<T>>,
 }
+impl<T: PrettyPrintType> PrettyPrint for Fun<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
+            self.param.to_pretty_print(),
+            Box::new(" => ".to_string()),
+            self.body.to_auto_wrap(9),
+        ])
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub enum Jump<T> {
     Break(Option<Box<Expr<T>>>),
     Continue,
     Return(Option<Box<Expr<T>>>),
+}
+impl<T: PrettyPrintType> PrettyPrint for Jump<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        match self {
+            Jump::Break(Some(expr)) => prefix("break ", expr.to_auto_wrap(9)),
+            Jump::Break(None) => Box::new("break".to_string()),
+            Jump::Continue => Box::new("continue".to_string()),
+            Jump::Return(Some(expr)) => prefix("return ", expr.to_auto_wrap(9)),
+            Jump::Return(None) => Box::new("return".to_string()),
+        }
+    }
 }
 impl<T> Jump<T> {
     fn precedence(&self) -> u8 {
@@ -351,6 +371,14 @@ impl Display for BinaryType {
 pub struct Index<T> {
     pub expr: Box<Expr<T>>,
     pub index: Box<Expr<T>>,
+}
+impl<T: PrettyPrintType> PrettyPrint for Index<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
+            self.expr.to_auto_wrap(1),
+            bracket("[", "]", self.index.to_pretty_print()),
+        ])
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Element<T> {
@@ -610,15 +638,33 @@ impl<T> FieldAccess<T> {
         Some(self.name.clone())
     }
 }
+impl<T: PrettyPrintType> PrettyPrint for FieldAccess<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([
+            self.expr.to_auto_wrap(1),
+            Box::new(format!(".{}", &self.name)),
+        ])
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Slice<T> {
     pub expr: Box<Expr<T>>,
     pub range: Range<T>,
 }
+impl<T: PrettyPrintType> PrettyPrint for Slice<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([self.expr.to_auto_wrap(1), self.range.to_pretty_print()])
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Call<T> {
     pub expr: Box<Expr<T>>,
     pub arg: Arg<T>,
+}
+impl<T: PrettyPrintType> PrettyPrint for Call<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        line([self.expr.to_auto_wrap(1), self.arg.to_pretty_print()])
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub enum Arg<T> {
@@ -626,6 +672,16 @@ pub enum Arg<T> {
     Splat(Box<Expr<T>>),
     Record(Collection<Field<T>, T>),
     Tuple(Collection<Expr<T>, T>),
+}
+impl<T: PrettyPrintType> PrettyPrint for Arg<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        match self {
+            Arg::Unit => Box::new("()".to_string()),
+            Arg::Splat(expr) => bracket("(", ")", prefix("*", expr.to_pretty_print())),
+            Arg::Record(record) => record.to_pretty_print(),
+            Arg::Tuple(tuple) => tuple.to_pretty_print(),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Tag<T> {
