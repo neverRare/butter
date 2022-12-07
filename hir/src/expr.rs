@@ -45,7 +45,7 @@ impl<T> Expr<T> {
         T: PrettyPrintType,
     {
         if T::TYPED {
-            9
+            10
         } else {
             self.expr.precedence()
         }
