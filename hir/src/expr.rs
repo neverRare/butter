@@ -101,20 +101,20 @@ impl<T> ExprKind<T> {
     pub fn precedence(&self) -> u8 {
         match self {
             ExprKind::Literal(_) => 0,
-            ExprKind::Tag(_) => 1,
-            ExprKind::Assign(_) => 7,
+            ExprKind::Tag(_) => 2,
+            ExprKind::Assign(_) => 8,
             ExprKind::Array(_) => 0,
             ExprKind::ArrayRange(_) => 0,
             ExprKind::Unit => 0,
             ExprKind::Splat(_) => 0,
             ExprKind::Record(_) => 0,
             ExprKind::Tuple(_) => 0,
-            ExprKind::Unary(_) => 1,
+            ExprKind::Unary(_) => 2,
             ExprKind::Binary(binary) => binary.kind.precedence(),
             ExprKind::Place(place) => place.precedence(),
-            ExprKind::Call(_) => 0,
+            ExprKind::Call(_) => 1,
             ExprKind::ControlFlow(_) => 0,
-            ExprKind::Fun(_) => 8,
+            ExprKind::Fun(_) => 9,
             ExprKind::Jump(jump) => jump.precedence(),
         }
     }
@@ -222,9 +222,9 @@ pub enum Jump<T> {
 impl<T> Jump<T> {
     fn precedence(&self) -> u8 {
         match self {
-            Jump::Break(_) => 8,
+            Jump::Break(_) => 9,
             Jump::Continue => 0,
-            Jump::Return(_) => 8,
+            Jump::Return(_) => 9,
         }
     }
 }
@@ -309,16 +309,16 @@ pub enum BinaryType {
 impl BinaryType {
     fn precedence(&self) -> u8 {
         match self {
-            Self::Multiply | Self::Div | Self::FloorDiv | Self::Mod => 2,
-            Self::Add | Self::Sub | Self::Concatenate => 3,
+            Self::Multiply | Self::Div | Self::FloorDiv | Self::Mod => 3,
+            Self::Add | Self::Sub | Self::Concatenate => 4,
             Self::Equal
             | Self::NotEqual
             | Self::Greater
             | Self::GreaterEqual
             | Self::Less
-            | Self::LessEqual => 4,
-            Self::And | Self::LazyAnd => 5,
-            Self::Or | Self::LazyOr => 6,
+            | Self::LessEqual => 5,
+            Self::And | Self::LazyAnd => 6,
+            Self::Or | Self::LazyOr => 7,
         }
     }
 }
