@@ -123,7 +123,7 @@ impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             ExprKind::Literal(literal) => Box::new(literal.to_string()),
-            ExprKind::Tag(_) => todo!(),
+            ExprKind::Tag(tag) => tag.to_pretty_print(),
             ExprKind::Assign(_) => todo!(),
             ExprKind::Array(array) => {
                 let iter = array
@@ -137,9 +137,9 @@ impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
             ExprKind::Splat(expr) => bracket("(", ")", prefix("*", expr.to_pretty_print())),
             ExprKind::Record(record) => record.to_pretty_print(),
             ExprKind::Tuple(tuple) => tuple.to_pretty_print(),
-            ExprKind::Unary(_) => todo!(),
-            ExprKind::Binary(_) => todo!(),
-            ExprKind::Place(_) => todo!(),
+            ExprKind::Unary(unary) => unary.to_pretty_print(),
+            ExprKind::Binary(binary) => binary.to_pretty_print(),
+            ExprKind::Place(place) => place.to_pretty_print(),
             ExprKind::Call(_) => todo!(),
             ExprKind::ControlFlow(control_flow) => control_flow.to_pretty_print(),
             ExprKind::Fun(_) => todo!(),
@@ -160,6 +160,18 @@ pub enum PlaceExpr<T> {
     Slice(Slice<T>),
     Deref(Box<Expr<T>>),
     Len(Box<Expr<T>>),
+}
+impl<T: PrettyPrintType> PrettyPrint for PlaceExpr<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        match self {
+            PlaceExpr::Var(var) => Box::new(var.to_string()),
+            PlaceExpr::FieldAccess(_) => todo!(),
+            PlaceExpr::Index(_) => todo!(),
+            PlaceExpr::Slice(_) => todo!(),
+            PlaceExpr::Deref(_) => todo!(),
+            PlaceExpr::Len(_) => todo!(),
+        }
+    }
 }
 impl<T> PlaceExpr<T> {
     fn precedence(&self) -> u8 {
@@ -221,6 +233,19 @@ pub struct Unary<T> {
     pub kind: UnaryType,
     pub expr: Box<Expr<T>>,
 }
+impl<T: PrettyPrintType> PrettyPrint for Unary<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        let mut expr = self.expr.to_pretty_print();
+        if self.expr.precedence() > 1 {
+            expr = bracket("(", ")", expr);
+        }
+        let extra_space = match &self.kind {
+            UnaryType::Clone => " ",
+            _ => "",
+        };
+        line([Box::new(format!("{}{extra_space}", &self.kind)), expr])
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UnaryType {
     Minus,
@@ -229,11 +254,37 @@ pub enum UnaryType {
     Move,
     Clone,
 }
+impl Display for UnaryType {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            UnaryType::Minus => "-",
+            UnaryType::Ref => "&",
+            UnaryType::Not => "!",
+            UnaryType::Move => ">",
+            UnaryType::Clone => "clone",
+        };
+        s.fmt(fmt)
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Binary<T> {
     pub kind: BinaryType,
     pub left: Box<Expr<T>>,
     pub right: Box<Expr<T>>,
+}
+impl<T: PrettyPrintType> PrettyPrint for Binary<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        let precedence = self.kind.precedence();
+        let mut left = self.left.to_pretty_print();
+        if self.left.precedence() > precedence {
+            left = bracket("(", ")", left);
+        }
+        let mut right = self.left.to_pretty_print();
+        if self.right.precedence() > precedence {
+            right = bracket("(", ")", right);
+        }
+        line([left, Box::new(format!(" {} ", &self.kind)), right])
+    }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BinaryType {
@@ -269,6 +320,30 @@ impl BinaryType {
             Self::And | Self::LazyAnd => 5,
             Self::Or | Self::LazyOr => 6,
         }
+    }
+}
+impl Display for BinaryType {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            BinaryType::Add => "+",
+            BinaryType::Sub => "-",
+            BinaryType::Multiply => "*",
+            BinaryType::Div => "/",
+            BinaryType::FloorDiv => "//",
+            BinaryType::Mod => "%",
+            BinaryType::And => "&",
+            BinaryType::Or => "|",
+            BinaryType::LazyAnd => "&&",
+            BinaryType::LazyOr => "||",
+            BinaryType::Equal => "==",
+            BinaryType::NotEqual => "!=",
+            BinaryType::Greater => ">",
+            BinaryType::GreaterEqual => ">=",
+            BinaryType::Less => "<",
+            BinaryType::LessEqual => "<=",
+            BinaryType::Concatenate => "++",
+        };
+        s.fmt(fmt)
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -555,6 +630,20 @@ pub enum Arg<T> {
 pub struct Tag<T> {
     pub tag: Atom,
     pub expr: Option<Box<Expr<T>>>,
+}
+impl<T: PrettyPrintType> PrettyPrint for Tag<T> {
+    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+        match &self.expr {
+            Some(expr) => {
+                let mut pretty_print_tree = expr.to_pretty_print();
+                if expr.precedence() > 1 {
+                    pretty_print_tree = bracket("(", ")", pretty_print_tree);
+                }
+                line([Box::new(format!("@{} ", &self.tag)), pretty_print_tree])
+            }
+            None => Box::new(format!("@{}", &self.tag)),
+        }
+    }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum BoundType {
