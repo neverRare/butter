@@ -50,6 +50,16 @@ impl<T> Expr<T> {
             self.expr.precedence()
         }
     }
+    fn to_auto_wrap(&self, precedence: u8) -> Box<dyn PrettyPrintTree>
+    where
+        T: PrettyPrintType,
+    {
+        let mut expr = self.to_pretty_print();
+        if self.precedence() > precedence {
+            expr = bracket("(", ")", expr);
+        }
+        expr
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Expr<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -235,10 +245,7 @@ pub struct Unary<T> {
 }
 impl<T: PrettyPrintType> PrettyPrint for Unary<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let mut expr = self.expr.to_pretty_print();
-        if self.expr.precedence() > 1 {
-            expr = bracket("(", ")", expr);
-        }
+        let expr = self.expr.to_auto_wrap(2);
         let extra_space = match &self.kind {
             UnaryType::Clone => " ",
             _ => "",
@@ -275,14 +282,8 @@ pub struct Binary<T> {
 impl<T: PrettyPrintType> PrettyPrint for Binary<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let precedence = self.kind.precedence();
-        let mut left = self.left.to_pretty_print();
-        if self.left.precedence() > precedence {
-            left = bracket("(", ")", left);
-        }
-        let mut right = self.left.to_pretty_print();
-        if self.right.precedence() > precedence {
-            right = bracket("(", ")", right);
-        }
+        let left = self.left.to_auto_wrap(precedence);
+        let right = self.right.to_auto_wrap(precedence);
         line([left, Box::new(format!(" {} ", &self.kind)), right])
     }
 }
@@ -635,10 +636,7 @@ impl<T: PrettyPrintType> PrettyPrint for Tag<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match &self.expr {
             Some(expr) => {
-                let mut pretty_print_tree = expr.to_pretty_print();
-                if expr.precedence() > 1 {
-                    pretty_print_tree = bracket("(", ")", pretty_print_tree);
-                }
+                let pretty_print_tree = expr.to_auto_wrap(2);
                 line([Box::new(format!("@{} ", &self.tag)), pretty_print_tree])
             }
             None => Box::new(format!("@{}", &self.tag)),
