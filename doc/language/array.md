@@ -30,7 +30,6 @@ Splatting and concatenation can serve similar purposes, the 2 examples above doe
 
 When defining an array of consecutive integers, you can use range notation. This is often used with [`for`] loops. This uses [range syntax].
 
-[range syntax]: #range-syntax
 [`for`]: loop.md#for
 
 ```butter
@@ -59,13 +58,13 @@ std.assert(fruits.len == 3)
 
 Through slicing, you can get a portion of the array by specifying the indices of the bounds. This uses [range syntax].
 
-[range syntax]: #range-syntax
-
 ```butter
 favorites = &fruits[1.<3];
 ```
 
 ## Range syntax
+
+[range syntax]: #range-syntax
 
 You can use `..`, `.<`, `>.`, or `><` for ranges. An angle bracket `<` or `>` means exclusive bound on that side while the period `.` means inclusive. Omitting the bound means there is no bound on that side. The following is an exhaustive list of its possible syntax and its meaning.
 

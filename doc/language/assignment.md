@@ -29,9 +29,9 @@ mut foo = [10];
 foo[0] <- 20;
 ```
 
-Reassign the referencing value.
+Reassign the [referencing] value.
 
-[reference]: ./reference.md
+[referencing]: ./reference.md
 
 ```butter
 mut foo = 10;

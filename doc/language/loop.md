@@ -28,7 +28,7 @@ while counter < 10 {
 
 ## Loop
 
-`loop` creates an infinite loop.
+`loop` creates an infinite loop. You can use `break` to exit this `loop`.
 
 ```butter
 loop {

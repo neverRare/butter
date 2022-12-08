@@ -1,5 +1,13 @@
 # Miscellaneous
 
+## Comment
+
+Comments are used to add few notes or description to Butter code, they are ignored by the compiler.
+
+```butter
+-- this is a comment
+```
+
 ## Keyword reference
 
 These are keywords with special meaning, it cannot be used as variable name, function name, field name, nor tag name.
@@ -60,7 +68,7 @@ These are keywords that only have special meaning in some context.
 |       `>=`        | Greater than or equal                |
 |       `<=`        | Less than or equal                   |
 |       `<-`        | Assignment                           |
-|       `=>`        | Function                             |
+|       `=>`        | Function, match arm                  |
 |        `@`        | Tag                                  |
 |        `:`        | Type annotation, mutability modifier |
 |       `->`        | Return type annotation               |
