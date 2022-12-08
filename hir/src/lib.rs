@@ -3,8 +3,7 @@
 #![forbid(unsafe_code)]
 
 use pretty_print::PrettyPrintTree;
-use std::collections::HashSet;
-use std::hash::Hash;
+use std::{collections::HashSet, fmt::Debug, hash::Hash};
 
 pub mod expr;
 pub mod pattern;
@@ -20,13 +19,22 @@ pub use hir_string_cache::Atom;
 
 pub trait PrettyPrintType {
     const TYPED: bool;
+    type FunScheme: PrettyPrintFunScheme + Debug + PartialEq + Eq + Clone;
     fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>>;
+}
+pub trait PrettyPrintFunScheme {
+    fn to_pretty_print_generics(&self) -> Box<[Box<dyn PrettyPrintTree>]>;
 }
 impl PrettyPrintType for () {
     const TYPED: bool = false;
-
+    type FunScheme = ();
     fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>> {
         None
+    }
+}
+impl PrettyPrintFunScheme for () {
+    fn to_pretty_print_generics(&self) -> Box<[Box<dyn PrettyPrintTree>]> {
+        vec![].into()
     }
 }
 fn all_unique<I>(iter: I) -> bool

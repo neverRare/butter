@@ -32,11 +32,11 @@ impl Display for Literal {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Expr<T> {
+pub struct Expr<T: PrettyPrintType> {
     pub expr: ExprKind<T>,
     pub ty: T,
 }
-impl<T> Expr<T> {
+impl<T: PrettyPrintType> Expr<T> {
     pub fn field_name(&self) -> Option<Atom> {
         self.expr.field_name()
     }
@@ -71,7 +71,7 @@ impl<T: PrettyPrintType> PrettyPrint for Expr<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum ExprKind<T> {
+pub enum ExprKind<T: PrettyPrintType> {
     Literal(Literal),
 
     Tag(Tag<T>),
@@ -96,7 +96,7 @@ pub enum ExprKind<T> {
     Fun(Fun<T>),
     Jump(Jump<T>),
 }
-impl<T> ExprKind<T> {
+impl<T: PrettyPrintType> ExprKind<T> {
     pub fn field_name(&self) -> Option<Atom> {
         match self {
             Self::Tag(tag) => tag
@@ -180,7 +180,7 @@ impl ExprKind<()> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum PlaceExpr<T> {
+pub enum PlaceExpr<T: PrettyPrintType> {
     Var(Atom),
     FieldAccess(FieldAccess<T>),
     Index(Index<T>),
@@ -200,7 +200,7 @@ impl<T: PrettyPrintType> PrettyPrint for PlaceExpr<T> {
         }
     }
 }
-impl<T> PlaceExpr<T> {
+impl<T: PrettyPrintType> PlaceExpr<T> {
     fn precedence(&self) -> u8 {
         match self {
             PlaceExpr::Var(_) => 0,
@@ -208,7 +208,7 @@ impl<T> PlaceExpr<T> {
         }
     }
 }
-impl<T> PlaceExpr<T> {
+impl<T: PrettyPrintType> PlaceExpr<T> {
     pub fn field_name(&self) -> Option<Atom> {
         match self {
             Self::Var(var) => Some(var.clone()),
@@ -236,7 +236,7 @@ impl<T> PlaceExpr<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Fun<T> {
+pub struct Fun<T: PrettyPrintType> {
     pub param: Pattern<T>,
     pub body: Box<Expr<T>>,
 }
@@ -250,7 +250,7 @@ impl<T: PrettyPrintType> PrettyPrint for Fun<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Jump<T> {
+pub enum Jump<T: PrettyPrintType> {
     Break(Option<Box<Expr<T>>>),
     Continue,
     Return(Option<Box<Expr<T>>>),
@@ -266,7 +266,7 @@ impl<T: PrettyPrintType> PrettyPrint for Jump<T> {
         }
     }
 }
-impl<T> Jump<T> {
+impl<T: PrettyPrintType> Jump<T> {
     fn precedence(&self) -> u8 {
         match self {
             Jump::Break(_) => 9,
@@ -276,7 +276,7 @@ impl<T> Jump<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Unary<T> {
+pub struct Unary<T: PrettyPrintType> {
     pub kind: UnaryType,
     pub expr: Box<Expr<T>>,
 }
@@ -311,7 +311,7 @@ impl Display for UnaryType {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Binary<T> {
+pub struct Binary<T: PrettyPrintType> {
     pub kind: BinaryType,
     pub left: Box<Expr<T>>,
     pub right: Box<Expr<T>>,
@@ -385,7 +385,7 @@ impl Display for BinaryType {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Index<T> {
+pub struct Index<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub index: Box<Expr<T>>,
 }
@@ -398,7 +398,7 @@ impl<T: PrettyPrintType> PrettyPrint for Index<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Element<T> {
+pub struct Element<T: PrettyPrintType> {
     pub expr: Expr<T>,
     pub kind: ElementKind,
 }
@@ -417,11 +417,11 @@ pub enum ElementKind {
     Splat,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Collection<T, U> {
+pub enum Collection<T, U: PrettyPrintType> {
     Collection(Box<[T]>),
     WithSplat(WithSplat<T, U>),
 }
-impl<T> Collection<Field<T>, T> {
+impl<T: PrettyPrintType> Collection<Field<T>, T> {
     pub fn all_name_unique(&self) -> bool {
         match self {
             Self::Collection(record) => all_unique(record.iter().map(|field| field.name.clone())),
@@ -454,7 +454,7 @@ where
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct WithSplat<T, U> {
+pub struct WithSplat<T, U: PrettyPrintType> {
     pub left: Box<[T]>,
     pub splat: Box<Expr<U>>,
     pub right: Box<[T]>,
@@ -478,7 +478,7 @@ where
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Field<T> {
+pub struct Field<T: PrettyPrintType> {
     pub name: Atom,
     pub expr: Expr<T>,
 }
@@ -491,7 +491,7 @@ impl<T: PrettyPrintType> PrettyPrint for Field<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum ControlFlow<T> {
+pub enum ControlFlow<T: PrettyPrintType> {
     Block(Block<T>),
     If(If<T>),
     For(For<T>),
@@ -515,7 +515,7 @@ impl<T: PrettyPrintType> PrettyPrint for ControlFlow<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Block<T> {
+pub struct Block<T: PrettyPrintType> {
     pub statement: Box<[Statement<T>]>,
     pub expr: Option<Box<Expr<T>>>,
 }
@@ -543,7 +543,7 @@ impl<T: PrettyPrintType> PrettyPrint for Block<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct If<T> {
+pub struct If<T: PrettyPrintType> {
     pub condition: Box<Expr<T>>,
     pub body: Block<T>,
     pub else_part: Option<Box<ControlFlow<T>>>,
@@ -569,7 +569,7 @@ impl<T: PrettyPrintType> PrettyPrint for If<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct For<T> {
+pub struct For<T: PrettyPrintType> {
     pub pattern: Pattern<T>,
     pub expr: Box<Expr<T>>,
     pub body: Block<T>,
@@ -587,7 +587,7 @@ impl<T: PrettyPrintType> PrettyPrint for For<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct While<T> {
+pub struct While<T: PrettyPrintType> {
     pub condition: Box<Expr<T>>,
     pub body: Block<T>,
 }
@@ -602,7 +602,7 @@ impl<T: PrettyPrintType> PrettyPrint for While<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Match<T> {
+pub struct Match<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub arm: Box<[MatchArm<T>]>,
 }
@@ -627,7 +627,7 @@ impl<T: PrettyPrintType> PrettyPrint for Match<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct MatchArm<T> {
+pub struct MatchArm<T: PrettyPrintType> {
     pub pattern: Pattern<T>,
     pub expr: Expr<T>,
 }
@@ -641,7 +641,7 @@ impl<T: PrettyPrintType> PrettyPrint for MatchArm<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Assign<T> {
+pub struct Assign<T: PrettyPrintType> {
     pub place: PlaceExpr<T>,
     pub expr: Expr<T>,
 }
@@ -655,11 +655,11 @@ impl<T: PrettyPrintType> PrettyPrint for Assign<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct FieldAccess<T> {
+pub struct FieldAccess<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub name: Atom,
 }
-impl<T> FieldAccess<T> {
+impl<T: PrettyPrintType> FieldAccess<T> {
     pub fn field_name(&self) -> Option<Atom> {
         Some(self.name.clone())
     }
@@ -673,7 +673,7 @@ impl<T: PrettyPrintType> PrettyPrint for FieldAccess<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Slice<T> {
+pub struct Slice<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub range: Range<T>,
 }
@@ -683,7 +683,7 @@ impl<T: PrettyPrintType> PrettyPrint for Slice<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Call<T> {
+pub struct Call<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub arg: Arg<T>,
 }
@@ -693,7 +693,7 @@ impl<T: PrettyPrintType> PrettyPrint for Call<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub enum Arg<T> {
+pub enum Arg<T: PrettyPrintType> {
     Unit,
     Splat(Box<Expr<T>>),
     Record(Collection<Field<T>, T>),
@@ -710,7 +710,7 @@ impl<T: PrettyPrintType> PrettyPrint for Arg<T> {
     }
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Tag<T> {
+pub struct Tag<T: PrettyPrintType> {
     pub tag: Atom,
     pub expr: Option<Box<Expr<T>>>,
 }
@@ -731,12 +731,12 @@ pub enum BoundType {
     Exclusive,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Bound<T> {
+pub struct Bound<T: PrettyPrintType> {
     pub kind: BoundType,
     pub expr: Box<Expr<T>>,
 }
 #[derive(Debug, PartialEq, Clone)]
-pub struct Range<T> {
+pub struct Range<T: PrettyPrintType> {
     pub left: Option<Bound<T>>,
     pub right: Option<Bound<T>>,
 }

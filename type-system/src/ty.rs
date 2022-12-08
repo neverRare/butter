@@ -2,7 +2,7 @@ use crate::ty::cons::Cons;
 use hir::{
     keyword,
     pretty_print::{PrettyPrint, PrettyPrintTree},
-    Atom, PrettyPrintType,
+    Atom, PrettyPrintFunScheme, PrettyPrintType,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -51,12 +51,12 @@ impl VarState {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum Kind {
+pub enum Kind {
     Type,
     MutType,
 }
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub(super) struct KindedVar {
+pub struct KindedVar {
     kind: Kind,
     var: Var,
 }
@@ -89,6 +89,7 @@ impl PrettyPrint for Type {
 }
 impl PrettyPrintType for Type {
     const TYPED: bool = true;
+    type FunScheme = Scheme;
 
     fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>> {
         Some(PrettyPrint::to_pretty_print(self))
@@ -266,9 +267,18 @@ impl Substitutable for Type1 {
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(super) struct Scheme {
-    pub(super) for_all: HashSet<KindedVar>,
-    pub(super) ty: Type,
+pub struct Scheme {
+    pub for_all: HashSet<KindedVar>,
+    pub ty: Type,
+}
+impl PrettyPrintFunScheme for Scheme {
+    fn to_pretty_print_generics(&self) -> Box<[Box<dyn PrettyPrintTree>]> {
+        self.for_all
+            .iter()
+            .map(|var| Box::new(var.var.to_string()) as Box<dyn PrettyPrintTree>)
+            .collect::<Vec<_>>()
+            .into()
+    }
 }
 impl FreeVars for Scheme {
     fn free_vars(&self) -> HashSet<KindedVar> {
@@ -288,7 +298,7 @@ impl Substitutable for Scheme {
     }
 }
 impl Scheme {
-    pub fn instantiate(self, var_state: &mut VarState) -> Result<Type, TypeError> {
+    pub(super) fn instantiate(self, var_state: &mut VarState) -> Result<Type, TypeError> {
         let subs = self
             .for_all
             .into_iter()
