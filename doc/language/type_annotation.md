@@ -26,7 +26,7 @@ say_hello(name : Str) -> Str => "hello " ++ name ++ "!";
 We can define generics by using `:()`.
 
 ```butter
-:(a)
+:(a):
 concatenate(left : [a], right : [a]) -> [a] => left ++ right;
 ```
 

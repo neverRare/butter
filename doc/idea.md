@@ -327,11 +327,11 @@ map_tagged(val, $val, (val) => val + 3);
 ## Traits
 
 ```butter
-forall(a):
+:(a):
 trait Eq(a) {
     equal(a: &a, b: &b) -> Bool;
 }
-forall(a):
+:(a):
 given Eq(a):
 impl Eq([a]) {
     equal(a, b) => {
