@@ -44,6 +44,7 @@ where
         | keyword!("false")
         | keyword!("for")
         | keyword!("if")
+        | keyword!("imm")
         | keyword!("in")
         | keyword!("loop")
         | keyword!("match")
