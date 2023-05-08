@@ -73,7 +73,10 @@ impl InferablePattern for PatternKind<()> {
                 ty: Type::Cons(Cons::Num),
                 value: PatternKind::Int(num),
             },
-            PatternKind::Ignore => todo!(),
+            PatternKind::Ignore => Typed {
+                ty: Type::Var(var_state.new_var()),
+                value: PatternKind::Ignore,
+            },
             PatternKind::Record(_) => todo!(),
             PatternKind::Tuple(_) => todo!(),
             PatternKind::Param(_) => todo!(),
