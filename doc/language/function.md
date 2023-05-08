@@ -33,16 +33,16 @@ factorial(num) => {
 
 ## Calling
 
-Calling executes the body of a function. Within the arguments, you can use either record syntax (named arguments) or tuple syntax (unnamed arguments). We cannot have mix of named and unnamed arguments.
+Calling executes the body of a function. Within the arguments, you can use either name the arguments or left them unnamed. We cannot have mix of named and unnamed arguments.
 
 ```butter
 report_favorite(name, favorite) => {
     std.print_line(name ++ "'s favorite is " ++ favorite ++ "!");
 }
 
--- calling with record syntax
+-- calling with named arguments
 report_favorite(name = "Alex", favorite = "butter toast");
--- calling with tuple syntax
+-- calling with unnamed arguments
 report_favorite("Alex", "butter toast");
 ```
 

@@ -8,7 +8,7 @@ Pattern can be used in [variable declaration], [match expression], and [`for`] l
 
 ## Pattern group
 
-You can wrap pattern inside parentheses `()`. This isn't very useful however as patterns don't have infix operator to disambiguate the precedence.
+You can wrap pattern inside parentheses `()`. This isn't very useful however as there's no need to disambiguate the precedence.
 
 ```butter
 (num) = 10;
@@ -167,7 +167,7 @@ value = match color {
 
 ## Reference
 
-Reference pattern matches against references. These dereferences the value and you may want to rebind it as reference again with `ref`.
+Reference pattern matches against references. These dereferences the value. You may want to rebind it as reference again with `ref`.
 
 ```butter
 deref(val) => {

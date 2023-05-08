@@ -4,7 +4,7 @@
 
 While Butter can infer most types of such value according to how it is used, sometimes it can fail and we need to explicitly annotate it. It's also sometimes good to explicitly annotate types, Butter can wrongly infer types when there's a mistake on the code, this can happen on huge codes.
 
-Type annotation are used to explicitly define the type of expression, pattern, and function parameter and return type (also known as function signature).
+Type annotation are used to explicitly define the type of expression, pattern, and function parameter and return type, also known as function signature.
 
 For type annotation of expressions and patterns, we use `:`.
 
@@ -23,7 +23,7 @@ For function signature, we use `:` for parameters and `->` for return type.
 say_hello(name : Str) -> Str => "hello " ++ name ++ "!";
 ```
 
-We can define generics by using `:()`.
+We can define generics by using `:():`.
 
 ```butter
 :(a):

@@ -8,7 +8,7 @@ foo = true;
 
 ## Logical operators
 
-**Note:** NXOR and XOR are currently not implemented yet. These being simply equality operators, these are only applicable for numbers for now.
+**Note:** NXOR and XOR are currently not implemented yet. These are only applicable for numbers for now.
 
 - AND `A & B`
 - OR `A | B`

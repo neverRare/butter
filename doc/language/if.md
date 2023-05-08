@@ -34,7 +34,7 @@ if len == 0 {
 }
 ```
 
-`if` is an expression, just like blocks, it will evaluate to the last expression if its last semicolon is omitted. In this case, there should be a hanging `else`.
+`if` is an expression, just like blocks, it will evaluate to the last expression if its last semicolon is omitted. In this case, there should be a hanging `else` (`else` not followed by `if`).
 
 ```butter
 input = std.get_line();

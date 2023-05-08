@@ -6,7 +6,7 @@ An array is an ordered collection of values with the same type.
 mut fruits = ["strawberry", "pineapple"];
 ```
 
-## Splat and concat
+## Splat and concatenation
 
 You can splat arrays, this flattens and combines array to elements or another splatted arrays.
 
@@ -48,7 +48,7 @@ first_fruit = &fruits[0];
 
 ## Length
 
-Arrays have special property `len` that have a value referring to its runtime length.
+Arrays have special property `len` that have a value referring to its length.
 
 ```butter
 std.assert(fruits.len == 3)

@@ -41,7 +41,7 @@ bar^ <- 20;
 
 ## Parallel assignment
 
-You can condense multiple assignment into single statement with parallel assignment. Parallel assignment will also simultaneously perform assignment (hence the name parallel), making value swapping possible in single statement.
+You can condense multiple assignment into single statement with parallel assignment. Parallel assignment will also simultaneously perform assignment, hence the name parallel, making value swapping possible in single statement.
 
 ```butter
 mut foo = 10;
@@ -51,4 +51,4 @@ std.assert(foo == 20);
 std.assert(bar == 10);
 ```
 
-This condensed assignment can be hard to track, we recommend using it only when swapping values.
+I don't recommend using this form unless swapping values.

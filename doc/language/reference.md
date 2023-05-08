@@ -9,7 +9,7 @@ bar = &foo;  -- just borrow the data from foo
 
 ## Dereference
 
-Reference is an indirection, it holds an address to a value. You can access the borrowed value by dereferencing via postfix `^` operator.
+A reference is an indirection, it holds an address to a value. You can access the borrowed value by dereferencing via postfix `^` operator.
 
 ```butter
 foo = 10;

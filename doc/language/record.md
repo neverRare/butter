@@ -1,6 +1,6 @@
 # Record
 
-Record is an association of names to values with variety of types. These pairs are called field or record field.
+A record is an association of names to values with variety of types. These pairs are called field or record field.
 
 ```butter
 car = (
