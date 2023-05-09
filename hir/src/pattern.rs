@@ -194,9 +194,7 @@ impl<T: PrettyPrintType> PrettyPrint for TaggedPattern<T> {
                 };
                 line([Box::new(format!("@{} ", &self.tag)), pattern])
             }
-            None => {
-                line([Box::new(format!("@{}", &self.tag))])
-            }
+            None => line([Box::new(format!("@{}", &self.tag))]),
         }
     }
 }
