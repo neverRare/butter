@@ -3,10 +3,7 @@ use crate::{
     ty::{Env, Scheme, SchemeMut, VarState},
     Cons, Keyed, MutType, Type, TypeError, Typed, Var,
 };
-use hir::{
-    expr::Tag,
-    pattern::{self, Pattern, PatternKind, TaggedPattern},
-};
+use hir::pattern::{self, Pattern, PatternKind, TaggedPattern};
 use std::{collections::HashSet, iter::once};
 
 pub(super) trait InferablePattern {
