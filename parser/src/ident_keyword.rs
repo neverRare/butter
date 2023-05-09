@@ -16,7 +16,7 @@ where
     I: Stream<Token = char>,
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
-    let start = move |ch: char| rest(ch) && !('0'..='9').contains(&ch);
+    let start = move |ch: char| rest(ch) && !ch.is_ascii_digit();
     recognize::<String, _, _>((satisfy(start), skip_many(satisfy(rest))))
         .map(Atom::from)
         .expected("identifier")
