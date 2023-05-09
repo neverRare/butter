@@ -180,17 +180,23 @@ pub struct RecordPattern<T> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TaggedPattern<T> {
     pub tag: Atom,
-    pub pattern: Box<Pattern<T>>,
+    pub pattern: Option<Box<Pattern<T>>>,
 }
 impl<T: PrettyPrintType> PrettyPrint for TaggedPattern<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let pattern = self.pattern.to_pretty_print();
-        let pattern = if T::TYPED {
-            pattern
-        } else {
-            bracket("(", ")", pattern)
-        };
-        let s = format!("{} ", self.tag);
-        line([Box::new("@".to_string()), Box::new(s), pattern])
+        match &self.pattern {
+            Some(pattern) => {
+                let pattern = pattern.to_pretty_print();
+                let pattern = if T::TYPED {
+                    pattern
+                } else {
+                    bracket("(", ")", pattern)
+                };
+                line([Box::new(format!("@{} ", &self.tag)), pattern])
+            }
+            None => {
+                line([Box::new(format!("@{}", &self.tag))])
+            }
+        }
     }
 }
