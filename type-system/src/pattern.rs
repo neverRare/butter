@@ -14,6 +14,7 @@ pub(super) trait InferablePattern {
 
     fn infer(
         self,
+        mut_type: Option<Var>,
         var_state: &mut VarState,
         env: &mut Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError>;
@@ -23,13 +24,17 @@ impl InferablePattern for pattern::Var {
 
     fn infer(
         self,
+        mut_type: Option<Var>,
         var_state: &mut VarState,
         env: &mut Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let var = var_state.new_named(self.ident.clone());
         let mut ty = Type::Var(var.clone());
         if self.bind_to_ref {
-            ty = Type::Cons(Cons::Ref(MutType::Var(var_state.new_var()), Box::new(ty)));
+            ty = Type::Cons(Cons::Ref(
+                MutType::Var(mut_type.unwrap_or_else(|| var_state.new_var())),
+                Box::new(ty),
+            ));
         }
         env.insert(
             Var::new_bare(self.ident.clone()),
@@ -56,12 +61,13 @@ impl InferablePattern for TaggedPattern<()> {
 
     fn infer(
         self,
+        mut_type: Option<Var>,
         var_state: &mut VarState,
         env: &mut Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let (pattern, ty) = match self.pattern {
             Some(pattern) => {
-                let typed = pattern.infer(var_state, env)?;
+                let typed = pattern.infer(mut_type, var_state, env)?;
                 (Some(typed.value), typed.ty)
             }
             None => (None, unit()),
@@ -83,11 +89,12 @@ impl InferablePattern for PatternKind<()> {
 
     fn infer(
         self,
+        mut_type: Option<Var>,
         var_state: &mut VarState,
         env: &mut Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
-            PatternKind::Var(var) => var.infer(var_state, env)?.map(PatternKind::Var),
+            PatternKind::Var(var) => var.infer(mut_type, var_state, env)?.map(PatternKind::Var),
             PatternKind::True => Typed {
                 ty: Type::Cons(Cons::Bool),
                 value: PatternKind::True,
@@ -113,13 +120,20 @@ impl InferablePattern for PatternKind<()> {
             PatternKind::Param(_) => todo!(),
             PatternKind::Array(_) => todo!(),
             PatternKind::Tag(tag) => {
-                let typed = tag.infer(var_state, env)?;
+                let typed = tag.infer(mut_type, var_state, env)?;
                 Typed {
                     ty: typed.ty,
                     value: PatternKind::Tag(typed.value),
                 }
             }
-            PatternKind::Ref(_) => todo!(),
+            PatternKind::Ref(pattern) => {
+                let typed = pattern.infer(mut_type, var_state, env)?;
+                let var = var_state.new_var();
+                Typed {
+                    ty: Type::Cons(Cons::Ref(MutType::Var(var), Box::new(typed.ty))),
+                    value: PatternKind::Ref(Box::new(typed.value)),
+                }
+            }
         };
         Ok(typed)
     }
@@ -129,10 +143,11 @@ impl InferablePattern for Pattern<()> {
 
     fn infer(
         self,
+        mut_type: Option<Var>,
         var_state: &mut VarState,
         env: &mut Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        let typed = self.pattern.infer(var_state, env)?;
+        let typed = self.pattern.infer(mut_type, var_state, env)?;
         let ty = typed.ty.clone();
         Ok(Typed {
             value: Pattern {

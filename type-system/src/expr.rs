@@ -926,7 +926,7 @@ fn infer_statement(
     let typed = match statement {
         Statement::Declare(declare) => {
             let typed_expr = declare.expr.infer(subs, var_state, env)?;
-            let typed_pattern = declare.pattern.infer(var_state, env)?;
+            let typed_pattern = declare.pattern.infer(None, var_state, env)?;
             let mut more_subs = Subs::new();
             typed_expr
                 .ty
