@@ -20,7 +20,7 @@ Currently, string and char literal are just syntactic sugar for array of bytes a
 ```butter
 map_option(match val, mapper) => {
     @val val => @val mapper(val),
-    @none => @none
+    @none => @none,
 }
 ```
 
@@ -66,7 +66,7 @@ match foo {
 }
 ```
 
-## Control flow label
+## ~~Control flow label~~
 
 This clashes with type annotation syntax. There should not be dedicated syntax for label anyway, it must be syntactically salted.
 
@@ -80,12 +80,40 @@ outer: while true {
 }
 ```
 
+## `upto`
+
+An alternative to control flow label. This will `break` or `continue` the nth closest loop. providing `0` is just the same as not using `upto` at all.
+
+```butter
+while true {
+    for i in arr {
+        if i == 2 {
+            break upto 1;
+        }
+    }
+}
+```
+
+You may use keyword instead. It won't work when there's multiple loop with the same keyword.
+
+```butter
+while true {
+    for i in arr {
+        if i == 2 {
+            break upto while;
+        }
+    }
+}
+```
+
+Instead of `upto`, `at` keyword may be used.
+
 ## Breakable block
 
 ```butter
 num = {|
     if foo == 10 {
-        break 10
+        break 10;
     }
     20
 |};
