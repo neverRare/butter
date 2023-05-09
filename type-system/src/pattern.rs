@@ -1,9 +1,10 @@
 use crate::{
+    expr::unit,
     ty::{Env, Scheme, SchemeMut, VarState},
-    Cons, MutType, Type, TypeError, Typed, Var,
+    Cons, Keyed, MutType, Type, TypeError, Typed, Var,
 };
-use hir::pattern::{self, Pattern, PatternKind};
-use std::collections::HashSet;
+use hir::pattern::{self, Pattern, PatternKind, TaggedPattern};
+use std::{collections::HashSet, iter::once};
 
 pub(super) trait InferablePattern {
     type TypedSelf;
@@ -43,6 +44,33 @@ impl InferablePattern for pattern::Var {
                 ident: self.ident,
                 mutable: self.mutable,
                 bind_to_ref: self.bind_to_ref,
+            },
+        })
+    }
+}
+impl InferablePattern for TaggedPattern<()> {
+    type TypedSelf = TaggedPattern<Type>;
+
+    fn infer(
+        self,
+        var_state: &mut VarState,
+        env: &mut Env,
+    ) -> Result<Typed<Self::TypedSelf>, TypeError> {
+        let (pattern, ty) = match self.pattern {
+            Some(pattern) => {
+                let typed = pattern.infer(var_state, env)?;
+                (Some(typed.value), typed.ty)
+            }
+            None => (None, unit()),
+        };
+        Ok(Typed {
+            ty: Type::Cons(Cons::Union(Keyed {
+                fields: once((self.tag.clone(), ty)).collect(),
+                rest: Some(var_state.new_var()),
+            })),
+            value: TaggedPattern {
+                tag: self.tag,
+                pattern: pattern.map(Box::new),
             },
         })
     }

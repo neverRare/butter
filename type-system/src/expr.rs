@@ -19,7 +19,7 @@ use hir::{
 };
 use std::{collections::HashMap, iter::once};
 
-fn unit() -> Type {
+pub(super) fn unit() -> Type {
     Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(vec![].into())))
 }
 pub(super) trait Inferable {
