@@ -149,7 +149,7 @@ where
         array()
             .map(PatternKind::Array)
             .map(PatternKind::into_untyped),
-        attempt(lex(keyword("_"))).with(value(PatternKind::Ignore.into_untyped())),
+        attempt(lex(keyword("_"))).with(value(PatternKind::Discard.into_untyped())),
         attempt(lex(keyword("true"))).with(value(PatternKind::True.into_untyped())),
         attempt(lex(keyword("false"))).with(value(PatternKind::False.into_untyped())),
         var().map(PatternKind::Var).map(PatternKind::into_untyped),

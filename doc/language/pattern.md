@@ -37,9 +37,9 @@ remarks = match a {
 std.print(remarks);
 ```
 
-## Wildcard
+## Discard
 
-You can discards the value regardless of its type or structure with `_`.
+You can discard the value regardless of its type or structure with `_`.
 
 ```butter
 -- discard the whole value

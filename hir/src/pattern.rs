@@ -33,7 +33,7 @@ pub enum PatternKind<T> {
     False,
     UInt(u64),
     Int(i64),
-    Ignore,
+    Discard,
     Var(Var),
     Record(RecordPattern<T>),
     Tuple(ListPattern<T>),
@@ -60,7 +60,7 @@ impl<T: PrettyPrintType> PrettyPrint for PatternKind<T> {
             Self::False => Box::new("false".to_string()),
             Self::UInt(uint) => Box::new(uint.to_string()),
             Self::Int(int) => Box::new(int.to_string()),
-            Self::Ignore => Box::new("_".to_string()),
+            Self::Discard => Box::new("_".to_string()),
             Self::Var(var) => Box::new(var.to_string()),
             Self::Record(record) => {
                 let iter = record
