@@ -152,8 +152,17 @@ impl Unifiable for Type {
                     var: var.clone(),
                 }) {
                     return Err(TypeError::InfiniteOccurrence);
+                } else if var.name == keyword!("") {
+                    subs.insert(var, Type1::Type(ty));
+                } else if let Type::Var(
+                    var1 @ Var {
+                        name: keyword!(""), ..
+                    },
+                ) = ty
+                {
+                    subs.insert(var1, Type1::Type(Type::Var(var)));
                 } else {
-                    subs.insert(var, Type1::Type(ty))
+                    subs.insert(var, Type1::Type(ty));
                 }
             }
         }
@@ -228,8 +237,17 @@ impl Unifiable for MutType {
                     var: var.clone(),
                 }) {
                     return Err(TypeError::InfiniteOccurrence);
+                } else if var.name == keyword!("") {
+                    subs.insert(var, Type1::MutType(ty));
+                } else if let MutType::Var(
+                    var1 @ Var {
+                        name: keyword!(""), ..
+                    },
+                ) = ty
+                {
+                    subs.insert(var1, Type1::MutType(MutType::Var(var)));
                 } else {
-                    subs.insert(var, Type1::MutType(ty))
+                    subs.insert(var, Type1::MutType(ty));
                 }
             }
             _ => return Err(TypeError::MismatchCons),
