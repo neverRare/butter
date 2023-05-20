@@ -1,9 +1,9 @@
 use crate::{
     expr::unit,
-    ty::{Env, Scheme, SchemeMut, VarState},
+    ty::{Env, Scheme, SchemeMut, Subs, Substitutable, Unifiable, VarState},
     Cons, Keyed, MutType, Type, TypeError, Typed, Var,
 };
-use hir::pattern::{self, Pattern, PatternKind, TaggedPattern};
+use hir::pattern::{self, ListPattern, ListWithRest, Pattern, PatternKind, TaggedPattern};
 use std::{collections::HashSet, iter::once};
 
 pub(super) trait InferablePattern {
@@ -115,7 +115,71 @@ impl InferablePattern for PatternKind<()> {
             PatternKind::Record(_) => todo!(),
             PatternKind::Tuple(_) => todo!(),
             PatternKind::Param(_) => todo!(),
-            PatternKind::Array(_) => todo!(),
+            PatternKind::Array(array) => {
+                let mut ty_var = Type::Var(var_state.new_var());
+                let mut arr_ty = Type::Cons(Cons::Array(Box::new(ty_var.clone())));
+                let typed = match array {
+                    pattern::ListPattern::List(list) => {
+                        let mut typed_list = Vec::new();
+                        for element in Vec::from(list) {
+                            let typed = element.infer(mut_var.clone(), var_state, env)?;
+                            typed_list.push(typed.value);
+                            let mut arr_subs = Subs::new();
+                            typed
+                                .ty
+                                .unify_with(ty_var.clone(), &mut arr_subs, var_state)?;
+                            ty_var.substitute(&arr_subs)?;
+                            arr_ty.substitute(&arr_subs)?;
+                            // subs.compose_with(arr_subs)?;
+                        }
+                        ListPattern::List(typed_list.into())
+                    }
+                    pattern::ListPattern::ListWithRest(list) => {
+                        // TODO: remove repeated code
+                        let mut left = Vec::new();
+                        for element in Vec::from(list.left) {
+                            let typed = element.infer(mut_var.clone(), var_state, env)?;
+                            left.push(typed.value);
+                            let mut arr_subs = Subs::new();
+                            typed
+                                .ty
+                                .unify_with(ty_var.clone(), &mut arr_subs, var_state)?;
+                            ty_var.substitute(&arr_subs)?;
+                            arr_ty.substitute(&arr_subs)?;
+                            // subs.compose_with(arr_subs)?;
+                        }
+                        let mut right = Vec::new();
+                        for element in Vec::from(list.right) {
+                            let typed = element.infer(mut_var.clone(), var_state, env)?;
+                            right.push(typed.value);
+                            let mut arr_subs = Subs::new();
+                            typed
+                                .ty
+                                .unify_with(ty_var.clone(), &mut arr_subs, var_state)?;
+                            ty_var.substitute(&arr_subs)?;
+                            arr_ty.substitute(&arr_subs)?;
+                            // subs.compose_with(arr_subs)?;
+                        }
+                        let typed = list.rest.infer(mut_var, var_state, env)?;
+                        let mut arr_subs = Subs::new();
+                        typed
+                            .ty
+                            .unify_with(arr_ty.clone(), &mut arr_subs, var_state)?;
+                        ty_var.substitute(&arr_subs)?;
+                        arr_ty.substitute(&arr_subs)?;
+                        // subs.compose_with(arr_subs)?;
+                        ListPattern::ListWithRest(ListWithRest {
+                            left: left.into(),
+                            right: right.into(),
+                            rest: Box::new(typed.value),
+                        })
+                    }
+                };
+                Typed {
+                    ty: arr_ty,
+                    value: PatternKind::Array(typed),
+                }
+            }
             PatternKind::Tag(tag) => {
                 let typed = tag.infer(mut_var, var_state, env)?;
                 Typed {
