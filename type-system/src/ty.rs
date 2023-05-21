@@ -363,7 +363,7 @@ impl Subs {
     fn insert(&mut self, var: Var, ty: Type1) {
         self.hashmap_mut().insert(var, ty);
     }
-    fn filter_off(&mut self, vars: &HashSet<KindedVar>) {
+    pub fn filter_off(&mut self, vars: &HashSet<KindedVar>) {
         for var in vars {
             self.hashmap_mut().remove(&var.var);
         }
