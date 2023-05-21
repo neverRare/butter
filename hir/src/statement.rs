@@ -13,6 +13,16 @@ pub enum Statement<T: PrettyPrintType> {
     FunDeclare(FunDeclare<T>),
     Expr(Expr<T>),
 }
+impl<T: PrettyPrintType> Statement<T> {
+    pub fn traverse_type<U: Clone, E>(
+        &mut self,
+        _data: &U,
+        _for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
+        _for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        todo!();
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Statement<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {

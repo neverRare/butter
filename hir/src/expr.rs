@@ -37,6 +37,15 @@ pub struct Expr<T: PrettyPrintType> {
     pub ty: T,
 }
 impl<T: PrettyPrintType> Expr<T> {
+    pub fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
+        _for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        for_type(&mut self.ty, data)?;
+        todo!()
+    }
     pub fn field_name(&self) -> Option<Atom> {
         self.expr.field_name()
     }
