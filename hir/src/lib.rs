@@ -44,7 +44,7 @@ pub trait TraverseType {
         &mut self,
         data: &U,
         for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
-        _for_scheme: impl FnMut(
+        for_scheme: impl FnMut(
             &mut <Self::Type as PrettyPrintType>::FunScheme,
             &mut U,
         ) -> Result<(), E>,
