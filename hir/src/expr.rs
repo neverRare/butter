@@ -256,6 +256,23 @@ pub struct Fun<T: PrettyPrintType> {
     pub param: Pattern<T>,
     pub body: Box<Expr<T>>,
 }
+impl<T: PrettyPrintType> TraverseType for Fun<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.param.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.body.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Fun<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([

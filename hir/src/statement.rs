@@ -18,11 +18,16 @@ impl<T: PrettyPrintType> TraverseType for Statement<T> {
 
     fn traverse_type<U: Clone, E>(
         &mut self,
-        _data: &U,
-        _for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
-        _for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+        data: &U,
+        for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        todo!();
+        match self {
+            Statement::Declare(declare) => declare.traverse_type(data, for_type, for_scheme)?,
+            Statement::FunDeclare(fun) => fun.traverse_type(data, for_type, for_scheme)?,
+            Statement::Expr(expr) => expr.traverse_type(data, for_type, for_scheme)?,
+        }
+        Ok(())
     }
 }
 impl<T: PrettyPrintType> PrettyPrint for Statement<T> {
@@ -39,6 +44,24 @@ pub struct Declare<T: PrettyPrintType> {
     pub pattern: Pattern<T>,
     pub expr: Expr<T>,
 }
+impl<T: PrettyPrintType> TraverseType for Declare<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.pattern
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Declare<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([
@@ -53,6 +76,24 @@ pub struct FunDeclare<T: PrettyPrintType> {
     pub ident: Atom,
     pub fun: Fun<T>,
     pub ty: T::FunScheme,
+}
+impl<T: PrettyPrintType> TraverseType for FunDeclare<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        let mut data = data.clone();
+        for_scheme(&mut self.ty, &mut data)?;
+        self.fun.traverse_type(&data, for_type, for_scheme)?;
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for FunDeclare<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
