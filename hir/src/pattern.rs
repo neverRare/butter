@@ -1,6 +1,6 @@
 use crate::{
     pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree},
-    Atom, PrettyPrintType,
+    Atom, PrettyPrintType, TraverseType,
 };
 use std::{
     collections::HashMap,
@@ -17,15 +17,16 @@ impl<T> Pattern<T> {
     pub fn field_name(&self) -> Option<Atom> {
         self.pattern.field_name()
     }
-    pub fn traverse_type<U: Clone, E>(
+}
+impl<T: PrettyPrintType> TraverseType for Pattern<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
         &mut self,
         data: &U,
         mut for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
         _for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
-    ) -> Result<(), E>
-    where
-        T: PrettyPrintType,
-    {
+    ) -> Result<(), E> {
         for_type(&mut self.ty, data)?;
         todo!();
     }

@@ -37,6 +37,19 @@ impl PrettyPrintFunScheme for () {
         vec![].into()
     }
 }
+pub trait TraverseType {
+    type Type: PrettyPrintType;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        _for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E>;
+}
 fn all_unique<I>(iter: I) -> bool
 where
     I: IntoIterator,

@@ -4,7 +4,7 @@ use crate::{
     pretty_print::{
         bracket, line, multiline_sequence, postfix, sequence, PrettyPrint, PrettyPrintTree,
     },
-    Atom, PrettyPrintFunScheme, PrettyPrintType,
+    Atom, PrettyPrintFunScheme, PrettyPrintType, TraverseType,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -13,8 +13,10 @@ pub enum Statement<T: PrettyPrintType> {
     FunDeclare(FunDeclare<T>),
     Expr(Expr<T>),
 }
-impl<T: PrettyPrintType> Statement<T> {
-    pub fn traverse_type<U: Clone, E>(
+impl<T: PrettyPrintType> TraverseType for Statement<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
         &mut self,
         _data: &U,
         _for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
