@@ -175,7 +175,7 @@ impl<T: PrettyPrintType> TraverseType for TypedVar<T> {
         &mut self,
         data: &U,
         mut for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
-        for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+        _for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         for_type(&mut self.ty, data)?;
         Ok(())
