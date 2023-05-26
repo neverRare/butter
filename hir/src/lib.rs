@@ -44,10 +44,7 @@ pub trait TraverseType {
         &mut self,
         data: &U,
         for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: impl FnMut(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E>;
 }
 fn all_unique<I>(iter: I) -> bool

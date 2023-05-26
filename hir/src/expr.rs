@@ -268,7 +268,8 @@ impl<T: PrettyPrintType> TraverseType for Fun<T> {
             &mut U,
         ) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.param.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.param
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
         self.body.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
