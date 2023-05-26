@@ -25,10 +25,11 @@ impl<T: PrettyPrintType> TraverseType for Pattern<T> {
         &mut self,
         data: &U,
         mut for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
-        _for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         for_type(&mut self.ty, data)?;
-        todo!();
+        self.pattern.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
     }
 }
 impl<T: PrettyPrintType> PrettyPrint for Pattern<T> {
@@ -54,6 +55,36 @@ pub enum PatternKind<T> {
     Array(ListPattern<T>),
     Tag(TaggedPattern<T>),
     Ref(Box<Pattern<T>>),
+}
+impl<T: PrettyPrintType> TraverseType for PatternKind<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            PatternKind::True => (),
+            PatternKind::False => (),
+            PatternKind::UInt(_) => (),
+            PatternKind::Int(_) => (),
+            PatternKind::Discard => (),
+            PatternKind::Var(_) => (),
+            PatternKind::Record(record) => record.traverse_type(data, for_type, for_scheme)?,
+            PatternKind::Tuple(tuple) => tuple.traverse_type(data, for_type, for_scheme)?,
+            PatternKind::Param(param) => {
+                for var in param.iter_mut() {
+                    var.traverse_type(data, &mut for_type, &mut for_scheme)?
+                }
+            }
+            PatternKind::Array(array) => array.traverse_type(data, for_type, for_scheme)?,
+            PatternKind::Tag(tag) => tag.traverse_type(data, for_type, for_scheme)?,
+            PatternKind::Ref(reference) => reference.traverse_type(data, for_type, for_scheme)?,
+        }
+        Ok(())
+    }
 }
 impl<T> PatternKind<T> {
     pub fn field_name(&self) -> Option<Atom> {
@@ -137,6 +168,19 @@ pub struct TypedVar<T> {
     pub var: Var,
     pub ty: T,
 }
+impl<T: PrettyPrintType> TraverseType for TypedVar<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        for_type(&mut self.ty, data)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for TypedVar<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let mut s = self.var.to_string();
@@ -153,6 +197,29 @@ impl<T: PrettyPrintType> PrettyPrint for TypedVar<T> {
 pub enum ListPattern<T> {
     List(Box<[Pattern<T>]>),
     ListWithRest(ListWithRest<T>),
+}
+impl<T: PrettyPrintType> TraverseType for ListPattern<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            ListPattern::List(list) => {
+                for pattern in list.iter_mut() {
+                    pattern.traverse_type(data, &mut for_type, &mut for_scheme)?;
+                }
+            }
+            ListPattern::ListWithRest(list) => list.traverse_type(data, for_type, for_scheme)?,
+        }
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for ListPattern<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -185,15 +252,75 @@ pub struct ListWithRest<T> {
     pub rest: Box<Pattern<T>>,
     pub right: Box<[Pattern<T>]>,
 }
+impl<T: PrettyPrintType> TraverseType for ListWithRest<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        for pattern in self.left.iter_mut() {
+            pattern.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        }
+        self.rest
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        for pattern in self.right.iter_mut() {
+            pattern.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        }
+        Ok(())
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct RecordPattern<T> {
     pub fields: HashMap<Atom, Pattern<T>>,
     pub rest: Option<Box<Pattern<T>>>,
 }
+impl<T: PrettyPrintType> TraverseType for RecordPattern<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        for (_, pattern) in self.fields.iter_mut() {
+            pattern.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        }
+        self.rest
+            .as_mut()
+            .map(|pattern| pattern.traverse_type(data, for_type, for_scheme))
+            .unwrap_or(Ok(()))?;
+        Ok(())
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TaggedPattern<T> {
     pub tag: Atom,
     pub pattern: Option<Box<Pattern<T>>>,
+}
+impl<T: PrettyPrintType> TraverseType for TaggedPattern<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.pattern
+            .as_mut()
+            .map(|pattern| pattern.traverse_type(data, for_type, for_scheme))
+            .unwrap_or(Ok(()))
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for TaggedPattern<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
