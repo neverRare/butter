@@ -145,6 +145,49 @@ impl<T: PrettyPrintType> ExprKind<T> {
         }
     }
 }
+impl<T: PrettyPrintType> TraverseType for ExprKind<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            ExprKind::Literal(_) => (),
+            ExprKind::Tag(tag) => tag.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Assign(assign) => {
+                for assign in assign.iter_mut() {
+                    assign.traverse_type(data, &mut for_type, &mut for_scheme)?;
+                }
+            }
+            ExprKind::Array(array) => {
+                for element in array.iter_mut() {
+                    element.traverse_type(data, &mut for_type, &mut for_scheme)?;
+                }
+            }
+            ExprKind::ArrayRange(range) => range.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Unit => (),
+            ExprKind::Splat(expr) => expr.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Record(record) => record.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Tuple(tuple) => tuple.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Unary(unary) => unary.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Binary(binary) => binary.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Place(place) => place.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Call(call) => call.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::ControlFlow(control_flow) => {
+                control_flow.traverse_type(data, for_type, for_scheme)?
+            }
+            ExprKind::Fun(fun) => fun.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Jump(jump) => jump.traverse_type(data, for_type, for_scheme)?,
+        }
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
@@ -203,6 +246,28 @@ pub enum PlaceExpr<T: PrettyPrintType> {
     Slice(Slice<T>),
     Deref(Box<Expr<T>>),
     Len(Box<Expr<T>>),
+}
+impl<T: PrettyPrintType> TraverseType for PlaceExpr<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            PlaceExpr::Var(_) => (),
+            PlaceExpr::FieldAccess(field_access) => {
+                field_access.traverse_type(data, for_type, for_scheme)?
+            }
+            PlaceExpr::Index(index) => index.traverse_type(data, for_type, for_scheme)?,
+            PlaceExpr::Slice(slice) => slice.traverse_type(data, for_type, for_scheme)?,
+            PlaceExpr::Deref(expr) => expr.traverse_type(data, for_type, for_scheme)?,
+            PlaceExpr::Len(expr) => expr.traverse_type(data, for_type, for_scheme)?,
+        }
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for PlaceExpr<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -289,6 +354,29 @@ pub enum Jump<T: PrettyPrintType> {
     Continue,
     Return(Option<Box<Expr<T>>>),
 }
+impl<T: PrettyPrintType> TraverseType for Jump<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            Jump::Break(expr) => expr
+                .as_mut()
+                .map(|expr| expr.traverse_type(data, for_type, for_scheme))
+                .unwrap_or(Ok(()))?,
+            Jump::Continue => (),
+            Jump::Return(expr) => expr
+                .as_mut()
+                .map(|expr| expr.traverse_type(data, for_type, for_scheme))
+                .unwrap_or(Ok(()))?,
+        }
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Jump<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
@@ -313,6 +401,18 @@ impl<T: PrettyPrintType> Jump<T> {
 pub struct Unary<T: PrettyPrintType> {
     pub kind: UnaryType,
     pub expr: Box<Expr<T>>,
+}
+impl<T: PrettyPrintType> TraverseType for Unary<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr.traverse_type(data, for_type, for_scheme)
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Unary<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -349,6 +449,24 @@ pub struct Binary<T: PrettyPrintType> {
     pub kind: BinaryType,
     pub left: Box<Expr<T>>,
     pub right: Box<Expr<T>>,
+}
+impl<T: PrettyPrintType> TraverseType for Binary<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.left
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.right.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Binary<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -423,6 +541,24 @@ pub struct Index<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub index: Box<Expr<T>>,
 }
+impl<T: PrettyPrintType> TraverseType for Index<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.index.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Index<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([
@@ -435,6 +571,18 @@ impl<T: PrettyPrintType> PrettyPrint for Index<T> {
 pub struct Element<T: PrettyPrintType> {
     pub expr: Expr<T>,
     pub kind: ElementKind,
+}
+impl<T: PrettyPrintType> TraverseType for Element<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr.traverse_type(data, for_type, for_scheme)
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Element<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -469,6 +617,29 @@ impl<T: PrettyPrintType> Collection<Field<T>, T> {
         }
     }
 }
+impl<T: TraverseType> TraverseType for Collection<T, T::Type> {
+    type Type = T::Type;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            Collection::Collection(collection) => {
+                for element in collection.iter_mut() {
+                    element.traverse_type(data, &mut for_type, &mut for_scheme)?;
+                }
+            }
+            Collection::WithSplat(_) => todo!(),
+        }
+        Ok(())
+    }
+}
 impl<T, U> PrettyPrint for Collection<T, U>
 where
     T: PrettyPrint,
@@ -493,6 +664,29 @@ pub struct WithSplat<T, U: PrettyPrintType> {
     pub splat: Box<Expr<U>>,
     pub right: Box<[T]>,
 }
+impl<T: TraverseType> TraverseType for WithSplat<T, T::Type> {
+    type Type = T::Type;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        for element in self.left.iter_mut() {
+            element.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        }
+        self.splat
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        for element in self.right.iter_mut() {
+            element.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        }
+        Ok(())
+    }
+}
 impl<T, U> PrettyPrint for WithSplat<T, U>
 where
     T: PrettyPrint,
@@ -516,6 +710,18 @@ pub struct Field<T: PrettyPrintType> {
     pub name: Atom,
     pub expr: Expr<T>,
 }
+impl<T: PrettyPrintType> TraverseType for Field<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr.traverse_type(data, for_type, for_scheme)
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Field<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([
@@ -532,6 +738,34 @@ pub enum ControlFlow<T: PrettyPrintType> {
     While(While<T>),
     Loop(Block<T>),
     Match(Match<T>),
+}
+impl<T: PrettyPrintType> TraverseType for ControlFlow<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            ControlFlow::Block(block) => block.traverse_type(data, for_type, for_scheme)?,
+            ControlFlow::If(if_statement) => {
+                if_statement.traverse_type(data, for_type, for_scheme)?
+            }
+            ControlFlow::For(for_statement) => {
+                for_statement.traverse_type(data, for_type, for_scheme)?
+            }
+            ControlFlow::While(while_statement) => {
+                while_statement.traverse_type(data, for_type, for_scheme)?
+            }
+            ControlFlow::Loop(block) => block.traverse_type(data, for_type, for_scheme)?,
+            ControlFlow::Match(match_statement) => {
+                match_statement.traverse_type(data, for_type, for_scheme)?
+            }
+        }
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for ControlFlow<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -552,6 +786,28 @@ impl<T: PrettyPrintType> PrettyPrint for ControlFlow<T> {
 pub struct Block<T: PrettyPrintType> {
     pub statement: Box<[Statement<T>]>,
     pub expr: Option<Box<Expr<T>>>,
+}
+impl<T: PrettyPrintType> TraverseType for Block<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        for statement in self.statement.iter_mut() {
+            statement.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        }
+        self.expr
+            .as_mut()
+            .map(|expr| expr.traverse_type(data, for_type, for_scheme))
+            .unwrap_or(Ok(()))?;
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Block<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -582,6 +838,29 @@ pub struct If<T: PrettyPrintType> {
     pub body: Block<T>,
     pub else_part: Option<Box<ControlFlow<T>>>,
 }
+impl<T: PrettyPrintType> TraverseType for If<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.condition
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.body
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.else_part
+            .as_mut()
+            .map(|else_part| else_part.traverse_type(data, for_type, for_scheme))
+            .unwrap_or(Ok(()))?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for If<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match &self.else_part {
@@ -608,6 +887,26 @@ pub struct For<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub body: Block<T>,
 }
+impl<T: PrettyPrintType> TraverseType for For<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.pattern
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.expr
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.body.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for For<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([
@@ -625,6 +924,24 @@ pub struct While<T: PrettyPrintType> {
     pub condition: Box<Expr<T>>,
     pub body: Block<T>,
 }
+impl<T: PrettyPrintType> TraverseType for While<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.condition
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.body.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for While<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([
@@ -639,6 +956,26 @@ impl<T: PrettyPrintType> PrettyPrint for While<T> {
 pub struct Match<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub arm: Box<[MatchArm<T>]>,
+}
+impl<T: PrettyPrintType> TraverseType for Match<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        for arm in self.arm.iter_mut() {
+            arm.traverse_type(data, &mut for_type, &mut for_scheme)?;
+        }
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Match<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -665,6 +1002,24 @@ pub struct MatchArm<T: PrettyPrintType> {
     pub pattern: Pattern<T>,
     pub expr: Expr<T>,
 }
+impl<T: PrettyPrintType> TraverseType for MatchArm<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.pattern
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for MatchArm<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([
@@ -679,6 +1034,24 @@ pub struct Assign<T: PrettyPrintType> {
     pub place: PlaceExpr<T>,
     pub expr: Expr<T>,
 }
+impl<T: PrettyPrintType> TraverseType for Assign<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.place
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Assign<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([
@@ -692,6 +1065,18 @@ impl<T: PrettyPrintType> PrettyPrint for Assign<T> {
 pub struct FieldAccess<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub name: Atom,
+}
+impl<T: PrettyPrintType> TraverseType for FieldAccess<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr.traverse_type(data, for_type, for_scheme)
+    }
 }
 impl<T: PrettyPrintType> FieldAccess<T> {
     pub fn field_name(&self) -> Option<Atom> {
@@ -711,6 +1096,24 @@ pub struct Slice<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub range: Range<T>,
 }
+impl<T: PrettyPrintType> TraverseType for Slice<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.range.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
+}
 impl<T: PrettyPrintType> PrettyPrint for Slice<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         line([self.expr.to_auto_wrap(1), self.range.to_pretty_print()])
@@ -720,6 +1123,24 @@ impl<T: PrettyPrintType> PrettyPrint for Slice<T> {
 pub struct Call<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub arg: Arg<T>,
+}
+impl<T: PrettyPrintType> TraverseType for Call<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr
+            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+        self.arg.traverse_type(data, for_type, for_scheme)?;
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Call<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -732,6 +1153,24 @@ pub enum Arg<T: PrettyPrintType> {
     Splat(Box<Expr<T>>),
     Record(Collection<Field<T>, T>),
     Tuple(Collection<Expr<T>, T>),
+}
+impl<T: PrettyPrintType> TraverseType for Arg<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        match self {
+            Arg::Unit => (),
+            Arg::Splat(expr) => expr.traverse_type(data, for_type, for_scheme)?,
+            Arg::Record(record) => record.traverse_type(data, for_type, for_scheme)?,
+            Arg::Tuple(tuple) => tuple.traverse_type(data, for_type, for_scheme)?,
+        }
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Arg<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -747,6 +1186,21 @@ impl<T: PrettyPrintType> PrettyPrint for Arg<T> {
 pub struct Tag<T: PrettyPrintType> {
     pub tag: Atom,
     pub expr: Option<Box<Expr<T>>>,
+}
+impl<T: PrettyPrintType> TraverseType for Tag<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr
+            .as_mut()
+            .map(|expr| expr.traverse_type(data, for_type, for_scheme))
+            .unwrap_or(Ok(()))
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Tag<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
@@ -769,10 +1223,45 @@ pub struct Bound<T: PrettyPrintType> {
     pub kind: BoundType,
     pub expr: Box<Expr<T>>,
 }
+impl<T: PrettyPrintType> TraverseType for Bound<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.expr.traverse_type(data, for_type, for_scheme)
+    }
+}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Range<T: PrettyPrintType> {
     pub left: Option<Bound<T>>,
     pub right: Option<Bound<T>>,
+}
+impl<T: PrettyPrintType> TraverseType for Range<T> {
+    type Type = T;
+
+    fn traverse_type<U: Clone, E>(
+        &mut self,
+        data: &U,
+        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
+        mut for_scheme: impl FnMut(
+            &mut <Self::Type as PrettyPrintType>::FunScheme,
+            &mut U,
+        ) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.left
+            .as_mut()
+            .map(|bound| bound.traverse_type(data, &mut for_type, &mut for_scheme))
+            .unwrap_or(Ok(()))?;
+        self.right
+            .as_mut()
+            .map(|bound| bound.traverse_type(data, for_type, for_scheme))
+            .unwrap_or(Ok(()))?;
+        Ok(())
+    }
 }
 impl<T: PrettyPrintType> PrettyPrint for Range<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
