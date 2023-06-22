@@ -669,7 +669,7 @@ impl Inferable for Binary<()> {
         substitute_hir(&mut left_expr, &left_subs)?;
         subs.compose_with(left_subs)?;
         let mut right_subs = Subs::new();
-        right_ty.unify_with(op_type.clone(), &mut right_subs, var_state)?;
+        right_ty.unify_with(op_type, &mut right_subs, var_state)?;
         return_type.substitute(&right_subs)?;
         substitute_hir(&mut right_expr, &right_subs)?;
         subs.compose_with(right_subs)?;
