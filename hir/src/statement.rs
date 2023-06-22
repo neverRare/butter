@@ -19,8 +19,8 @@ impl<T: PrettyPrintType> TraverseType for Statement<T> {
     fn traverse_type<U: Clone, E>(
         &mut self,
         data: &U,
-        for_type: impl FnMut(&mut T, &U) -> Result<(), E>,
-        for_scheme: impl FnMut(&mut T::FunScheme, &mut U) -> Result<(), E>,
+        for_type: fn(&mut T, &U) -> Result<(), E>,
+        for_scheme: fn(&mut T::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         match self {
             Statement::Declare(declare) => declare.traverse_type(data, for_type, for_scheme)?,
@@ -50,14 +50,14 @@ impl<T: PrettyPrintType> TraverseType for Declare<T> {
     fn traverse_type<U: Clone, E>(
         &mut self,
         data: &U,
-        mut for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
-        mut for_scheme: impl FnMut(
+        for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: fn(
             &mut <Self::Type as PrettyPrintType>::FunScheme,
             &mut U,
         ) -> Result<(), E>,
     ) -> Result<(), E> {
         self.pattern
-            .traverse_type(data, &mut for_type, &mut for_scheme)?;
+            .traverse_type(data, for_type,  for_scheme)?;
         self.expr.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -83,8 +83,8 @@ impl<T: PrettyPrintType> TraverseType for FunDeclare<T> {
     fn traverse_type<U: Clone, E>(
         &mut self,
         data: &U,
-        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
-        mut for_scheme: impl FnMut(
+        for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: fn(
             &mut <Self::Type as PrettyPrintType>::FunScheme,
             &mut U,
         ) -> Result<(), E>,

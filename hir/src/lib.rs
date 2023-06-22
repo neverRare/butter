@@ -43,8 +43,8 @@ pub trait TraverseType {
     fn traverse_type<U: Clone, E>(
         &mut self,
         data: &U,
-        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+        for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E>;
 }
 impl<T: TraverseType> TraverseType for Option<T> {
@@ -53,8 +53,8 @@ impl<T: TraverseType> TraverseType for Option<T> {
     fn traverse_type<U: Clone, E>(
         &mut self,
         data: &U,
-        for_type: impl FnMut(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: impl FnMut(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
+        for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         match self {
             Some(traverse) => traverse.traverse_type(data, for_type, for_scheme)?,
