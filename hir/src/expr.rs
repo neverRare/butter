@@ -68,13 +68,38 @@ impl<T: PrettyPrintType> TraverseType for Expr<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        _for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         for_type(&mut self.ty, data)?;
-        todo!()
+        match &mut self.expr {
+            ExprKind::Literal(_) => (),
+            ExprKind::Tag(tag) => tag.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Assign(assign) => {
+                for assign in assign.iter_mut() {
+                    assign.traverse_type(data, for_type, for_scheme)?;
+                }
+            }
+            ExprKind::Array(array) => {
+                for elem in array.iter_mut() {
+                    elem.traverse_type(data, for_type, for_scheme)?;
+                }
+            }
+            ExprKind::ArrayRange(range) => range.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Unit => (),
+            ExprKind::Splat(expr) => expr.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Record(record) => record.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Tuple(tuple) => tuple.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Unary(unary) => unary.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Binary(binary) => binary.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Place(place) => place.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Call(call) => call.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::ControlFlow(control_flow) => {
+                control_flow.traverse_type(data, for_type, for_scheme)?
+            }
+            ExprKind::Fun(fun) => fun.traverse_type(data, for_type, for_scheme)?,
+            ExprKind::Jump(jump) => jump.traverse_type(data, for_type, for_scheme)?,
+        }
+        Ok(())
     }
 }
 impl<T: PrettyPrintType> PrettyPrint for Expr<T> {
@@ -152,22 +177,19 @@ impl<T: PrettyPrintType> TraverseType for ExprKind<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         match self {
             ExprKind::Literal(_) => (),
             ExprKind::Tag(tag) => tag.traverse_type(data, for_type, for_scheme)?,
             ExprKind::Assign(assign) => {
                 for assign in assign.iter_mut() {
-                    assign.traverse_type(data,  for_type, for_scheme)?;
+                    assign.traverse_type(data, for_type, for_scheme)?;
                 }
             }
             ExprKind::Array(array) => {
                 for element in array.iter_mut() {
-                    element.traverse_type(data,  for_type,  for_scheme)?;
+                    element.traverse_type(data, for_type, for_scheme)?;
                 }
             }
             ExprKind::ArrayRange(range) => range.traverse_type(data, for_type, for_scheme)?,
@@ -328,13 +350,9 @@ impl<T: PrettyPrintType> TraverseType for Fun<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.param
-            .traverse_type(data,  for_type,  for_scheme)?;
+        self.param.traverse_type(data, for_type, for_scheme)?;
         self.body.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -457,13 +475,9 @@ impl<T: PrettyPrintType> TraverseType for Binary<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.left
-            .traverse_type(data,  for_type,  for_scheme)?;
+        self.left.traverse_type(data, for_type, for_scheme)?;
         self.right.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -548,13 +562,9 @@ impl<T: PrettyPrintType> TraverseType for Index<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.expr
-            .traverse_type(data,  for_type,  for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
         self.index.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -624,15 +634,12 @@ impl<T: TraverseType> TraverseType for Collection<T, T::Type> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         match self {
             Collection::Collection(collection) => {
                 for element in collection.iter_mut() {
-                    element.traverse_type(data,  for_type,  for_scheme)?;
+                    element.traverse_type(data, for_type, for_scheme)?;
                 }
             }
             Collection::WithSplat(_) => todo!(),
@@ -671,18 +678,14 @@ impl<T: TraverseType> TraverseType for WithSplat<T, T::Type> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         for element in self.left.iter_mut() {
-            element.traverse_type(data, for_type,  for_scheme)?;
+            element.traverse_type(data, for_type, for_scheme)?;
         }
-        self.splat
-            .traverse_type(data,  for_type,  for_scheme)?;
+        self.splat.traverse_type(data, for_type, for_scheme)?;
         for element in self.right.iter_mut() {
-            element.traverse_type(data,  for_type,  for_scheme)?;
+            element.traverse_type(data, for_type, for_scheme)?;
         }
         Ok(())
     }
@@ -794,10 +797,7 @@ impl<T: PrettyPrintType> TraverseType for Block<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         for statement in self.statement.iter_mut() {
             statement.traverse_type(data, for_type, for_scheme)?;
@@ -845,15 +845,10 @@ impl<T: PrettyPrintType> TraverseType for If<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.condition
-            .traverse_type(data, for_type, for_scheme)?;
-        self.body
-            .traverse_type(data, for_type, for_scheme)?;
+        self.condition.traverse_type(data, for_type, for_scheme)?;
+        self.body.traverse_type(data, for_type, for_scheme)?;
         self.else_part
             .as_mut()
             .map(|else_part| else_part.traverse_type(data, for_type, for_scheme))
@@ -894,15 +889,10 @@ impl<T: PrettyPrintType> TraverseType for For<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.pattern
-            .traverse_type(data, for_type, for_scheme)?;
-        self.expr
-            .traverse_type(data, for_type, for_scheme)?;
+        self.pattern.traverse_type(data, for_type, for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
         self.body.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -931,13 +921,9 @@ impl<T: PrettyPrintType> TraverseType for While<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.condition
-            .traverse_type(data, for_type, for_scheme)?;
+        self.condition.traverse_type(data, for_type, for_scheme)?;
         self.body.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -964,13 +950,9 @@ impl<T: PrettyPrintType> TraverseType for Match<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.expr
-            .traverse_type(data, for_type, for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
         for arm in self.arm.iter_mut() {
             arm.traverse_type(data, for_type, for_scheme)?;
         }
@@ -1009,13 +991,9 @@ impl<T: PrettyPrintType> TraverseType for MatchArm<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.pattern
-            .traverse_type(data, for_type, for_scheme)?;
+        self.pattern.traverse_type(data, for_type, for_scheme)?;
         self.expr.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -1041,13 +1019,9 @@ impl<T: PrettyPrintType> TraverseType for Assign<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.place
-            .traverse_type(data, for_type, for_scheme)?;
+        self.place.traverse_type(data, for_type, for_scheme)?;
         self.expr.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -1103,13 +1077,9 @@ impl<T: PrettyPrintType> TraverseType for Slice<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.expr
-            .traverse_type(data, for_type, for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
         self.range.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -1131,13 +1101,9 @@ impl<T: PrettyPrintType> TraverseType for Call<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.expr
-            .traverse_type(data, for_type, for_scheme)?;
+        self.expr.traverse_type(data, for_type, for_scheme)?;
         self.arg.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -1247,10 +1213,7 @@ impl<T: PrettyPrintType> TraverseType for Range<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         self.left
             .as_mut()
