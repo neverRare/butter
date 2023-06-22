@@ -361,7 +361,7 @@ impl Keyed {
                 );
             }
             (Some(rest1), map1, None, map2) | (None, map2, Some(rest1), map1) => {
-                if map1.is_empty() {
+                if !map1.is_empty() {
                     return Err(TypeError::MismatchArity);
                 }
                 subs.insert(
@@ -373,7 +373,7 @@ impl Keyed {
                 );
             }
             (None, map1, None, map2) => {
-                if map1.is_empty() || map2.is_empty() {
+                if !map1.is_empty() || !map2.is_empty() {
                     return Err(TypeError::MismatchArity);
                 }
             }
