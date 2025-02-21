@@ -3,7 +3,7 @@
 #![forbid(unsafe_code)]
 
 use expr::Inferable;
-use hir::{expr::Expr, statement::Statement, TraverseType};
+use hir::{TraverseType, expr::Expr, statement::Statement};
 use ty::{Env, Subs, Substitutable, VarState};
 
 mod expr;
@@ -11,8 +11,8 @@ mod pattern;
 mod ty;
 
 pub use crate::ty::{
-    cons::{Cons, Keyed},
     MutType, Type, TypeError, Var,
+    cons::{Cons, Keyed},
 };
 struct Typed<T> {
     ty: Type,

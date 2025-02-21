@@ -3,9 +3,9 @@
 #![forbid(unsafe_code)]
 
 use combine::{
-    attempt, choice, eof, many, none_of, optional,
+    ParseError, Stream, attempt, choice, eof, many, none_of, optional,
     parser::char::{space, string},
-    sep_end_by, skip_many, skip_many1, value, ParseError, Stream,
+    sep_end_by, skip_many, skip_many1, value,
 };
 use hir::{expr::Expr, statement::Statement};
 
@@ -91,8 +91,8 @@ mod test {
     use crate::insignificants;
     use combine::Parser;
     use hir::{
-        expr::{Expr, ExprKind, PlaceExpr},
         Atom,
+        expr::{Expr, ExprKind, PlaceExpr},
     };
 
     pub(super) fn var_expr(var: &str) -> Expr<()> {

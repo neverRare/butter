@@ -1,11 +1,11 @@
 use crate::{expr::expr, ident_keyword::ident, lex, sep_optional_between};
 use combine::{
-    between, error::StreamError, optional, parser::char::char, stream::StreamErrorFor, ParseError,
-    Parser, Stream,
+    ParseError, Parser, Stream, between, error::StreamError, optional, parser::char::char,
+    stream::StreamErrorFor,
 };
 use hir::{
-    expr::{Collection, Field, WithSplat},
     Atom,
+    expr::{Collection, Field, WithSplat},
 };
 
 pub(super) fn record<I>() -> impl Parser<I, Output = Collection<Field<()>, ()>>

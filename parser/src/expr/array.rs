@@ -1,6 +1,6 @@
 use crate::{expr::expr, lex};
 use combine::{
-    between, choice, optional, parser::char::char, sep_end_by, value, ParseError, Parser, Stream,
+    ParseError, Parser, Stream, between, choice, optional, parser::char::char, sep_end_by, value,
 };
 use hir::expr::{Bound, BoundType, Element, ElementKind, Range};
 

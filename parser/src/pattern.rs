@@ -5,12 +5,12 @@ use crate::{
     sep_optional_between,
 };
 use combine::{
-    attempt, between, choice, error::StreamError, optional, parser::char::char, sep_end_by,
-    stream::StreamErrorFor, value, ParseError, Parser, Stream,
+    ParseError, Parser, Stream, attempt, between, choice, error::StreamError, optional,
+    parser::char::char, sep_end_by, stream::StreamErrorFor, value,
 };
 use hir::{
-    pattern::{ListPattern, ListWithRest, Pattern, PatternKind, RecordPattern, TaggedPattern, Var},
     Atom,
+    pattern::{ListPattern, ListWithRest, Pattern, PatternKind, RecordPattern, TaggedPattern, Var},
 };
 use std::collections::HashMap;
 

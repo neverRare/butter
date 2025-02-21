@@ -1,6 +1,6 @@
 use crate::{
-    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree},
     Atom, PrettyPrintType, TraverseType,
+    pretty_print::{PrettyPrint, PrettyPrintTree, bracket, line, postfix, prefix, sequence},
 };
 use std::{
     collections::HashMap,
@@ -76,7 +76,7 @@ impl<T: PrettyPrintType> TraverseType for PatternKind<T> {
             PatternKind::Tuple(tuple) => tuple.traverse_type(data, for_type, for_scheme)?,
             PatternKind::Param(param) => {
                 for var in param.iter_mut() {
-                    var.traverse_type(data,  for_type,  for_scheme)?
+                    var.traverse_type(data, for_type, for_scheme)?
                 }
             }
             PatternKind::Array(array) => array.traverse_type(data, for_type, for_scheme)?,
@@ -205,15 +205,12 @@ impl<T: PrettyPrintType> TraverseType for ListPattern<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         match self {
             ListPattern::List(list) => {
                 for pattern in list.iter_mut() {
-                    pattern.traverse_type(data,  for_type,  for_scheme)?;
+                    pattern.traverse_type(data, for_type, for_scheme)?;
                 }
             }
             ListPattern::ListWithRest(list) => list.traverse_type(data, for_type, for_scheme)?,
@@ -259,18 +256,14 @@ impl<T: PrettyPrintType> TraverseType for ListWithRest<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         for pattern in self.left.iter_mut() {
-            pattern.traverse_type(data,  for_type,  for_scheme)?;
+            pattern.traverse_type(data, for_type, for_scheme)?;
         }
-        self.rest
-            .traverse_type(data,  for_type,  for_scheme)?;
+        self.rest.traverse_type(data, for_type, for_scheme)?;
         for pattern in self.right.iter_mut() {
-            pattern.traverse_type(data,  for_type,  for_scheme)?;
+            pattern.traverse_type(data, for_type, for_scheme)?;
         }
         Ok(())
     }
@@ -287,13 +280,10 @@ impl<T: PrettyPrintType> TraverseType for RecordPattern<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         for (_, pattern) in self.fields.iter_mut() {
-            pattern.traverse_type(data, for_type,  for_scheme)?;
+            pattern.traverse_type(data, for_type, for_scheme)?;
         }
         self.rest
             .as_mut()

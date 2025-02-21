@@ -1,7 +1,7 @@
 use crate::{
+    Cons, Keyed, MutType, Type, TypeError, Typed, Var,
     expr::unit,
     ty::{Env, Scheme, SchemeMut, Subs, Substitutable, Unifiable, VarState},
-    Cons, Keyed, MutType, Type, TypeError, Typed, Var,
 };
 use hir::pattern::{self, ListPattern, ListWithRest, Pattern, PatternKind, TaggedPattern};
 use std::{collections::HashSet, iter::once};

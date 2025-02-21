@@ -6,13 +6,13 @@ use crate::{
     pattern::{parameter, pattern},
 };
 use combine::{
-    attempt, choice,
+    ParseError, Parser, Stream, attempt, choice,
     error::StreamError,
     look_ahead, optional,
     parser::char::{char, string},
     sep_by1,
     stream::StreamErrorFor,
-    value, ParseError, Parser, Stream,
+    value,
 };
 use hir::{
     expr::{Assign, Expr, ExprKind, Fun},
@@ -64,14 +64,11 @@ where
             })
     };
     let place = || {
-        expr(1).and_then(|expr| {
-            if let ExprKind::Place(place) = expr.expr {
-                Ok(place)
-            } else {
-                Err(<StreamErrorFor<I>>::expected_static_message(
-                    "place expression",
-                ))
-            }
+        expr(1).and_then(|expr| match expr.expr {
+            ExprKind::Place(place) => Ok(place),
+            _ => Err(<StreamErrorFor<I>>::expected_static_message(
+                "place expression",
+            )),
         })
     };
     let declare = || {
@@ -138,16 +135,16 @@ where
 #[cfg(test)]
 mod test {
     use crate::{
-        statement::{statement, Assign, ExprKind},
-        test::{var_expr, var_place},
         Statement,
+        statement::{Assign, ExprKind, statement},
+        test::{var_expr, var_place},
     };
     use combine::EasyParser;
     use hir::{
+        Atom,
         expr::Literal,
         pattern::{PatternKind, Var},
         statement::Declare,
-        Atom,
     };
 
     #[test]

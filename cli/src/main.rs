@@ -1,6 +1,6 @@
 use clap::Parser;
 use hir::pretty_print::PrettyPrint;
-use parser::{expr_parser, EasyParser};
+use parser::{EasyParser, expr_parser};
 use std::io::{self, Write};
 use type_system::test_infer;
 

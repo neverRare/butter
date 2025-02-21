@@ -1,5 +1,5 @@
 use combine::{
-    attempt, choice,
+    ParseError, Parser, Stream, attempt, choice,
     error::StreamError,
     look_ahead, many1, not_followed_by, optional,
     parser::char::digit,
@@ -9,9 +9,9 @@ use combine::{
     },
     satisfy, skip_many,
     stream::StreamErrorFor,
-    value, ParseError, Parser, Stream,
+    value,
 };
-use hir::{keyword, Atom};
+use hir::{Atom, keyword};
 
 // TODO: minus integer parser
 
@@ -23,11 +23,7 @@ pub(super) fn parse_digit(ch: char, base: u8) -> Option<u8> {
         _ => return None,
     };
     let result = ch as u8 - lower_ch as u8 + lower_bound;
-    if result < base {
-        Some(result)
-    } else {
-        None
-    }
+    if result < base { Some(result) } else { None }
 }
 macro_rules! gen_integer_decoder {
     ($ident:ident, $type:ty) => {
@@ -68,7 +64,7 @@ where
     .map(Atom::from)
 }
 macro_rules! gen_integer_parser {
-    ($ident:ident, $parser:expr, $type:ty) => {
+    ($ident:ident, $parser:expr_2021, $type:ty) => {
         pub(super) fn $ident<I>() -> impl Parser<I, Output = $type>
         where
             I: Stream<Token = char>,
@@ -132,11 +128,7 @@ impl FloatSrc {
         .filter(|ch| *ch != '_')
         .collect();
         let float: f64 = src.parse().unwrap();
-        if float.is_finite() {
-            Some(float)
-        } else {
-            None
-        }
+        if float.is_finite() { Some(float) } else { None }
     }
 }
 fn float_src<I>() -> impl Parser<I, Output = FloatSrc>

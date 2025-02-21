@@ -1,10 +1,10 @@
 use crate::{
+    Atom, PrettyPrintFunScheme, PrettyPrintType, TraverseType,
     expr::{Expr, Fun},
     pattern::Pattern,
     pretty_print::{
-        bracket, line, multiline_sequence, postfix, sequence, PrettyPrint, PrettyPrintTree,
+        PrettyPrint, PrettyPrintTree, bracket, line, multiline_sequence, postfix, sequence,
     },
-    Atom, PrettyPrintFunScheme, PrettyPrintType, TraverseType,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -51,13 +51,9 @@ impl<T: PrettyPrintType> TraverseType for Declare<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
-        self.pattern
-            .traverse_type(data, for_type,  for_scheme)?;
+        self.pattern.traverse_type(data, for_type, for_scheme)?;
         self.expr.traverse_type(data, for_type, for_scheme)?;
         Ok(())
     }
@@ -84,10 +80,7 @@ impl<T: PrettyPrintType> TraverseType for FunDeclare<T> {
         &mut self,
         data: &U,
         for_type: fn(&mut Self::Type, &U) -> Result<(), E>,
-        for_scheme: fn(
-            &mut <Self::Type as PrettyPrintType>::FunScheme,
-            &mut U,
-        ) -> Result<(), E>,
+        for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         let mut data = data.clone();
         for_scheme(&mut self.ty, &mut data)?;

@@ -1,5 +1,5 @@
 use crate::{expr::expr, lex, sep_optional_between};
-use combine::{between, parser::char::char, ParseError, Parser, Stream};
+use combine::{ParseError, Parser, Stream, between, parser::char::char};
 use hir::expr::{Collection, Expr, WithSplat};
 
 pub(super) fn tuple<I>() -> impl Parser<I, Output = Collection<Expr<()>, ()>>

@@ -13,9 +13,9 @@ use crate::{
     pattern::parameter,
 };
 use combine::{
-    attempt, between, chainl1, choice, optional,
+    ParseError, Parser, Stream, attempt, between, chainl1, choice, optional,
     parser::char::{char, string},
-    value, ParseError, Parser, Stream,
+    value,
 };
 use hir::expr::{
     Element, ElementKind, Expr, ExprKind, Fun, Jump, Literal, PlaceExpr, Tag, Unary, UnaryType,
@@ -204,7 +204,7 @@ combine::parser! {
 #[cfg(test)]
 mod test {
     use crate::{
-        expr::{expr, ExprKind},
+        expr::{ExprKind, expr},
         test::{var_expr, var_place},
     };
     use combine::EasyParser;

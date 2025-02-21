@@ -1,12 +1,12 @@
 use crate::number::parse_digit;
 use combine::{
-    between, choice,
+    ParseError, Parser, Stream, between, choice,
     error::StreamError,
     many,
     parser::char::{char, hex_digit},
     satisfy,
     stream::StreamErrorFor,
-    value, ParseError, Parser, Stream,
+    value,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

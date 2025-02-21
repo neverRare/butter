@@ -1,14 +1,15 @@
 use crate::{
+    Typed,
     pattern::InferablePattern,
     substitute_hir,
     ty::{
+        Env, MutType, Subs, Substitutable, Type, TypeError, Unifiable, Var, VarState,
         cons::OrderedAnd,
         cons::{Cons, Keyed},
-        Env, MutType, Subs, Substitutable, Type, TypeError, Unifiable, Var, VarState,
     },
-    Typed,
 };
 use hir::{
+    Atom,
     expr::{
         Arg, Assign, Binary, BinaryType, Block, Bound, Call, Collection, ControlFlow, Element,
         ElementKind, Expr, ExprKind, Field, FieldAccess, If, Index, Jump, Literal, PlaceExpr,
@@ -16,7 +17,6 @@ use hir::{
     },
     keyword,
     statement::{Declare, Statement},
-    Atom,
 };
 use std::{collections::HashMap, iter::once};
 
@@ -1197,11 +1197,12 @@ impl Inferable for ExprKind<()> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<(Option<Var>, Typed<ExprKind<Type>>), TypeError> {
-        let mut_typed = if let Self::Place(place) = self {
-            let (mut_var, typed) = place.infer_with_mut(subs, var_state, env)?;
-            (mut_var, typed.map(ExprKind::Place))
-        } else {
-            (None, self.infer(subs, var_state, env)?)
+        let mut_typed = match self {
+            Self::Place(place) => {
+                let (mut_var, typed) = place.infer_with_mut(subs, var_state, env)?;
+                (mut_var, typed.map(ExprKind::Place))
+            }
+            _ => (None, self.infer(subs, var_state, env)?),
         };
         Ok(mut_typed)
     }

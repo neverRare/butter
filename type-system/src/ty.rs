@@ -1,8 +1,7 @@
 use crate::ty::cons::Cons;
 use hir::{
-    keyword,
+    Atom, PrettyPrintFunScheme, PrettyPrintType, keyword,
     pretty_print::{PrettyPrint, PrettyPrintTree},
-    Atom, PrettyPrintFunScheme, PrettyPrintType,
 };
 use std::{
     collections::{HashMap, HashSet},
@@ -154,15 +153,19 @@ impl Unifiable for Type {
                     return Err(TypeError::InfiniteOccurrence);
                 } else if var.name == keyword!("") {
                     subs.insert(var, Type1::Type(ty));
-                } else if let Type::Var(
-                    var1 @ Var {
-                        name: keyword!(""), ..
-                    },
-                ) = ty
-                {
-                    subs.insert(var1, Type1::Type(Type::Var(var)));
                 } else {
-                    subs.insert(var, Type1::Type(ty));
+                    match ty {
+                        Type::Var(
+                            var1 @ Var {
+                                name: keyword!(""), ..
+                            },
+                        ) => {
+                            subs.insert(var1, Type1::Type(Type::Var(var)));
+                        }
+                        _ => {
+                            subs.insert(var, Type1::Type(ty));
+                        }
+                    }
                 }
             }
         }
@@ -239,15 +242,19 @@ impl Unifiable for MutType {
                     return Err(TypeError::InfiniteOccurrence);
                 } else if var.name == keyword!("") {
                     subs.insert(var, Type1::MutType(ty));
-                } else if let MutType::Var(
-                    var1 @ Var {
-                        name: keyword!(""), ..
-                    },
-                ) = ty
-                {
-                    subs.insert(var1, Type1::MutType(MutType::Var(var)));
                 } else {
-                    subs.insert(var, Type1::MutType(ty));
+                    match ty {
+                        MutType::Var(
+                            var1 @ Var {
+                                name: keyword!(""), ..
+                            },
+                        ) => {
+                            subs.insert(var1, Type1::MutType(MutType::Var(var)));
+                        }
+                        _ => {
+                            subs.insert(var, Type1::MutType(ty));
+                        }
+                    }
                 }
             }
             _ => return Err(TypeError::MismatchCons),

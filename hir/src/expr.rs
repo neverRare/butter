@@ -1,11 +1,10 @@
 use crate::{
-    all_unique,
+    Atom, PrettyPrintType, TraverseType, all_unique,
     pattern::Pattern,
     pretty_print::{
-        bracket, line, multiline_sequence, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree,
+        PrettyPrint, PrettyPrintTree, bracket, line, multiline_sequence, postfix, prefix, sequence,
     },
     statement::Statement,
-    Atom, PrettyPrintType, TraverseType,
 };
 use std::{
     fmt::{self, Display, Formatter},
@@ -44,11 +43,7 @@ impl<T: PrettyPrintType> Expr<T> {
     where
         T: PrettyPrintType,
     {
-        if T::TYPED {
-            10
-        } else {
-            self.expr.precedence()
-        }
+        if T::TYPED { 10 } else { self.expr.precedence() }
     }
     fn to_auto_wrap(&self, precedence: u8) -> Box<dyn PrettyPrintTree>
     where

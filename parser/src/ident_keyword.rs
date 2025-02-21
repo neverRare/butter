@@ -1,12 +1,13 @@
 use combine::{
+    ParseError, Parser, Stream,
     error::StreamError,
     not_followed_by,
     parser::{char::string, combinator::recognize},
     satisfy, skip_many,
     stream::StreamErrorFor,
-    value, ParseError, Parser, Stream,
+    value,
 };
-use hir::{keyword, Atom};
+use hir::{Atom, keyword};
 
 fn rest(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'

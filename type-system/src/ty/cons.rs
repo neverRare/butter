@@ -3,8 +3,8 @@ use crate::ty::{
     Kind, KindedVar, MutType, Subs, Substitutable, Type, Type1, TypeError, Unifiable, Var, VarState,
 };
 use hir::{
-    pretty_print::{bracket, line, postfix, prefix, sequence, PrettyPrint, PrettyPrintTree},
     Atom,
+    pretty_print::{PrettyPrint, PrettyPrintTree, bracket, line, postfix, prefix, sequence},
 };
 use std::{
     collections::{HashMap, HashSet},

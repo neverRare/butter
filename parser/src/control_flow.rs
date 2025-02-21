@@ -3,12 +3,12 @@ use crate::{
     ident_keyword::keyword,
     lex,
     pattern::pattern,
-    statement::{statement_return, StatementReturn},
+    statement::{StatementReturn, statement_return},
 };
 use combine::{
-    attempt, between, choice, look_ahead, many, optional,
+    ParseError, Parser, Stream, attempt, between, choice, look_ahead, many, optional,
     parser::char::{char, string},
-    value, ParseError, Parser, Stream,
+    value,
 };
 use hir::{
     expr::{Block, ControlFlow, Expr, ExprKind, For, If, Match, MatchArm, While},

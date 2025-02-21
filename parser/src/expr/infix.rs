@@ -4,19 +4,20 @@ use crate::{
     lex,
 };
 use combine::{
-    attempt, between, choice,
+    ParseError, Parser, Stream, attempt, between, choice,
     error::StreamError,
     many, not_followed_by, optional,
     parser::char::{char, string},
     stream::StreamErrorFor,
-    value, ParseError, Parser, Stream,
+    value,
 };
 use hir::{
+    Atom,
     expr::{
         Arg, Assign, Binary, BinaryType, Call, Collection, Expr, ExprKind, Field, FieldAccess,
         Index, PlaceExpr, Range, Slice,
     },
-    keyword, Atom,
+    keyword,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -136,15 +137,14 @@ where
 {
     (expr(1), optional(lex(attempt(string("<-"))).with(expr(0)))).and_then(|(place, expr)| {
         match expr {
-            Some(expr) => {
-                if let ExprKind::Place(place) = place.expr {
+            Some(expr) => match place.expr {
+                ExprKind::Place(place) => {
                     Ok(ExprKind::Assign(vec![Assign { place, expr }].into()).into_untyped())
-                } else {
-                    Err(<StreamErrorFor<I>>::expected_static_message(
-                        "place expression",
-                    ))
                 }
-            }
+                _ => Err(<StreamErrorFor<I>>::expected_static_message(
+                    "place expression",
+                )),
+            },
             None => Ok(place),
         }
     })
