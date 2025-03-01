@@ -5,7 +5,7 @@ edition = "2024"
 default-run = "butter"
 
 [dependencies]
-clap = { version = "4.5.27", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 parser = { path = "../parser/" }
 hir = { path = "../hir/" }
 type-system = { path = "../type-system/" }
