@@ -24,6 +24,6 @@ std.assert(bar == 10);
 
 Note: It is better to [share](./share.md) immutable reference instead unless the variable is mutable e.g. `mut foo = &bar`.
 
-## Clone and implicit copy traits
+## Clone and copy traits
 
 TODO
