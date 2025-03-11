@@ -27,6 +27,7 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `mut`
 - `ref`
 - `return`
+- `share`
 - `true`
 - `while`
 
@@ -51,7 +52,7 @@ These are keywords that only have special meaning in some context.
 |       `.<`        | Inclusive-exclusive range            |
 |       `>.`        | Exclusive-inclusive range            |
 |       `><`        | Exclusive range                      |
-|        `+`        | Addition                             |
+|        `+`        | Addition, share                      |
 |       `++`        | Concatenation                        |
 |        `-`        | Subtraction                          |
 |        `*`        | Multiplication, splat, rest          |
@@ -86,7 +87,7 @@ These are keywords that only have special meaning in some context.
 Butter defines the following operator precedence from strongest to weakest.
 
 - `.` element access or slice `[...]` function call `(...)` `^`
-- unary `-` `!` `&` `@...` `>` `clone`
+- unary `-` `+` `!` `&` `@...` `>` `clone`
 - `*` `/` `//` `%`
 - `+` `-` `++`
 - `==` `!=` `<` `>` `<=` `>=`
