@@ -23,8 +23,8 @@ a = 20;
 
 -- pattern match booleans
 remarks = match a > 10 {
-    true => "it's greater than 10",
-    false => "it's not greater than 10",
+    @true => "it's greater than 10",
+    @false => "it's not greater than 10",
 };
 std.print(remarks);
 

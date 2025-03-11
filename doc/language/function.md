@@ -59,7 +59,7 @@ First, there must be no other named function nor variable with the same name on 
 ```butter
 is_even(value) => value % 2 == 0;
 
-is_even = true;  -- error
+is_even = @true;  -- error
 ```
 
 Second, unless shadowed, the body can access the function itself. With this, recursion can be achieved.
@@ -91,13 +91,13 @@ With this, you can implement mutually recursive functions. You can't, however, m
 ```butter
 is_even(num) => {
     match num {
-        0 => true,
+        0 => @true,
         num => is_odd(num - 1),
     }
 }
 is_odd(num) => {
     match num {
-        0 => false,
+        0 => @false,
         num => is_even(num - 1),
     }
 }

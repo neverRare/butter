@@ -71,7 +71,7 @@ match foo {
 This clashes with type annotation syntax. There should not be dedicated syntax for label anyway, it must be syntactically salted.
 
 ```butter
-outer: while true {
+outer: while @true {
     for i in arr {
         if i == 2 {
             break outer;
@@ -85,7 +85,7 @@ outer: while true {
 An alternative to control flow label. This will `break` or `continue` the nth closest loop. providing `0` is just the same as not using `upto` at all.
 
 ```butter
-while true {
+while @true {
     for i in arr {
         if i == 2 {
             break upto 1;
@@ -97,7 +97,7 @@ while true {
 You may use keyword instead. It won't work when there's multiple loop with the same keyword.
 
 ```butter
-while true {
+while @true {
     for i in arr {
         if i == 2 {
             break upto while;
@@ -363,11 +363,11 @@ trait Eq(a) {
 given Eq(a):
 impl Eq([a]) {
     equal(a, b) => {
-        if a^.len != b^.len { return false; }
+        if a^.len != b^.len { return @false; }
         for i in [0.< a^.len] {
-            if a^[i] != b^[i] { return false; }
+            if a^[i] != b^[i] { return @false; }
         }
-        true
+        @true
     }
 }
 ```

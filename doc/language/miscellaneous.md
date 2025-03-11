@@ -17,7 +17,6 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `clone`
 - `continue`
 - `else`
-- `false`
 - `for`
 - `if`
 - `imm`
@@ -28,7 +27,6 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `ref`
 - `return`
 - `share`
-- `true`
 - `while`
 
 ## Contextual keyword reference

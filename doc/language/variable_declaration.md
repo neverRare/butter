@@ -4,7 +4,7 @@ Variables are declared via `=`.
 
 ```butter
 foo = 10;
-bar = false;
+bar = @false;
 ```
 
 Variables can shadow previously declared variable with the same name, either on the same or on upper scope.
@@ -12,12 +12,12 @@ Variables can shadow previously declared variable with the same name, either on 
 ```butter
 foo = 10;
 {
-    foo = false;
-    std.assert(foo == false);
+    foo = @false;
+    std.assert(foo == @false);
 }
 std.assert(foo == 10);
 foo = 20;
 std.assert(foo == 20);
 foo = foo == 20;
-std.assert(foo == true);
+std.assert(foo == @true);
 ```

@@ -16,7 +16,7 @@ for fruit in ["apple", "banana", "cherry"] {
 
 ## While
 
-`while` repeatedly executes the body while the condition is true.
+`while` repeatedly executes the body while the condition is `@true`.
 
 ```butter
 mut counter = 0;

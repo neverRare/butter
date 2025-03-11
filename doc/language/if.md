@@ -9,7 +9,7 @@ if input.len == 0 {
 }
 ```
 
-You can add an `else` branch which gets executed when the condition isn't true
+You can add an `else` branch which gets executed when the condition isn't `@true`
 
 ```butter
 input = std.get_line();

@@ -47,7 +47,7 @@ Numbers have type `Num` and booleans have type `Bool`. There is also `Char` and 
 
 ```butter
 num : Num = 10;
-truth : Bool = true;
+truth : Bool = @true;
 char : Char = 'a';
 string : Str = "Hello World";
 ```
