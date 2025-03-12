@@ -15,6 +15,29 @@ Currently, string and char literal are just syntactic sugar for array of bytes a
 #"raw strings don't have escape notation"#
 ```
 
+## String interpolation
+
+```butter
+std.print_line("value is \(value)");
+```
+
+Debug printing, pretty printing, padding, alignment, etc. shall use normal functions instead of special syntaxes.
+
+Debug printing and pretty printing
+
+```butter
+std.print_line("value is \(debug(value))");
+std.print_line("value is \(pretty_print(value))");
+```
+
+Padding, alignment etc.
+
+```
+name = pad(name, 20);
+value = pad_right(value, 5);
+std.print_line("\(name) \(value)");
+```
+
 ## Match parameter
 
 ```butter
