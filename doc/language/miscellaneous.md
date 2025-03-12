@@ -88,8 +88,8 @@ Butter defines the following operator precedence from strongest to weakest.
 - `*` `/` `//` `%`
 - `+` `-` `++`
 - `==` `/=` `<` `>` `<=` `>=`
-- `&` `and`
-- `|` `or`
+- `and`
+- `or`
 - `<-`
 - `return` `break` `(...) =>`
 - Type annotation `: ...`
