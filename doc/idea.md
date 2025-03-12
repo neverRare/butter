@@ -128,17 +128,17 @@ comment
 -/
 ```
 
-The content will be parsed as markdown and codeblocks inside will be parsed as butter codes (not checked, just lexed). This means multiline comments may be nested as long as it is contained within codeblocks.
+The content will be parsed as markdown and codeblocks inside will be parsed as butter codes (not checked, just lexed). This means multiline comments may be nested as long as it is contained within codeblocks. Primarily intended for textual comments and documentation comments.
 
 ## Ignore codeblock
 
 ```butter
 {-
-    std.print("this code is ignored, nothing would be printed");
+std.print("this code is ignored, nothing would be printed");
 -}
 ```
 
-This can be nested, but the content must be lexable. Intended for disabling span of codes.
+This can be nested, but the content must be lexable. This means it can be nested. Intended for disabling span of codes.
 
 ## Raw identifier
 
