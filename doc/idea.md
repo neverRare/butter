@@ -133,9 +133,9 @@ The content will be parsed as markdown and codeblocks inside will be parsed as b
 ## Ignore codeblock
 
 ```butter
-/-{
+{-
     std.print("this code is ignored, nothing would be printed");
-}-/
+-}
 ```
 
 This can be nested, but the content must be lexable. Intended for disabling span of codes.
