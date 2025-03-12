@@ -51,8 +51,8 @@ These are keywords that only have special meaning in some context.
 |     `^`     | Dereference                          |
 |    `..`     | Inclusive range                      |
 |    `.<`     | Inclusive-exclusive range            |
-|    `>.`     | Exclusive-inclusive range            |
-|    `><`     | Exclusive range                      |
+|    `<.`     | Exclusive-inclusive range            |
+|    `<<`     | Exclusive range                      |
 |     `+`     | Addition, share                      |
 |    `++`     | Concatenation                        |
 |     `-`     | Subtraction                          |

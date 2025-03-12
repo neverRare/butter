@@ -66,16 +66,16 @@ favorites = &fruits[1.<3];
 
 [range syntax]: #range-syntax
 
-You can use `..`, `.<`, `>.`, or `><` for ranges. An angle bracket `<` or `>` means exclusive bound on that side while the period `.` means inclusive. Omitting the bound means there is no bound on that side. The following is an exhaustive list of its possible syntax and its meaning.
+You can use `..`, `.<`, `<.`, or `<<` for ranges. An angle bracket `<` or `>` means exclusive bound on that side while the period `.` means inclusive. Omitting the bound means there is no bound on that side. The following is an exhaustive list of its possible syntax and its meaning.
 
 | Syntax                    | Meaning       |
 | ------------------------- | ------------- |
 | `A..B`                    | `A <= x <= B` |
 | `A.<B`                    | `A <= x < B`  |
-| `A>.B`                    | `A < x <= B`  |
-| `A><B`                    | `A < x < B`   |
+| `A<.B`                    | `A < x <= B`  |
+| `A<<B`                    | `A < x < B`   |
 | `A..` or `A.<`            | `A <= x`      |
-| `A>.` or `A><`            | `A < x`       |
-| `..B` or `>.B`            | `x <= B`      |
-| `.<B` or `><B`            | `x < B`       |
-| `..`, `.<`, `>.`, or `><` | -             |
+| `A<.` or `A<<`            | `A < x`       |
+| `..B` or `<.B`            | `x <= B`      |
+| `.<B` or `<<B`            | `x < B`       |
+| `..`, `.<`, `<.`, or `<<` | -             |
