@@ -111,31 +111,31 @@ Instead of `upto`, `at` keyword may be used.
 ## Breakable block
 
 ```butter
-num = {|
+num = breakable {
     if foo == 10 {
         break 10;
     }
     20
-|};
+};
 ```
 
 ## Multiline comment
 
 ```butter
--/
-    multiline
-    comment
 /-
+multiline
+comment
+-/
 ```
 
-It won't be nestable. Intended for textual comments rather than disabling span of codes.
+The content will be parsed as markdown and codeblocks inside will be parsed as butter codes (not checked, just lexed). This means multiline comments may be nested as long as it is contained within codeblocks.
 
 ## Ignore codeblock
 
 ```butter
-{-
+/-{
     std.print("this code is ignored, nothing would be printed");
--}
+}-/
 ```
 
 This can be nested, but the content must be lexable. Intended for disabling span of codes.
@@ -363,9 +363,9 @@ trait Eq(a) {
 given Eq(a):
 impl Eq([a]) {
     equal(a, b) => {
-        if a^.len != b^.len { return @false; }
+        if a^.len /= b^.len { return @false; }
         for i in [0.< a^.len] {
-            if a^[i] != b^[i] { return @false; }
+            if a^[i] /= b^[i] { return @false; }
         }
         @true
     }

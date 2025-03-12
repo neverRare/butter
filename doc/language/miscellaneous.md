@@ -13,6 +13,7 @@ Comments are used to add few notes or description to Butter code, they are ignor
 These are keywords with special meaning, it cannot be used as variable name, function name, field name, nor tag name.
 
 - `_`
+- `and`
 - `break`
 - `clone`
 - `continue`
@@ -24,6 +25,8 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `loop`
 - `match`
 - `mut`
+- `not`
+- `or`
 - `ref`
 - `return`
 - `share`
@@ -37,40 +40,37 @@ These are keywords that only have special meaning in some context.
 
 ## Punctuation reference
 
-|    Punctuation    | Purpose                              |
-| :---------------: | ------------------------------------ |
-|        `;`        | Statements terminator                |
-|        `,`        | Separator of various kind            |
-|        `=`        | Declaration, field                   |
-|       `==`        | Equal                                |
-|       `!=`        | Not equal                            |
-|        `.`        | Field access                         |
-|        `^`        | Dereference                          |
-|       `..`        | Inclusive range                      |
-|       `.<`        | Inclusive-exclusive range            |
-|       `>.`        | Exclusive-inclusive range            |
-|       `><`        | Exclusive range                      |
-|        `+`        | Addition, share                      |
-|       `++`        | Concatenation                        |
-|        `-`        | Subtraction                          |
-|        `*`        | Multiplication, splat, rest          |
-|        `/`        | Unary Minus, division, lifetime      |
-|       `//`        | Floor division                       |
-|        `%`        | Modulo                               |
-|        `!`        | Not                                  |
-|  <code>\|</code>  | OR                                   |
-| <code>\|\|</code> | Lazy OR                              |
-|        `&`        | AND, reference                       |
-|       `&&`        | Lazy AND, double reference           |
-|        `>`        | Greater than, Move                   |
-|        `<`        | Less than                            |
-|       `>=`        | Greater than or equal                |
-|       `<=`        | Less than or equal                   |
-|       `<-`        | Assignment                           |
-|       `=>`        | Function, match arm                  |
-|        `@`        | Tag                                  |
-|        `:`        | Type annotation, mutability modifier |
-|       `->`        | Return type annotation               |
+| Punctuation | Purpose                              |
+| :---------: | ------------------------------------ |
+|     `;`     | Statements terminator                |
+|     `,`     | Separator of various kind            |
+|     `=`     | Declaration, field                   |
+|    `==`     | Equal                                |
+|    `/=`     | Not equal                            |
+|     `.`     | Field access                         |
+|     `^`     | Dereference                          |
+|    `..`     | Inclusive range                      |
+|    `.<`     | Inclusive-exclusive range            |
+|    `>.`     | Exclusive-inclusive range            |
+|    `><`     | Exclusive range                      |
+|     `+`     | Addition, share                      |
+|    `++`     | Concatenation                        |
+|     `-`     | Subtraction                          |
+|     `*`     | Multiplication, splat, rest          |
+|     `/`     | Unary Minus, division, lifetime      |
+|    `//`     | Floor division                       |
+|     `%`     | Modulo                               |
+|     `!`     | Not                                  |
+|     `&`     | reference                            |
+|     `>`     | Greater than, Move                   |
+|     `<`     | Less than                            |
+|    `>=`     | Greater than or equal                |
+|    `<=`     | Less than or equal                   |
+|    `<-`     | Assignment                           |
+|    `=>`     | Function, match arm                  |
+|     `@`     | Tag                                  |
+|     `:`     | Type annotation, mutability modifier |
+|    `->`     | Return type annotation               |
 
 ## Delimiter reference
 
@@ -85,12 +85,12 @@ These are keywords that only have special meaning in some context.
 Butter defines the following operator precedence from strongest to weakest.
 
 - `.` element access or slice `[...]` function call `(...)` `^`
-- unary `-` `+` `!` `&` `@...` `>` `clone`
+- unary `-` `+` `&` `@...` `>` `not`
 - `*` `/` `//` `%`
 - `+` `-` `++`
-- `==` `!=` `<` `>` `<=` `>=`
-- `&` `&&`
-- `|` `||`
+- `==` `/=` `<` `>` `<=` `>=`
+- `&` `and`
+- `|` `or`
 - `<-`
 - `return` `break` `(...) =>`
 - Type annotation `: ...`

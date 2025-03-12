@@ -39,7 +39,7 @@ Modulo internally uses floor division, the result will have the same sign as the
 Also pretty straight-forward.
 
 - Equal `A == B`
-- Not Equal `A != B`
+- Not Equal `A /= B`
 - Greater than `A > B`
 - Greater than or equal to `A >= B`
 - Less than `A < B`

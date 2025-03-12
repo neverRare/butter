@@ -4,7 +4,7 @@ Clone creates a deep copy of a value, with exception to immutable reference wher
 
 ```butter
 mut foo = 10;
-bar = clone foo;
+bar = clone(&foo);
 foo <- 20;
 std.assert(bar == 10);
 ```
