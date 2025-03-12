@@ -38,6 +38,18 @@ value = pad_right(value, 5);
 std.print_line("\(name) \(value)");
 ```
 
+## Multiline strings
+
+```
+value =
+    """
+    multiline
+    string
+    """;
+```
+
+Multiline strings are automatically dedented.
+
 ## Match parameter
 
 ```butter
