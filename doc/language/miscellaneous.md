@@ -60,8 +60,7 @@ These are keywords that only have special meaning in some context.
 |     `/`     | Unary Minus, division, lifetime      |
 |    `//`     | Floor division                       |
 |     `%`     | Modulo                               |
-|     `!`     | Not                                  |
-|     `&`     | reference                            |
+|     `&`     | Reference                            |
 |     `>`     | Greater than, Move                   |
 |     `<`     | Less than                            |
 |    `>=`     | Greater than or equal                |
