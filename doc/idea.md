@@ -445,6 +445,7 @@ y = point.#y;
 
 Anonymous record types have all fields public. Private fields are only applicable for `newtype`. Private fields can have visibility overridden by using `pub`.
 
+<!--
 ## Effect system
 
 ```butter
@@ -462,3 +463,13 @@ collect_message() => {
 ```
 
 This is a very novel feature. Unsure about the implementation, the runtime impact, and many more. Need more study before implementing.
+-->
+
+## Overwrite field
+
+```
+car = (color = "red", brand = "a shiny brand");
+another_car = (*>car, ^color = "blue");
+```
+
+This rewrites the existing field.
