@@ -154,6 +154,8 @@ num = breakable {
 };
 ```
 
+There might be better syntax.
+
 ## Multiline comment
 
 ```butter
@@ -198,7 +200,7 @@ Access and manipulation? How??
 ## Type alias
 
 ```butter
-alias Option(a) = @val a | @none;
+alias Option(a) = union(@val a, @none);
 ```
 
 ## Left to right var declaration
@@ -227,7 +229,7 @@ account =: (
 Options for design and implementation:
 
 - Have traits for iterators. Simplest implementation but lessens the ergonomics.
-- Have iterator as first-class type. This will use dynamic dispatch but ergonomics can be great. A generalization for this approach would be an implementation of dynamic object with certain trait.
+- Have iterator as first-class type. This will use dynamic dispatch but ergonomics can be great. A generalization for this approach would be an implementation of dynamic object with certain trait a.k.a. [existential types](#existential-types).
 
 ## Iterator literal
 
@@ -407,11 +409,22 @@ impl Eq([a]) {
 }
 ```
 
+## Existential types
+
+```butter
+value : impl Eq;
+```
+
+More complex syntax:
+
+```butter
+value : impl(a) a where Eq(a);
+```
+
 ## New nominal type
 
 ```butter
 -- declaration
-derive Eq(_):
 pub newtype Point(
     x: Num,
     y: Num,
@@ -425,11 +438,18 @@ They won't have trait implementation by default and have it's own refined types.
 
 Generics? How??
 
+## Auto-implement traits
+
+```
+auto impl Eq(Point);
+```
+
+There might be better syntax.
+
 ## Private fields
 
 ```butter
 -- declaration
-derive Eq(_):
 newtype Point(
     x: Num,
     #y: Num,

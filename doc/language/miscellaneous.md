@@ -39,6 +39,20 @@ These are keywords that only have special meaning in some context.
 
 - `len` &ndash; only a keyword when used as field name.
 
+## Reserved keywords
+
+- `alias`
+- `as`
+- `cell`
+- `impl`
+- `mod`
+- `never`
+- `newtype`
+- `pub`
+- `trait`
+- `undef`
+- `where`
+
 ## Punctuation reference
 
 | Punctuation | Purpose                              |
