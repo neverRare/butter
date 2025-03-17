@@ -356,6 +356,8 @@ prime_factor(num) => {
 }
 ```
 
+This could instead be a std feature instead e.g. `never()`
+
 ## If match, while match
 
 ```butter
