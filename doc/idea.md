@@ -226,8 +226,20 @@ alias Iter(a) = impl(b) b where Iterator(b).Item = a;
 ## Iterator literal
 
 ```butter
-#("apple", "banana", "cherry")
-#(1 .< 3)
+#["apple", "banana", "cherry"]
+#[1 .< 3]
+```
+
+Iterator comprehension
+
+```
+#[val for val in array]
+
+-- if guards
+#[val for val in array if val > 0]
+
+-- skip when pattern matching fails
+#[val for @val val in array]
 ```
 
 ## Reverse range
