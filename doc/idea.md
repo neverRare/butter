@@ -72,7 +72,7 @@ match num {
 
 ```butter
 match num {
-    1..3 => ...,
+    1 .. 3 => ...,
     _ => ...,
 }
 ```
@@ -81,12 +81,12 @@ match num {
 
 ```butter
 match num {
-    1..3 as num => ...,
+    1 .. 3 as num => ...,
     _ => ...,
 }
 -- or
 match num {
-    num as 1..3 => ...,
+    num as 1 .. 3 => ...,
     _ => ...,
 }
 ```
@@ -227,7 +227,7 @@ alias Iter(a) = impl(b) b where Iterator(b).Item = a;
 
 ```butter
 #("apple", "banana", "cherry")
-#(1.<3)
+#(1 .< 3)
 ```
 
 ## Reverse range
@@ -361,7 +361,7 @@ prime_factor(num) => {
     if num == 1 {
         []
     } else {
-        for i in [2..num] {
+        for i in [2 .. num] {
             if num % i == 0 {
                 return [i] ++ prime_factor(num / i);
             }
@@ -414,7 +414,7 @@ where Eq(a):
 impl Eq([a]) {
     equal(a, b) => {
         if a^.len /= b^.len { return @false; }
-        for i in [0.< a^.len] {
+        for i in [0 .< a^.len] {
             if a^[i] /= b^[i] { return @false; }
         }
         @true

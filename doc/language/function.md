@@ -24,7 +24,7 @@ factorial(num) => {
         return 1;
     }
     mut result = 1;
-    for i in [1..num] {
+    for i in [1 .. num] {
         result <- result * i;
     }
     result

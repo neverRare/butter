@@ -33,7 +33,7 @@ When defining an array of consecutive integers, you can use range notation. This
 [`for`]: loop.md#for
 
 ```butter
-range = [0.<3];
+range = [0 .< 3];
 -- similar to
 range = [0, 1, 2];
 ```
@@ -59,7 +59,7 @@ assert(fruits.len == 3)
 Through slicing, you can get a portion of the array by specifying the indices of the bounds. This uses [range syntax].
 
 ```butter
-favorites = &fruits[1.<3];
+favorites = &fruits[1 .< 3];
 ```
 
 ## Range syntax
@@ -70,12 +70,12 @@ You can use `..`, `.<`, `<.`, or `<<` for ranges. An angle bracket `<` or `>` me
 
 | Syntax                    | Meaning       |
 | ------------------------- | ------------- |
-| `A..B`                    | `A <= x <= B` |
-| `A.<B`                    | `A <= x < B`  |
-| `A<.B`                    | `A < x <= B`  |
-| `A<<B`                    | `A < x < B`   |
-| `A..` or `A.<`            | `A <= x`      |
-| `A<.` or `A<<`            | `A < x`       |
-| `..B` or `<.B`            | `x <= B`      |
-| `.<B` or `<<B`            | `x < B`       |
+| `A .. B`                    | `A <= x <= B` |
+| `A .< B`                    | `A <= x < B`  |
+| `A <. B`                    | `A < x <= B`  |
+| `A << B`                    | `A < x < B`   |
+| `A ..` or `A ..`            | `A <= x`      |
+| `A <.` or `A <.`            | `A < x`       |
+| `.. B` or `.. B`            | `x <= B`      |
+| `.< B` or `.< B`            | `x < B`       |
 | `..`, `.<`, `<.`, or `<<` | -             |
