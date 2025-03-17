@@ -230,6 +230,17 @@ alias Iter(a) = impl(b) b where Iterator(b).Item = a;
 #(1.<3)
 ```
 
+## Reverse range
+
+Only useful for iterators.
+
+```
+.>.
+>>.
+.>>
+>>>
+```
+
 ## Module system
 
 ```butter
