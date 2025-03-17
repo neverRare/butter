@@ -33,8 +33,8 @@ print_line("value is \(pretty_print(value))");
 Padding, alignment etc.
 
 ```
-name = pad(name, 20);
-value = pad_right(value, 5);
+name = pad_end(name, 20);
+value = pad_start(value, 5);
 print_line("\(name) \(value)");
 ```
 
