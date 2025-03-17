@@ -30,8 +30,11 @@ Butter is a personal and experimental language that seeks balance for these aspe
 
 **Note:** Being an experimental language, these are all subject to change
 
+<!--
 - Concise: The language constructs should be simple and have a feel of scripting language.
-- Explicit: There should be little-to-no ambiguity syntax-wise nor semantic-wise.
+-->
+
+- Unambiguous: There should be little-to-no ambiguity syntax-wise nor semantic-wise.
 - High-level: Low-level concepts that are hard to understand should be abstracted.
 - Efficient: The added runtime code for compiled programs should be minimal both in size and runtime impact.
 - Safe: Detectable errors should be caught on compile-time.
