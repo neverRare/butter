@@ -101,20 +101,6 @@ match foo {
 }
 ```
 
-## ~~Control flow label~~
-
-This clashes with type annotation syntax. There should not be dedicated syntax for label anyway, it must be syntactically salted.
-
-```butter
-outer: while @true {
-    for i in arr {
-        if i == 2 {
-            break outer;
-        }
-    }
-}
-```
-
 ## `upto`
 
 An alternative to control flow label. This will `break` or `continue` the nth closest loop. providing `0` is just the same as not using `upto` at all.
@@ -165,7 +151,7 @@ comment
 -/
 ```
 
-The content will be parsed as markdown and codeblocks inside will be parsed as butter codes (not checked, just lexed). This means multiline comments may be nested as long as it is contained within codeblocks. Primarily intended for textual comments and documentation comments.
+The content will be parsed as markdown. This means multiline comments may be nested as long as it is contained within codeblocks. Primarily intended for textual comments and documentation comments.
 
 ## Ignore codeblock
 
@@ -226,17 +212,20 @@ account =: (
 
 ## Iterators
 
-Options for design and implementation:
+Iterators will use [existential types](#existential-types).
 
-- Have traits for iterators. Simplest implementation but lessens the ergonomics.
-- Have iterator as first-class type. This will use dynamic dispatch but ergonomics can be great. A generalization for this approach would be an implementation of dynamic object with certain trait a.k.a. [existential types](#existential-types).
+```butter
+:(a):
+trait Iterator(a) {
+    alias Item;
+    next(self : &:mut a) -> Item;
+}
+alias Iter(a) = impl(b) b where Iterator(b).Item = a;
+```
 
 ## Iterator literal
 
 ```butter
-iter("apple", "banana", "cherry")
-iter(1.<3)
--- or
 #("apple", "banana", "cherry")
 #(1.<3)
 ```
@@ -244,17 +233,8 @@ iter(1.<3)
 ## Module system
 
 ```butter
--- option 1
-math = mod (
-    pi = 3.14;
-    sqrt(num) => {
-        -- ...
-    }
-);
-
--- option 2
 mod math {
-    pi = 3.14;
+    share pi = 3.14;
     sqrt(num) => {
         -- ...
     }
@@ -264,10 +244,6 @@ mod math {
 Module in different file.
 
 ```butter
--- option 1
-math = mod math;
-
--- option 2
 mod math;
 ```
 
@@ -287,6 +263,26 @@ math =: (= pi);
 = math.pi;
 -- the same as
 pi = math.pi;
+```
+
+Import many.
+
+```
+= math.(pi, sqrt);
+```
+
+## Import everything pattern
+
+Useful for module system.
+
+```butter
+(*) = math;
+```
+
+With declaration shorthand.
+
+```butter
+= math.*;
 ```
 
 ## Visibility system
@@ -324,8 +320,8 @@ foo <- 10;
 An escape hatch for "no shared mutable" rule. There might be a better keyword other than `cell`.
 
 ```butter
-foo = cell 10;
-bar = num_a;
+share foo = cell 10;
+share bar = foo;
 ```
 
 Casting to reference, `cell_inner` would be a weak keyword.
@@ -381,12 +377,12 @@ Useful for unwrapping.
 ## Identifier as compile-time value
 
 ```butter
-map_tagged(val, tag, fn) =>match val {
+map_tagged(val, tag, fn) => match val {
     @$tag val => @$tag fn(val),
     val => val,
 }
 
-map_tagged(val, $val, (val) => val + 3);
+map_tagged(val, `val`, (val) => val + 3);
 ```
 
 ## Traits
@@ -394,10 +390,10 @@ map_tagged(val, $val, (val) => val + 3);
 ```butter
 :(a):
 trait Eq(a) {
-    equal(a: &a, b: &b) -> Bool;
+    equal(a : &a, b : &b) -> Bool;
 }
 :(a):
-given Eq(a):
+where Eq(a):
 impl Eq([a]) {
     equal(a, b) => {
         if a^.len /= b^.len { return @false; }
@@ -426,8 +422,8 @@ value : impl(a) a where Eq(a);
 ```butter
 -- declaration
 pub newtype Point(
-    x: Num,
-    y: Num,
+    x : Num,
+    y : Num,
 );
 
 -- creation
@@ -436,7 +432,12 @@ point = Point(x = 10, y = 20);
 
 They won't have trait implementation by default and have it's own refined types.
 
-Generics? How??
+Generics:
+
+```butter
+:(a):
+pub newtype Extended(union(@neg_inf, @fin a, @inf));
+```
 
 ## Auto-implement traits
 
@@ -451,9 +452,9 @@ There might be better syntax.
 ```butter
 -- declaration
 newtype Point(
-    x: Num,
-    #y: Num,
-    pub(path.to.module) #z: Num,
+    x : Num,
+    #y : Num,
+    pub(path.to.module) #z : Num,
 );
 
 -- creation
@@ -464,26 +465,6 @@ y = point.#y;
 ```
 
 Anonymous record types have all fields public. Private fields are only applicable for `newtype`. Private fields can have visibility overridden by using `pub`.
-
-<!--
-## Effect system
-
-```butter
-message() => {
-    yield item("hello");
-    yield item("world");
-}
-collect_message() => {
-    mut arr = [];
-    do message() handling {
-        item(item) => arr <- >arr ++ [item],
-    }
-    arr
-}
-```
-
-This is a very novel feature. Unsure about the implementation, the runtime impact, and many more. Need more study before implementing.
--->
 
 ## Overwrite field
 
