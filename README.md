@@ -16,7 +16,7 @@ A tasty language for building efficient software.
 -- reverses an array in place
 reverse(mut arr) => {
     len = arr^.len;
-    for i in [0.< len // 2] {
+    for i in [0 .< len // 2] {
         mut elem = &arr^[i];
         mut opposite = &arr^[len - i - 1];
         elem^, opposite^ <- >opposite^, >elem^;
@@ -31,10 +31,10 @@ Butter is a personal and experimental language that seeks balance for these aspe
 **Note:** Being an experimental language, these are all subject to change
 
 - Concise: The language constructs should be simple and have a feel of scripting language.
-- Explicit: There should be little-to-no vagueness syntax-wise nor semantic-wise.
+- Explicit: There should be little-to-no ambiguity syntax-wise nor semantic-wise.
 - High-level: Low-level concepts that are hard to understand should be abstracted.
 - Efficient: The added runtime code for compiled programs should be minimal both in size and runtime impact.
-- Correct: Detectable errors should be caught on compile-time.
+- Safe: Detectable errors should be caught on compile-time.
 
 I also to want to experiment with novel features deemed necessary for these goals such refinement types.
 
@@ -54,7 +54,7 @@ Features to be implemented
 
 - Hindley-Milner type inference and checking
 - Structural typing with row polymorphism
-- Mix of ownership systems and automatic reference counting &mdash; data that are immutable and never moved are shareable, otherwise they are owned
+- Mix of ownership systems and automatic reference counting &mdash; variables with `share` are reference counted unless cloning it is cheaper. All other values are owned.
 - Reference types with "no shared mutable" rule
 - Mutability/Shareability polymorphism of references
 - Lifetime inference and analysis
@@ -67,4 +67,4 @@ Features to be implemented later on
 - Module and visibility system
 - `newtype` for nominally typed record types
 - Shareable and interiorly mutable containers &mdash; this is an escape hatch for "no shared mutable" rule of reference types
-- Low-level representation heuristics &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
+- Code generation heuristics &mdash; as an example, the compiler will try to infer if such array can be just a stack array or if it needs to be allocated on heap. Refinement type is used to check if such array exceeds certain capacity
