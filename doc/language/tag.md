@@ -11,7 +11,7 @@ color = match color {
     "yellow" => @yellow,
     "green" => @green,
     "blue" => @blue,
-    _ => std.panic("color not in choices"),
+    _ => panic("color not in choices"),
 };
 ```
 
@@ -40,5 +40,5 @@ color = match color {
     @blue => "blue",
     @rgb color => color,
 };
-std.print_line("the color is " ++ color);
+print_line("the color is " ++ color);
 ```

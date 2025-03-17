@@ -26,7 +26,7 @@ remarks = match a > 10 {
     @true => "it's greater than 10",
     @false => "it's not greater than 10",
 };
-std.print(remarks);
+print_line(remarks);
 
 -- pattern match numbers
 remarks = match a {
@@ -34,7 +34,7 @@ remarks = match a {
     2 => "it is 2",
     _ => "it is something else",
 };
-std.print(remarks);
+print_line(remarks);
 ```
 
 ## Discard
@@ -94,7 +94,7 @@ unwrap_pair(arr) => {
     match arr {
         -- this matches arrays with 2 elements
         [first, second] => (first, second),
-        _ => std.panic("passed non-singleton array"),
+        _ => panic("passed non-singleton array"),
     }
 }
 ```

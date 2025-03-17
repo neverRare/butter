@@ -6,7 +6,7 @@ Clone creates a deep copy of a value, with exception to immutable reference wher
 mut foo = 10;
 bar = clone(&foo);
 foo <- 20;
-std.assert(bar == 10);
+assert(bar == 10);
 ```
 
 You can't clone mutable references and functions.
@@ -19,7 +19,7 @@ Some types can be copied. These are numbers, booleans, unit type, tagged value c
 mut foo = 10;
 bar = +foo;
 foo <- 20;
-std.assert(bar == 10);
+assert(bar == 10);
 ```
 
 Note: It is better to [share](./share.md) immutable reference instead unless the variable is mutable e.g. `mut foo = &bar`.

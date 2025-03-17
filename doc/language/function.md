@@ -37,7 +37,7 @@ Calling executes the body of a function. Within the arguments, you can use eithe
 
 ```butter
 report_favorite(name, favorite) => {
-    std.print_line(name ++ "'s favorite is " ++ favorite ++ "!");
+    print_line(name ++ "'s favorite is " ++ favorite ++ "!");
 }
 
 -- calling with named arguments
@@ -67,7 +67,7 @@ Second, unless shadowed, the body can access the function itself. With this, rec
 ```butter
 fibonacci(nth) => {
     if nth < 0 {
-        std.panic()
+        panic()
     } else if nth <= 1 {
         nth
     } else {
@@ -81,7 +81,7 @@ Third, unless shadowed, the variable is accessible in places before it is declar
 ```butter
 foo = 10;
 increment(&foo);
-std.assert(foo == 11);
+assert(foo == 11);
 
 increment(num) => num <- num + 1;
 ```

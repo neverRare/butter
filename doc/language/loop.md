@@ -10,7 +10,7 @@ Butter have various kinds of expression for loops.
 
 ```butter
 for fruit in ["apple", "banana", "cherry"] {
-    std.print_line(fruit ++ " is yummy!");
+    print_line(fruit ++ " is yummy!");
 }
 ```
 
@@ -21,7 +21,7 @@ for fruit in ["apple", "banana", "cherry"] {
 ```butter
 mut counter = 0;
 while counter < 10 {
-    std.print_line("hello!");
+    print_line("hello!");
     counter <- counter + 1;
 }
 ```
@@ -32,7 +32,7 @@ while counter < 10 {
 
 ```butter
 loop {
-    std.print_line("this is an infinite loop!");
+    print_line("this is an infinite loop!");
 }
 ```
 
@@ -48,7 +48,7 @@ while counter < 6 {
     }
     counter <- counter + 1;
 }
-std.assert(counter == 3);
+assert(counter == 3);
 ```
 
 A break expression can be given an expression, this is only applicable to `loop`. The loop expression will evaluate to the expression of whichever broke the loop.
@@ -61,7 +61,7 @@ result = loop {
         break counter * 2;  -- exit the loop and `result` will be `counter * 2`
     }
 };
-std.assert(result == 20);
+assert(result == 20);
 ```
 
 ## Continue

@@ -13,11 +13,11 @@ Variables can shadow previously declared variable with the same name, either on 
 foo = 10;
 {
     foo = @false;
-    std.assert(foo == @false);
+    assert(foo == @false);
 }
-std.assert(foo == 10);
+assert(foo == 10);
 foo = 20;
-std.assert(foo == 20);
+assert(foo == 20);
 foo = foo == 20;
-std.assert(foo == @true);
+assert(foo == @true);
 ```

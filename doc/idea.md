@@ -18,7 +18,7 @@ Currently, string and char literal are just syntactic sugar for array of bytes a
 ## String interpolation
 
 ```butter
-std.print_line("value is \(value)");
+print_line("value is \(value)");
 ```
 
 Debug printing, pretty printing, padding, alignment, etc. shall use normal functions instead of special syntaxes.
@@ -26,8 +26,8 @@ Debug printing, pretty printing, padding, alignment, etc. shall use normal funct
 Debug printing and pretty printing
 
 ```butter
-std.print_line("value is \(debug(value))");
-std.print_line("value is \(pretty_print(value))");
+print_line("value is \(debug(value))");
+print_line("value is \(pretty_print(value))");
 ```
 
 Padding, alignment etc.
@@ -35,7 +35,7 @@ Padding, alignment etc.
 ```
 name = pad(name, 20);
 value = pad_right(value, 5);
-std.print_line("\(name) \(value)");
+print_line("\(name) \(value)");
 ```
 
 ## Multiline strings
@@ -97,7 +97,7 @@ Also known as pin pattern or pin operator.
 
 ```butter
 match foo {
-    == bar => std.print_line("it's equal to bar!"),
+    == bar => print_line("it's equal to bar!"),
 }
 ```
 
@@ -157,7 +157,7 @@ The content will be parsed as markdown. This means multiline comments may be nes
 
 ```butter
 {-
-std.print("this code is ignored, nothing would be printed");
+print_line("this code is ignored, nothing would be printed");
 -}
 ```
 
@@ -297,7 +297,7 @@ pub(path.to.module) greet(name) => "hello " ++ name ++ "!";
 ## Pipeline operator
 
 ```butter
-"hello world" |> std.print;
+"hello world" |> print_line;
 ```
 
 ## Partial application
@@ -329,7 +329,7 @@ Casting to reference, `cell_inner` would be a weak keyword.
 ```butter
 mut num = &bar.cell_inner;
 num^ <- num^ + 1;
-std.assert(foo.cell_inner == 11);
+assert(foo.cell_inner == 11);
 ```
 
 ## Never
@@ -371,7 +371,7 @@ if val =: @val val {
 Useful for unwrapping.
 
 ```butter
-@val val = val else { std.panic() };
+@val val = val else { panic() };
 ```
 
 ## Identifier as compile-time value

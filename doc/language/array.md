@@ -51,7 +51,7 @@ first_fruit = &fruits[0];
 Arrays have special property `len` that have a value referring to its length.
 
 ```butter
-std.assert(fruits.len == 3)
+assert(fruits.len == 3)
 ```
 
 ## Slice

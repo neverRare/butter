@@ -47,8 +47,8 @@ You can condense multiple assignment into single statement with parallel assignm
 mut foo = 10;
 mut bar = 20;
 foo, bar <- bar, foo;
-std.assert(foo == 20);
-std.assert(bar == 10);
+assert(foo == 20);
+assert(bar == 10);
 ```
 
 I don't recommend using this form unless swapping values.
