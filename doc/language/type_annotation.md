@@ -65,7 +65,7 @@ fruits : [Str] = ["apple", "banana", "cherry"];
 TODO: explanation
 
 ```butter
-name(user : &{name : Str, *_}) -> Str {
+name(user : &(name : Str, *_)) -> Str {
     &user^.name
 }
 ```

@@ -112,7 +112,7 @@ Named functions can only capture values that are [shared].
 [shared]: ./share.md
 
 ```butter
-pi = 3.14;
+share pi = 3.14;
 
 area_of(circle) => circle^.radius * circle^.radius * pi;
 ```

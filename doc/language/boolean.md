@@ -1,6 +1,6 @@
 # Boolean
 
-Boolean in butter!
+Boolean in butter! These are simply [tags](./tag.md).
 
 ```butter
 foo = @true;

@@ -27,7 +27,6 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `mut`
 - `not`
 - `or`
-- `ref`
 - `return`
 - `share`
 - `union`
@@ -76,6 +75,7 @@ These are keywords that only have special meaning in some context.
 |    `//`     | Floor division                       |
 |     `%`     | Modulo                               |
 |     `&`     | Reference                            |
+|    `&<`     | Bind to reference                    |
 |     `>`     | Greater than, Move                   |
 |     `<`     | Less than                            |
 |    `>=`     | Greater than or equal                |

@@ -16,17 +16,10 @@ You can wrap pattern inside parentheses `()`. This isn't very useful however as 
 
 ## Literal
 
-You can match against either boolean literal or numeric literal.
+You can match against numeric literal.
 
 ```butter
 a = 20;
-
--- pattern match booleans
-remarks = match a > 10 {
-    @true => "it's greater than 10",
-    @false => "it's not greater than 10",
-};
-print_line(remarks);
 
 -- pattern match numbers
 remarks = match a {
@@ -65,11 +58,11 @@ mut num = 10;
 num <- 20;
 ```
 
-You can bind it to a reference with `ref`. This is useful for rebinding references.
+You can bind it to a reference with `&<`. This is useful for rebinding references.
 
 ```butter
 get_name(user) => {
-    &(ref name, *_) = user;
+    &(&<name, *_) = user;
     name
 }
 ```
@@ -78,7 +71,7 @@ You can do both.
 
 ```butter
 rename(user, new_name) => {
-    &(ref name, *_) = user;
+    &(mut &<name, *_) = user;
     name^ <- >new_name;
 }
 ```
@@ -167,7 +160,7 @@ value = match color {
 
 ## Reference
 
-Reference pattern matches against references. These dereferences the value. You may want to rebind it as reference again with `ref`.
+Reference pattern matches against references. These dereferences the value. You may want to rebind it as reference again with `&<`.
 
 ```butter
 deref(val) => {

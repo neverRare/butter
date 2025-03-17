@@ -282,7 +282,7 @@ Import many.
 = math.(pi, sqrt);
 ```
 
-## Import everything pattern
+## Bind everything pattern
 
 Useful for module system.
 
@@ -294,6 +294,10 @@ With declaration shorthand.
 
 ```butter
 = math.*;
+
+-- or
+
+= math.(*);
 ```
 
 ## Visibility system
