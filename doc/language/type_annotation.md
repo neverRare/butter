@@ -43,7 +43,7 @@ arr : [_] = [];
 
 ## Predefined types
 
-Numbers have type `Num`. There is `Bool` but it is simply `union(@true, @false)`. There is also `Char` and `Str` which are simply `Num` and `[Num]` respectively.
+Numbers have type `Num`. There is `Bool` but it is simply `@true | @false`. There is also `Char` and `Str` which are simply `Num` and `[Num]` respectively.
 
 ```butter
 num : Num = 10;
@@ -86,10 +86,10 @@ first(tuple : &(a, *_)) -> a {
 TODO: explanation and better example
 
 ```butter
-val : union(@val _, @none)
+val : @val _ | @none
 
 -- row
-val : union(@val _, *_)
+val : @val _ | _
 ```
 
 ## Reference types

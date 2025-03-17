@@ -30,7 +30,6 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `or`
 - `return`
 - `share`
-- `union`
 - `while`
 
 ## Contextual keyword reference

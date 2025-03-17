@@ -186,7 +186,7 @@ Access and manipulation? How??
 ## Type alias
 
 ```butter
-alias Option(a) = union(@val a, @none);
+alias Option(a) = @val a | @none;
 ```
 
 ## Left to right var declaration
@@ -453,7 +453,7 @@ Generics:
 
 ```butter
 :(a):
-pub newtype Extended(union(@neg_inf, @fin a, @inf));
+pub newtype Extended(@neg_inf | @fin a | @inf);
 ```
 
 ## Auto-implement traits
