@@ -181,7 +181,7 @@ map = dict(10 = 20, 20 = 40);
 set = set[10, 20, 30];
 ```
 
-Access and manipulation? How??
+Maybe dedicated syntax is unneeded. Access and manipulation may be provided just by std functions.
 
 ## Type alias
 
