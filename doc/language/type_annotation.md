@@ -102,4 +102,15 @@ val : &:mut_var /l_var ty
 
 ## Function types
 
-TODO
+TODO: explanation and better example
+
+```butter
+-- like FnOnce in Rust
+val : once () -> Bool;
+
+-- like FnMut in Rust
+val : mut () -> Bool;
+
+-- like Fn and fn in Rust
+val : () -> Bool;
+```

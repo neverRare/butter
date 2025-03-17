@@ -26,6 +26,7 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `match`
 - `mut`
 - `not`
+- `once`
 - `or`
 - `return`
 - `share`
