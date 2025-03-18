@@ -15,7 +15,6 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `_`
 - `and`
 - `break`
-- `clone`
 - `continue`
 - `else`
 - `for`

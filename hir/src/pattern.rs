@@ -43,8 +43,6 @@ impl<T: PrettyPrintType> PrettyPrint for Pattern<T> {
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum PatternKind<T> {
-    True,
-    False,
     UInt(u64),
     Int(i64),
     Discard,
@@ -66,8 +64,6 @@ impl<T: PrettyPrintType> TraverseType for PatternKind<T> {
         for_scheme: fn(&mut T::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         match self {
-            PatternKind::True => (),
-            PatternKind::False => (),
             PatternKind::UInt(_) => (),
             PatternKind::Int(_) => (),
             PatternKind::Discard => (),
@@ -100,8 +96,6 @@ impl<T: PrettyPrintType> PrettyPrint for PatternKind<T> {
         T: PrettyPrintType,
     {
         match self {
-            Self::True => Box::new("true".to_string()),
-            Self::False => Box::new("false".to_string()),
             Self::UInt(uint) => Box::new(uint.to_string()),
             Self::Int(int) => Box::new(int.to_string()),
             Self::Discard => Box::new("_".to_string()),

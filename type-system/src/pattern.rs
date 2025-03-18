@@ -92,14 +92,6 @@ impl InferablePattern for PatternKind<()> {
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let typed = match self {
             PatternKind::Var(var) => var.infer(mut_var, var_state, env)?.map(PatternKind::Var),
-            PatternKind::True => Typed {
-                ty: Type::Cons(Cons::Bool),
-                value: PatternKind::True,
-            },
-            PatternKind::False => Typed {
-                ty: Type::Cons(Cons::Bool),
-                value: PatternKind::False,
-            },
             PatternKind::UInt(num) => Typed {
                 ty: Type::Cons(Cons::Num),
                 value: PatternKind::UInt(num),

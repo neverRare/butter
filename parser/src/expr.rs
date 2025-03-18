@@ -37,8 +37,6 @@ where
         float().map(Literal::Float),
         integer_u64().map(Literal::UInt),
         // TODO: minus integer parser
-        attempt(keyword("false")).with(value(Literal::False)),
-        attempt(keyword("true")).with(value(Literal::True)),
     ))
 }
 fn jump<I>() -> impl Parser<I, Output = Jump<()>>
@@ -65,11 +63,10 @@ where
 {
     let kind = || {
         choice((
-            char('!').with(value(UnaryType::Not)),
             char('&').with(value(UnaryType::Ref)),
             char('-').with(value(UnaryType::Minus)),
             char('>').with(value(UnaryType::Move)),
-            attempt(keyword("clone")).with(value(UnaryType::Clone)),
+            attempt(keyword("not")).with(value(UnaryType::Not)),
         ))
     };
     (lex(kind()), expr(6)).map(|(kind, expr)| Unary {

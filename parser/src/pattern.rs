@@ -5,8 +5,13 @@ use crate::{
     sep_optional_between,
 };
 use combine::{
-    ParseError, Parser, Stream, attempt, between, choice, error::StreamError, optional,
-    parser::char::char, sep_end_by, stream::StreamErrorFor, value,
+    ParseError, Parser, Stream, attempt, between, choice,
+    error::StreamError,
+    optional,
+    parser::char::{char, string},
+    sep_end_by,
+    stream::StreamErrorFor,
+    value,
 };
 use hir::{
     Atom,
@@ -20,8 +25,8 @@ where
     I::Error: ParseError<I::Token, I::Range, I::Position>,
 {
     (
-        optional(attempt(lex(keyword("ref")))),
         optional(attempt(lex(keyword("mut")))),
+        optional(attempt(lex(string("&<")))),
         lex(ident()),
     )
         .map(|(bind_to_ref, mutability, ident)| Var {
@@ -150,8 +155,6 @@ where
             .map(PatternKind::Array)
             .map(PatternKind::into_untyped),
         attempt(lex(keyword("_"))).with(value(PatternKind::Discard.into_untyped())),
-        attempt(lex(keyword("true"))).with(value(PatternKind::True.into_untyped())),
-        attempt(lex(keyword("false"))).with(value(PatternKind::False.into_untyped())),
         var().map(PatternKind::Var).map(PatternKind::into_untyped),
     ))
 }

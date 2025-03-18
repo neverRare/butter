@@ -38,21 +38,34 @@ where
 {
     ident_or_keyword().and_then(|ident| match ident {
         keyword!("_")
+        | keyword!("alias")
+        | keyword!("and")
+        | keyword!("as")
         | keyword!("break")
-        | keyword!("clone")
+        | keyword!("cell")
         | keyword!("continue")
         | keyword!("else")
-        | keyword!("false")
         | keyword!("for")
         | keyword!("if")
         | keyword!("imm")
+        | keyword!("impl")
         | keyword!("in")
+        | keyword!("len")
         | keyword!("loop")
         | keyword!("match")
+        | keyword!("mod")
         | keyword!("mut")
-        | keyword!("ref")
+        | keyword!("never")
+        | keyword!("newtype")
+        | keyword!("not")
+        | keyword!("once")
+        | keyword!("or")
+        | keyword!("pub")
         | keyword!("return")
-        | keyword!("true")
+        | keyword!("share")
+        | keyword!("trait")
+        | keyword!("undef")
+        | keyword!("where")
         | keyword!("while") => Err(<StreamErrorFor<I>>::unexpected_static_message("keyword")),
         ident => Ok(ident),
     })
@@ -65,11 +78,11 @@ mod test {
 
     #[test]
     fn test_keyword() {
-        assert_eq!(keyword("true").easy_parse("true"), Ok(((), "")));
+        assert_eq!(keyword("if").easy_parse("if"), Ok(((), "")));
     }
     #[test]
     fn non_keyword() {
-        assert!(keyword("true").easy_parse("true_false").is_err());
+        assert!(keyword("if").easy_parse("if_false").is_err());
     }
     #[test]
     fn test_ident_or_keyword() {

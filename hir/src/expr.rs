@@ -13,17 +13,12 @@ use std::{
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
-    True,
-    False,
-
     UInt(u64),
     Float(f64),
 }
 impl Display for Literal {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::True => write!(fmt, "true")?,
-            Self::False => write!(fmt, "false")?,
             Self::UInt(num) => write!(fmt, "{num}")?,
             Self::Float(num) => write!(fmt, "{num}")?,
         }
@@ -431,7 +426,7 @@ impl<T: PrettyPrintType> PrettyPrint for Unary<T> {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         let expr = self.expr.to_auto_wrap(2);
         let extra_space = match &self.kind {
-            UnaryType::Clone => " ",
+            UnaryType::Not => " ",
             _ => "",
         };
         line([Box::new(format!("{}{extra_space}", &self.kind)), expr])
@@ -443,16 +438,14 @@ pub enum UnaryType {
     Ref,
     Not,
     Move,
-    Clone,
 }
 impl Display for UnaryType {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             UnaryType::Minus => "-",
             UnaryType::Ref => "&",
-            UnaryType::Not => "!",
+            UnaryType::Not => "not",
             UnaryType::Move => ">",
-            UnaryType::Clone => "clone",
         };
         s.fmt(fmt)
     }
@@ -495,8 +488,6 @@ pub enum BinaryType {
     Mod,
     And,
     Or,
-    LazyAnd,
-    LazyOr,
     Equal,
     NotEqual,
     Greater,
@@ -516,8 +507,8 @@ impl BinaryType {
             | Self::GreaterEqual
             | Self::Less
             | Self::LessEqual => 5,
-            Self::And | Self::LazyAnd => 6,
-            Self::Or | Self::LazyOr => 7,
+            Self::And => 6,
+            Self::Or => 7,
         }
     }
 }
@@ -530,12 +521,10 @@ impl Display for BinaryType {
             BinaryType::Div => "/",
             BinaryType::FloorDiv => "//",
             BinaryType::Mod => "%",
-            BinaryType::And => "&",
-            BinaryType::Or => "|",
-            BinaryType::LazyAnd => "&&",
-            BinaryType::LazyOr => "||",
+            BinaryType::And => "and",
+            BinaryType::Or => "or",
             BinaryType::Equal => "==",
-            BinaryType::NotEqual => "!=",
+            BinaryType::NotEqual => "/=",
             BinaryType::Greater => ">",
             BinaryType::GreaterEqual => ">=",
             BinaryType::Less => "<",

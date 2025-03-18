@@ -23,6 +23,14 @@ use std::{collections::HashMap, iter::once};
 pub(super) fn unit() -> Type {
     Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(vec![].into())))
 }
+fn bool_type() -> Type {
+    Type::Cons(Cons::Union(Keyed {
+        fields: [("true".into(), unit()), ("false".into(), unit())]
+            .into_iter()
+            .collect(),
+        rest: None,
+    }))
+}
 pub(super) trait Inferable {
     type TypedSelf;
     fn infer(
@@ -59,7 +67,6 @@ impl Inferable for Literal {
         _: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let cons = match self {
-            Literal::True | Literal::False => Cons::Bool,
             Literal::UInt(_) | Literal::Float(_) => Cons::Num,
         };
         Ok(Typed {
@@ -583,10 +590,7 @@ impl Inferable for Unary<()> {
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let (mut_var, typed) = self.expr.infer_with_mut(subs, var_state, env)?;
         let typed = match self.kind {
-            // TODO: implement error when cloning function and mutable reference
-            // Or maybe not, constraining Clonables may better be implemented
-            // by typeclasses or trait, which we don't have yet
-            kind @ (UnaryType::Move | UnaryType::Clone) => typed.map(|expr| Unary {
+            kind @ UnaryType::Move => typed.map(|expr| Unary {
                 kind,
                 expr: Box::new(expr),
             }),
@@ -595,7 +599,7 @@ impl Inferable for Unary<()> {
                 let mut operand_expr = typed.value;
                 let ty = match kind {
                     UnaryType::Minus => Type::Cons(Cons::Num),
-                    UnaryType::Not => Type::Cons(Cons::Bool),
+                    UnaryType::Not => bool_type(),
                     _ => unreachable!(),
                 };
                 let mut operand_subs = Subs::new();
@@ -658,10 +662,8 @@ impl Inferable for Binary<()> {
             | BinaryType::Greater
             | BinaryType::GreaterEqual
             | BinaryType::Less
-            | BinaryType::LessEqual => (Type::Cons(Cons::Num), Type::Cons(Cons::Bool)),
-            BinaryType::And | BinaryType::Or | BinaryType::LazyAnd | BinaryType::LazyOr => {
-                (Type::Cons(Cons::Bool), Type::Cons(Cons::Bool))
-            }
+            | BinaryType::LessEqual => (Type::Cons(Cons::Num), bool_type()),
+            BinaryType::And | BinaryType::Or => (bool_type(), bool_type()),
         };
         let mut left_subs = Subs::new();
         left_ty.unify_with(op_type.clone(), &mut left_subs, var_state)?;
@@ -1094,7 +1096,7 @@ impl Inferable for If<()> {
         let else_ty = typed_else.ty;
         let mut else_expr = typed_else.value;
         let mut condition_subs = Subs::new();
-        condition_ty.unify_with(Type::Cons(Cons::Bool), &mut condition_subs, var_state)?;
+        condition_ty.unify_with(bool_type(), &mut condition_subs, var_state)?;
         substitute_hir(&mut condition_expr, &condition_subs)?;
         substitute_hir(&mut body_expr, &condition_subs)?;
         substitute_hir(&mut else_expr, &condition_subs)?;

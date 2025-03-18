@@ -16,7 +16,6 @@ use std::{
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Cons {
     Num,
-    Bool,
     Ref(MutType, Box<Type>),
     Array(Box<Type>),
     Fun(Box<Type>, Box<Type>),
@@ -29,7 +28,6 @@ impl PrettyPrint for Cons {
     fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
         match self {
             Self::Num => Box::new("Num".to_string()),
-            Self::Bool => Box::new("Bool".to_string()),
             Self::Ref(mut_type, ty) => line([
                 Box::new("&:".to_string()),
                 Box::new(mut_type.to_string()),
@@ -155,7 +153,7 @@ impl PrettyPrint for Cons {
 impl FreeVars for Cons {
     fn free_vars(&self) -> HashSet<KindedVar> {
         match self {
-            Self::Num | Self::Bool => HashSet::new(),
+            Self::Num => HashSet::new(),
             Self::Ref(mutability, ty) => [mutability.free_vars(), ty.free_vars()]
                 .into_iter()
                 .flatten()
@@ -176,7 +174,7 @@ impl FreeVars for Cons {
 impl Substitutable for Cons {
     fn substitute(&mut self, subs: &Subs) -> Result<(), TypeError> {
         match self {
-            Self::Num | Self::Bool => (),
+            Self::Num => (),
             Self::Ref(mutability, ty) => {
                 mutability.substitute(subs)?;
                 ty.substitute(subs)?;
@@ -240,7 +238,7 @@ impl Unifiable for Cons {
         var_state: &mut VarState,
     ) -> Result<(), TypeError> {
         match (self, other) {
-            (Self::Bool, Self::Bool) | (Self::Num, Self::Num) => (),
+            (Self::Num, Self::Num) => (),
             (Self::Ref(mut1, ty1), Self::Ref(mut2, ty2)) => {
                 mut1.unify_with(mut2, subs, var_state)?;
                 ty1.unify_with(*ty2, subs, var_state)?;

@@ -1,6 +1,6 @@
 use crate::{
     expr::{array::range, expr, record::record, tuple::tuple},
-    ident_keyword::ident,
+    ident_keyword::{ident, keyword},
     lex,
 };
 use combine::{
@@ -174,7 +174,7 @@ where
         .left(),
         3 => choice((
             attempt(string("==")).with(value(BinaryType::Equal)),
-            attempt(string("!=")).with(value(BinaryType::NotEqual)),
+            attempt(string("/=")).with(value(BinaryType::NotEqual)),
             attempt(string("<=")).with(value(BinaryType::LessEqual)),
             attempt(string(">=")).with(value(BinaryType::GreaterEqual)),
             attempt(char('<').skip(not_followed_by(char('-')))).with(value(BinaryType::Less)),
@@ -183,18 +183,8 @@ where
         ))
         .left()
         .right(),
-        2 => choice((
-            attempt(string("&&")).with(value(BinaryType::LazyAnd)),
-            char('&').with(value(BinaryType::And)),
-        ))
-        .right()
-        .right(),
-        1 => choice((
-            attempt(string("||")).with(value(BinaryType::LazyOr)),
-            char('|').with(value(BinaryType::Or)),
-        ))
-        .right()
-        .right(),
+        2 => keyword("and").with(value(BinaryType::And)).right().right(),
+        1 => keyword("or").with(value(BinaryType::Or)).right().right(),
         precedence => panic!("invalid precedence {}", precedence),
     };
     op.map(|op| {
