@@ -12,7 +12,7 @@ where
     (
         choice((
             char('.').with(value(BoundType::Inclusive)),
-            char('>').with(value(BoundType::Exclusive)),
+            char('<').with(value(BoundType::Exclusive)),
         )),
         choice((
             char('.').with(value(BoundType::Inclusive)),

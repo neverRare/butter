@@ -177,9 +177,9 @@ where
             attempt(string("/=")).with(value(BinaryType::NotEqual)),
             attempt(string("<=")).with(value(BinaryType::LessEqual)),
             attempt(string(">=")).with(value(BinaryType::GreaterEqual)),
-            attempt(char('<').skip(not_followed_by(char('-')))).with(value(BinaryType::Less)),
-            attempt(char('>').skip(not_followed_by(choice([char('.'), char('<')]))))
-                .with(value(BinaryType::Greater)),
+            attempt(char('<').skip(not_followed_by(choice([char('-'), char('.'), char('<')]))))
+                .with(value(BinaryType::Less)),
+            attempt(char('>').with(value(BinaryType::Greater))),
         ))
         .left()
         .right(),
