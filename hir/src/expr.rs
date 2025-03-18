@@ -1226,7 +1226,7 @@ impl<T: PrettyPrintType> PrettyPrint for Range<T> {
                 let expr = range.expr.to_pretty_print();
                 let op = match range.kind {
                     BoundType::Inclusive => "..",
-                    BoundType::Exclusive => ">.",
+                    BoundType::Exclusive => "<.",
                 };
                 postfix(op, expr)
             }
@@ -1234,8 +1234,8 @@ impl<T: PrettyPrintType> PrettyPrint for Range<T> {
                 let op = match (left.kind, right.kind) {
                     (BoundType::Inclusive, BoundType::Inclusive) => "..",
                     (BoundType::Inclusive, BoundType::Exclusive) => ".<",
-                    (BoundType::Exclusive, BoundType::Inclusive) => ">.",
-                    (BoundType::Exclusive, BoundType::Exclusive) => "><",
+                    (BoundType::Exclusive, BoundType::Inclusive) => "<.",
+                    (BoundType::Exclusive, BoundType::Exclusive) => "<<",
                 };
                 let left = left.expr.to_pretty_print();
                 let right = right.expr.to_pretty_print();
