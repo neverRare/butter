@@ -183,14 +183,8 @@ where
         ))
         .left()
         .right(),
-        2 => lex(keyword("and"))
-            .with(value(BinaryType::And))
-            .right()
-            .right(),
-        1 => lex(keyword("or"))
-            .with(value(BinaryType::Or))
-            .right()
-            .right(),
+        2 => keyword("and").with(value(BinaryType::And)).right().right(),
+        1 => keyword("or").with(value(BinaryType::Or)).right().right(),
         precedence => panic!("invalid precedence {}", precedence),
     };
     op.map(|op| {
