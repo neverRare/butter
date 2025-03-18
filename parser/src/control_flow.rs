@@ -16,6 +16,7 @@ use hir::{
 };
 
 #[derive(Debug, Default, Clone, PartialEq)]
+#[allow(unused)] // We only use `Default`
 struct StatementExpr {
     statement: Vec<Statement<()>>,
     expr: Option<Expr<()>>,

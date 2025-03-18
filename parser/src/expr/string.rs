@@ -63,6 +63,7 @@ where
         .expected("char")
 }
 #[derive(Clone, PartialEq, Debug, Default)]
+#[allow(unused)] // We only use `Default`
 struct StringLiteral(Vec<u8>);
 impl Extend<Char> for StringLiteral {
     fn extend<I>(&mut self, iter: I)
