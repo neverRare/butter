@@ -152,7 +152,7 @@ impl Var {
 impl Display for Var {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         let mutable = if self.mutable { "mut " } else { "" };
-        let bind_to_ref = if self.bind_to_ref { "ref " } else { "" };
+        let bind_to_ref = if self.bind_to_ref { "&<" } else { "" };
         write!(fmt, "{mutable}{bind_to_ref}{}", self.ident)?;
         Ok(())
     }
