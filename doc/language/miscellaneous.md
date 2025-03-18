@@ -41,10 +41,8 @@ These are keywords that only have special meaning in some context.
 
 - `alias`
 - `as`
-- `cell`
 - `impl`
 - `mod`
-- `never`
 - `newtype`
 - `pub`
 - `trait`

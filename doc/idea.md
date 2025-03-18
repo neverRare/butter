@@ -296,7 +296,7 @@ Import many.
 
 ## Bind everything pattern
 
-Useful for module system.
+Only usable for modules, not records.
 
 ```butter
 (*) = math;
@@ -358,6 +358,8 @@ mut num = &bar.cell_inner;
 num^ <- num^ + 1;
 assert(foo.cell_inner == 11);
 ```
+
+This could simply be an std item e.g. `Cell` and `extract_cell`
 
 ## Never
 
@@ -466,6 +468,10 @@ Generics:
 ```butter
 :(a):
 pub newtype Extended(@neg_inf | @fin a | @inf);
+
+-- or
+
+pub newtype Extended:(a)(@neg_inf | @fin a | @inf);
 ```
 
 ## Auto-implement traits
