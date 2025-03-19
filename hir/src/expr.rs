@@ -1,13 +1,9 @@
-use pretty::BoxDoc;
-
 use crate::{
     Atom, PrettyPrintType, TraverseType, all_unique, bracket, intersperse_with_line,
     intersperse_with_space, pattern::Pattern, statement::Statement,
 };
-use std::{
-    fmt::{self, Display, Formatter},
-    iter::once,
-};
+use pretty::BoxDoc;
+use std::fmt::{self, Display, Formatter};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
@@ -167,7 +163,7 @@ impl<T: PrettyPrintType> ExprKind<T> {
                     .map(|assign| &assign.place)
                     .map(PlaceExpr::to_doc)
                     .map(|place| BoxDoc::concat([place, BoxDoc::text(",")]))
-                    .chain(once(BoxDoc::text("<-")))
+                    .chain([BoxDoc::text("<-")])
                     .chain(
                         assign
                             .iter()
@@ -671,10 +667,7 @@ where
             .left
             .iter()
             .map(&mapper)
-            .chain(once(BoxDoc::concat([
-                BoxDoc::text("*"),
-                self.splat.to_doc(),
-            ])))
+            .chain([BoxDoc::concat([BoxDoc::text("*"), self.splat.to_doc()])])
             .chain(self.right.iter().map(&mapper))
             .map(|field| BoxDoc::concat([field, BoxDoc::text(",")]));
         bracket("(", ")", intersperse_with_line(iter))

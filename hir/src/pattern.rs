@@ -5,7 +5,6 @@ use pretty::BoxDoc;
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
-    iter::once,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -241,10 +240,7 @@ impl<T: PrettyPrintType> ListPattern<T> {
                     .left
                     .iter()
                     .map(Pattern::to_doc)
-                    .chain(once(BoxDoc::concat([
-                        BoxDoc::text("*"),
-                        list.rest.to_doc(),
-                    ])))
+                    .chain([BoxDoc::concat([BoxDoc::text("*"), list.rest.to_doc()])])
                     .chain(list.right.iter().map(Pattern::to_doc))
                     .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]));
                 intersperse_with_line(iter)
