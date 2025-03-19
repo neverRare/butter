@@ -157,21 +157,23 @@ impl<T: PrettyPrintType> ExprKind<T> {
             ExprKind::Literal(literal) => BoxDoc::as_string(literal),
             ExprKind::Tag(tag) => tag.to_doc(),
             ExprKind::Assign(assign) if assign.len() == 1 => assign[0].to_doc(),
-            ExprKind::Assign(assign) => intersperse_with_space(
-                assign
-                    .iter()
-                    .map(|assign| &assign.place)
-                    .map(PlaceExpr::to_doc)
-                    .map(|place| BoxDoc::concat([place, BoxDoc::text(",")]))
-                    .chain([BoxDoc::text("<-")])
-                    .chain(
-                        assign
-                            .iter()
-                            .map(|assign| &assign.expr)
-                            .map(Expr::to_doc)
-                            .map(|expr| BoxDoc::concat([expr, BoxDoc::text(",")])),
-                    ),
-            ),
+            ExprKind::Assign(assign) => intersperse_with_space([
+                intersperse_with_space(
+                    assign
+                        .iter()
+                        .map(|assign| &assign.place)
+                        .map(PlaceExpr::to_doc)
+                        .map(|place| BoxDoc::concat([place, BoxDoc::text(",")])),
+                ),
+                BoxDoc::text("<-"),
+                intersperse_with_space(
+                    assign
+                        .iter()
+                        .map(|assign| &assign.expr)
+                        .map(Expr::to_doc)
+                        .map(|expr| BoxDoc::concat([expr, BoxDoc::text(",")])),
+                ),
+            ]),
             ExprKind::Array(array) => {
                 let iter = array
                     .iter()
@@ -663,14 +665,15 @@ where
     U: PrettyPrintType,
 {
     pub fn to_doc<'a>(&'a self, mapper: impl for<'b> Fn(&'b T) -> BoxDoc<'b>) -> BoxDoc<'a> {
-        let iter = self
-            .left
-            .iter()
-            .map(&mapper)
-            .chain([BoxDoc::concat([BoxDoc::text("*"), self.splat.to_doc()])])
-            .chain(self.right.iter().map(&mapper))
-            .map(|field| BoxDoc::concat([field, BoxDoc::text(",")]));
-        bracket("(", ")", intersperse_with_line(iter))
+        let fields = intersperse_with_line(
+            self.left
+                .iter()
+                .map(&mapper)
+                .chain([BoxDoc::concat([BoxDoc::text("*"), self.splat.to_doc()])])
+                .chain(self.right.iter().map(&mapper))
+                .map(|field| BoxDoc::concat([field, BoxDoc::text(",")])),
+        );
+        bracket("(", ")", fields)
     }
 }
 impl<T: TraverseType> TraverseType for WithSplat<T, T::Type> {
@@ -782,13 +785,16 @@ impl<T: PrettyPrintType> Block<T> {
                 None => BoxDoc::text("{}"),
             }
         } else {
-            let iter = self
-                .statement
-                .iter()
-                .map(Statement::to_doc)
-                .map(|statement| BoxDoc::concat([statement, BoxDoc::text(";")]))
-                .chain(self.expr.iter().map(Box::as_ref).map(Expr::to_doc));
-            bracket("{", "}", intersperse_with_line(iter))
+            let statements = intersperse_with_line([
+                intersperse_with_line(
+                    self.statement
+                        .iter()
+                        .map(Statement::to_doc)
+                        .map(|statement| BoxDoc::concat([statement, BoxDoc::text(";")])),
+                ),
+                intersperse_with_line(self.expr.iter().map(Box::as_ref).map(Expr::to_doc)),
+            ]);
+            bracket("{", "}", statements)
         }
     }
 }
