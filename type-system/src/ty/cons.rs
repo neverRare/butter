@@ -7,7 +7,6 @@ use pretty::BoxDoc;
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
-    iter::once,
     mem::{replace, swap},
 };
 
@@ -415,10 +414,10 @@ where
             Self::Row(left, rest, right) => left
                 .iter()
                 .flat_map(T::free_vars)
-                .chain(once(KindedVar {
+                .chain([KindedVar {
                     kind: Kind::Type,
                     var: rest.clone(),
-                }))
+                }])
                 .chain(right.iter().flat_map(T::free_vars))
                 .collect(),
         }

@@ -4,7 +4,7 @@ use crate::{
     ty::{Env, Scheme, SchemeMut, Subs, Substitutable, Unifiable, VarState},
 };
 use hir::pattern::{self, ListPattern, ListWithRest, Pattern, PatternKind, TaggedPattern};
-use std::{collections::HashSet, iter::once};
+use std::collections::HashSet;
 
 pub(super) trait InferablePattern {
     type TypedSelf;
@@ -71,7 +71,7 @@ impl InferablePattern for TaggedPattern<()> {
         };
         Ok(Typed {
             ty: Type::Cons(Cons::Union(Keyed {
-                fields: once((self.tag.clone(), ty)).collect(),
+                fields: [(self.tag.clone(), ty)].into_iter().collect(),
                 rest: Some(var_state.new_var()),
             })),
             value: TaggedPattern {

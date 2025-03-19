@@ -5,7 +5,6 @@ use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
     hash::Hash,
-    iter::once,
 };
 
 pub mod cons;
@@ -99,10 +98,11 @@ impl PrettyPrintType for Type {
 impl FreeVars for Type {
     fn free_vars(&self) -> HashSet<KindedVar> {
         match self {
-            Self::Var(var) => once(KindedVar {
+            Self::Var(var) => [KindedVar {
                 kind: Kind::Type,
                 var: var.clone(),
-            })
+            }]
+            .into_iter()
             .collect(),
             Self::Cons(cons) => cons.free_vars(),
         }
@@ -208,10 +208,11 @@ impl MutType {
 impl FreeVars for MutType {
     fn free_vars(&self) -> HashSet<KindedVar> {
         match self {
-            Self::Var(var) => once(KindedVar {
+            Self::Var(var) => [KindedVar {
                 kind: Kind::MutType,
                 var: var.clone(),
-            })
+            }]
+            .into_iter()
             .collect(),
             Self::Imm | Self::Mut => HashSet::new(),
         }

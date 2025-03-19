@@ -18,7 +18,7 @@ use hir::{
     keyword,
     statement::{Declare, Statement},
 };
-use std::{collections::HashMap, iter::once};
+use std::collections::HashMap;
 
 pub(super) fn unit() -> Type {
     Type::Cons(Cons::RecordTuple(OrderedAnd::NonRow(vec![].into())))
@@ -110,7 +110,9 @@ impl Inferable for FieldAccess<()> {
         let mut operand_subs = Subs::new();
         operand_ty.unify_with(
             Type::Cons(Cons::Record(Keyed {
-                fields: once((name.clone(), Type::Var(var.clone()))).collect(),
+                fields: [(name.clone(), Type::Var(var.clone()))]
+                    .into_iter()
+                    .collect(),
                 rest: Some(var_state.new_var()),
             })),
             &mut operand_subs,
@@ -388,7 +390,7 @@ impl Inferable for Tag<()> {
         };
         Ok(Typed {
             ty: Type::Cons(Cons::Union(Keyed {
-                fields: once((self.tag.clone(), ty)).collect(),
+                fields: [(self.tag.clone(), ty)].into_iter().collect(),
                 rest: Some(var_state.new_var()),
             })),
             value: Tag {
