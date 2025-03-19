@@ -2,10 +2,8 @@ use super::FreeVars;
 use crate::ty::{
     Kind, KindedVar, MutType, Subs, Substitutable, Type, Type1, TypeError, Unifiable, Var, VarState,
 };
-use hir::{
-    Atom,
-    pretty_print::{PrettyPrint, PrettyPrintTree, bracket, line, postfix, prefix, sequence},
-};
+use hir::{Atom, bracket, intersperse_with_line, intersperse_with_space};
+use pretty::BoxDoc;
 use std::{
     collections::{HashMap, HashSet},
     hash::Hash,
@@ -24,127 +22,119 @@ pub enum Cons {
     Tuple(OrderedAnd<Type>),
     Union(Keyed),
 }
-impl PrettyPrint for Cons {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+impl Cons {
+    pub fn to_doc(&self) -> BoxDoc {
         match self {
-            Self::Num => Box::new("Num".to_string()),
-            Self::Ref(mut_type, ty) => line([
-                Box::new("&:".to_string()),
-                Box::new(mut_type.to_string()),
-                Box::new(" ".to_string()),
-                ty.to_pretty_print(),
+            Self::Num => BoxDoc::text("Num"),
+            Self::Ref(mut_type, ty) => intersperse_with_space([
+                BoxDoc::concat([BoxDoc::text("&:"), mut_type.to_doc()]),
+                ty.to_doc(),
             ]),
-            Self::Array(ty) => bracket("[", "]", ty.to_pretty_print()),
-            Self::Fun(param, ret) => line([
-                param.to_pretty_print(),
-                Box::new(" -> ".to_string()),
-                ret.to_pretty_print(),
-            ]),
+            Self::Array(ty) => bracket("[", "]", ty.to_doc()),
+            Self::Fun(param, ret) => {
+                intersperse_with_space([param.to_doc(), BoxDoc::text("->"), ret.to_doc()])
+            }
             Self::RecordTuple(OrderedAnd::NonRow(rec_tup)) => {
                 if rec_tup.is_empty() {
-                    Box::new("()".to_string())
+                    BoxDoc::text("()")
                 } else {
-                    let fields = sequence(rec_tup.iter().map(|(name, ty)| {
-                        line([
-                            Box::new(format!("{name} = ")),
-                            ty.to_pretty_print(),
-                            Box::new(", ".to_string()),
+                    let fields = intersperse_with_line(rec_tup.iter().map(|(name, ty)| {
+                        BoxDoc::concat([
+                            intersperse_with_space([
+                                BoxDoc::text(name as &str),
+                                BoxDoc::text("="),
+                                ty.to_doc(),
+                            ]),
+                            BoxDoc::text(","),
                         ])
                     }));
-                    // if rec_tup.len() > 1 {
-                    //     fields.multiline_override = Some(true);
-                    // }
-                    prefix("ordered", bracket("(", ")", fields))
+                    BoxDoc::concat([BoxDoc::text("ordered"), bracket("(", ")", fields)])
                 }
             }
             Self::RecordTuple(OrderedAnd::Row(left, row, right)) => {
-                let row = Box::new(format!("*{row}, "));
+                let row = BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]);
                 let [left, right] = [left, right].map(|rec_tup| {
-                    rec_tup.iter().map(|(name, ty)| {
-                        line([
-                            Box::new(format!("{name} : ")),
-                            ty.to_pretty_print(),
-                            Box::new(", ".to_string()),
+                    intersperse_with_line(rec_tup.iter().map(|(name, ty)| {
+                        BoxDoc::concat([
+                            intersperse_with_space([
+                                BoxDoc::text(name as &str),
+                                BoxDoc::text(":"),
+                                ty.to_doc(),
+                            ]),
+                            BoxDoc::text(","),
                         ])
-                    })
+                    }))
                 });
-                let list = left
-                    .chain(once(row as Box<dyn PrettyPrintTree>))
-                    .chain(right);
-                prefix("ordered", bracket("(", ")", sequence(list)))
+                BoxDoc::concat([
+                    BoxDoc::text("ordered"),
+                    bracket("(", ")", intersperse_with_line([left, row, right])),
+                ])
             }
             Self::Record(rec) => {
-                let iter = rec.fields.iter().map(|(name, ty)| {
-                    line([
-                        Box::new(format!("{name} : ")),
-                        ty.to_pretty_print(),
-                        Box::new(", ".to_string()),
+                let fields = intersperse_with_line(rec.fields.iter().map(|(name, ty)| {
+                    BoxDoc::concat([
+                        intersperse_with_space([
+                            BoxDoc::text(name as &str),
+                            BoxDoc::text(":"),
+                            ty.to_doc(),
+                        ]),
+                        BoxDoc::text(","),
                     ])
-                });
+                }));
                 match &rec.rest {
                     Some(row) => {
-                        let row = Box::new(format!("*{row}, "));
-                        bracket(
-                            "(",
-                            ")",
-                            sequence(iter.chain(once(row as Box<dyn PrettyPrintTree>))),
-                        )
+                        let row =
+                            BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]);
+                        bracket("(", ")", intersperse_with_line([fields, row]))
                     }
-                    None if rec.fields.is_empty() => Box::new("()".to_string()),
-                    None => {
-                        let list = sequence(iter);
-                        // if rec.fields.len() > 1 {
-                        //     list.multiline_override = Some(true);
-                        // }
-                        bracket("(", ")", list)
-                    }
+                    None if rec.fields.is_empty() => BoxDoc::text("()"),
+                    None => bracket("(", ")", fields),
                 }
             }
             Self::Tuple(OrderedAnd::NonRow(tup)) => {
                 if tup.is_empty() {
-                    Box::new("()".to_string())
+                    BoxDoc::text("()")
                 } else {
                     bracket(
                         "(",
                         ")",
-                        sequence(tup.iter().map(|ty| postfix(", ", ty.to_pretty_print()))),
+                        intersperse_with_line(
+                            tup.iter()
+                                .map(|ty| BoxDoc::concat([ty.to_doc(), BoxDoc::text(",")])),
+                        ),
                     )
                 }
             }
             Self::Tuple(OrderedAnd::Row(left, row, right)) => {
-                let row = Box::new(format!("*{row}, "));
-                let [left, right] = [left, right]
-                    .map(|tup| tup.iter().map(|ty| postfix(", ", ty.to_pretty_print())));
-                let list = left
-                    .chain(once(row as Box<dyn PrettyPrintTree>))
-                    .chain(right);
-                bracket("(", ")", sequence(list))
+                let row = BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]);
+                let [left, right] = [left, right].map(|tup| {
+                    intersperse_with_line(
+                        tup.iter()
+                            .map(|ty| BoxDoc::concat([ty.to_doc(), BoxDoc::text(",")])),
+                    )
+                });
+                bracket("(", ")", intersperse_with_line([left, row, right]))
             }
             Self::Union(union) => {
-                let iter = union.fields.iter().map(|(name, ty)| {
-                    line([
-                        Box::new(format!("@{name} ")),
-                        ty.to_pretty_print(),
-                        Box::new(", ".to_string()),
-                    ])
-                });
+                let variants = BoxDoc::intersperse(
+                    union.fields.iter().map(|(name, ty)| {
+                        intersperse_with_space([
+                            BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(name as &str)]),
+                            ty.to_doc(),
+                        ])
+                    }),
+                    BoxDoc::concat([BoxDoc::line(), BoxDoc::text("|"), BoxDoc::space()]),
+                );
                 match &union.rest {
                     Some(row) => {
-                        let row = Box::new(format!("*{row}, "));
-                        bracket(
-                            "(",
-                            ")",
-                            sequence(iter.chain(once(row as Box<dyn PrettyPrintTree>))),
+                        let row = row.to_doc();
+                        BoxDoc::intersperse(
+                            [variants, row],
+                            BoxDoc::concat([BoxDoc::line(), BoxDoc::text("|"), BoxDoc::space()]),
                         )
                     }
-                    None if union.fields.is_empty() => Box::new("(@)".to_string()),
-                    None => {
-                        let list = sequence(iter);
-                        // if union.fields.len() > 1 {
-                        //     list.multiline_override = Some(true);
-                        // }
-                        bracket("(", ")", list)
-                    }
+                    None if union.fields.is_empty() => BoxDoc::nil(),
+                    None => variants,
                 }
             }
         }

@@ -1,10 +1,8 @@
+use pretty::BoxDoc;
+
 use crate::{
-    Atom, PrettyPrintType, TraverseType, all_unique,
-    pattern::Pattern,
-    pretty_print::{
-        PrettyPrint, PrettyPrintTree, bracket, line, multiline_sequence, postfix, prefix, sequence,
-    },
-    statement::Statement,
+    Atom, PrettyPrintType, TraverseType, all_unique, bracket, intersperse_with_line,
+    intersperse_with_space, pattern::Pattern, statement::Statement,
 };
 use std::{
     fmt::{self, Display, Formatter},
@@ -40,15 +38,23 @@ impl<T: PrettyPrintType> Expr<T> {
     {
         if T::TYPED { 10 } else { self.expr.precedence() }
     }
-    fn to_auto_wrap(&self, precedence: u8) -> Box<dyn PrettyPrintTree>
+    fn to_auto_wrap(&self, precedence: u8) -> BoxDoc
     where
         T: PrettyPrintType,
     {
-        let mut expr = self.to_pretty_print();
+        let expr = self.to_doc();
         if self.precedence() > precedence {
-            expr = bracket("(", ")", expr);
+            bracket("(", ")", expr)
+        } else {
+            expr
         }
-        expr
+    }
+    pub fn to_doc(&self) -> BoxDoc {
+        let expr = self.expr.to_doc();
+        match self.ty.to_doc() {
+            Some(ty) => intersperse_with_space([expr, BoxDoc::text(":"), ty]),
+            None => expr,
+        }
     }
 }
 impl<T: PrettyPrintType> TraverseType for Expr<T> {
@@ -90,15 +96,6 @@ impl<T: PrettyPrintType> TraverseType for Expr<T> {
             ExprKind::Jump(jump) => jump.traverse_type(data, for_type, for_scheme)?,
         }
         Ok(())
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for Expr<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let expr = self.expr.to_pretty_print();
-        match self.ty.to_pretty_print() {
-            Some(ty) => line([expr, Box::new(" : ".to_string()), ty]),
-            None => expr,
-        }
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -159,6 +156,49 @@ impl<T: PrettyPrintType> ExprKind<T> {
             ExprKind::Jump(jump) => jump.precedence(),
         }
     }
+    pub fn to_doc(&self) -> BoxDoc {
+        match self {
+            ExprKind::Literal(literal) => BoxDoc::as_string(literal),
+            ExprKind::Tag(tag) => tag.to_doc(),
+            ExprKind::Assign(assign) if assign.len() == 1 => assign[0].to_doc(),
+            ExprKind::Assign(assign) => intersperse_with_space(
+                assign
+                    .iter()
+                    .map(|assign| &assign.place)
+                    .map(PlaceExpr::to_doc)
+                    .map(|place| BoxDoc::concat([place, BoxDoc::text(",")]))
+                    .chain(once(BoxDoc::text("<-")))
+                    .chain(
+                        assign
+                            .iter()
+                            .map(|assign| &assign.expr)
+                            .map(Expr::to_doc)
+                            .map(|expr| BoxDoc::concat([expr, BoxDoc::text(",")])),
+                    ),
+            ),
+            ExprKind::Array(array) => {
+                let iter = array
+                    .iter()
+                    .map(Element::to_doc)
+                    .map(|element| BoxDoc::concat([element, BoxDoc::text(",")]));
+                bracket("[", "]", intersperse_with_line(iter))
+            }
+            ExprKind::ArrayRange(array) => array.to_doc(),
+            ExprKind::Unit => BoxDoc::text("()"),
+            ExprKind::Splat(expr) => {
+                bracket("(", ")", BoxDoc::concat([BoxDoc::text("*"), expr.to_doc()]))
+            }
+            ExprKind::Record(record) => record.to_doc(Field::to_doc),
+            ExprKind::Tuple(tuple) => tuple.to_doc(Expr::to_doc),
+            ExprKind::Unary(unary) => unary.to_doc(),
+            ExprKind::Binary(binary) => binary.to_doc(),
+            ExprKind::Place(place) => place.to_doc(),
+            ExprKind::Call(call) => call.to_doc(),
+            ExprKind::ControlFlow(control_flow) => control_flow.to_doc(),
+            ExprKind::Fun(fun) => fun.to_doc(),
+            ExprKind::Jump(jump) => jump.to_doc(),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for ExprKind<T> {
     type Type = T;
@@ -200,51 +240,6 @@ impl<T: PrettyPrintType> TraverseType for ExprKind<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for ExprKind<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match self {
-            ExprKind::Literal(literal) => Box::new(literal.to_string()),
-            ExprKind::Tag(tag) => tag.to_pretty_print(),
-            ExprKind::Assign(assign) if assign.len() == 1 => assign[0].to_pretty_print(),
-            ExprKind::Assign(assign) => sequence(
-                assign
-                    .iter()
-                    .map(|assign| &assign.place)
-                    .map(PlaceExpr::to_pretty_print)
-                    .map(|place| postfix(", ", place))
-                    .chain(once(
-                        Box::new(" <- ".to_string()) as Box<dyn PrettyPrintTree>
-                    ))
-                    .chain(
-                        assign
-                            .iter()
-                            .map(|assign| &assign.expr)
-                            .map(Expr::to_pretty_print)
-                            .map(|expr| postfix(", ", expr)),
-                    ),
-            ),
-            ExprKind::Array(array) => {
-                let iter = array
-                    .iter()
-                    .map(Element::to_pretty_print)
-                    .map(|element| postfix(", ", element));
-                bracket("[", "]", sequence(iter))
-            }
-            ExprKind::ArrayRange(array) => array.to_pretty_print(),
-            ExprKind::Unit => Box::new("()".to_string()),
-            ExprKind::Splat(expr) => bracket("(", ")", prefix("*", expr.to_pretty_print())),
-            ExprKind::Record(record) => record.to_pretty_print(),
-            ExprKind::Tuple(tuple) => tuple.to_pretty_print(),
-            ExprKind::Unary(unary) => unary.to_pretty_print(),
-            ExprKind::Binary(binary) => binary.to_pretty_print(),
-            ExprKind::Place(place) => place.to_pretty_print(),
-            ExprKind::Call(call) => call.to_pretty_print(),
-            ExprKind::ControlFlow(control_flow) => control_flow.to_pretty_print(),
-            ExprKind::Fun(fun) => fun.to_pretty_print(),
-            ExprKind::Jump(jump) => jump.to_pretty_print(),
-        }
-    }
-}
 impl ExprKind<()> {
     pub fn into_untyped(self) -> Expr<()> {
         Expr { expr: self, ty: () }
@@ -258,6 +253,18 @@ pub enum PlaceExpr<T: PrettyPrintType> {
     Slice(Slice<T>),
     Deref(Box<Expr<T>>),
     Len(Box<Expr<T>>),
+}
+impl<T: PrettyPrintType> PlaceExpr<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        match self {
+            PlaceExpr::Var(var) => BoxDoc::text(var as &str),
+            PlaceExpr::FieldAccess(field_access) => field_access.to_doc(),
+            PlaceExpr::Index(index) => index.to_doc(),
+            PlaceExpr::Slice(slice) => slice.to_doc(),
+            PlaceExpr::Deref(expr) => BoxDoc::concat([expr.to_auto_wrap(1), BoxDoc::text("^")]),
+            PlaceExpr::Len(expr) => BoxDoc::concat([expr.to_auto_wrap(1), BoxDoc::text(".len")]),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for PlaceExpr<T> {
     type Type = T;
@@ -279,18 +286,6 @@ impl<T: PrettyPrintType> TraverseType for PlaceExpr<T> {
             PlaceExpr::Len(expr) => expr.traverse_type(data, for_type, for_scheme)?,
         }
         Ok(())
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for PlaceExpr<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match self {
-            PlaceExpr::Var(var) => Box::new(var.to_string()),
-            PlaceExpr::FieldAccess(field_access) => field_access.to_pretty_print(),
-            PlaceExpr::Index(index) => index.to_pretty_print(),
-            PlaceExpr::Slice(slice) => slice.to_pretty_print(),
-            PlaceExpr::Deref(expr) => postfix("^", expr.to_auto_wrap(1)),
-            PlaceExpr::Len(expr) => postfix(".len", expr.to_auto_wrap(1)),
-        }
     }
 }
 impl<T: PrettyPrintType> PlaceExpr<T> {
@@ -333,6 +328,15 @@ pub struct Fun<T: PrettyPrintType> {
     pub param: Pattern<T>,
     pub body: Box<Expr<T>>,
 }
+impl<T: PrettyPrintType> Fun<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        intersperse_with_line([
+            self.param.to_doc(),
+            BoxDoc::text("=>"),
+            self.body.to_auto_wrap(9),
+        ])
+    }
+}
 impl<T: PrettyPrintType> TraverseType for Fun<T> {
     type Type = T;
 
@@ -347,20 +351,26 @@ impl<T: PrettyPrintType> TraverseType for Fun<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Fun<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
-            self.param.to_pretty_print(),
-            Box::new(" => ".to_string()),
-            self.body.to_auto_wrap(9),
-        ])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub enum Jump<T: PrettyPrintType> {
     Break(Option<Box<Expr<T>>>),
     Continue,
     Return(Option<Box<Expr<T>>>),
+}
+impl<T: PrettyPrintType> Jump<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        match self {
+            Jump::Break(Some(expr)) => {
+                intersperse_with_space([BoxDoc::text("break"), expr.to_auto_wrap(9)])
+            }
+            Jump::Break(None) => BoxDoc::text("break"),
+            Jump::Continue => BoxDoc::text("continue"),
+            Jump::Return(Some(expr)) => {
+                intersperse_with_space([BoxDoc::text("return"), expr.to_auto_wrap(9)])
+            }
+            Jump::Return(None) => BoxDoc::text("return"),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Jump<T> {
     type Type = T;
@@ -385,17 +395,6 @@ impl<T: PrettyPrintType> TraverseType for Jump<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Jump<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match self {
-            Jump::Break(Some(expr)) => prefix("break ", expr.to_auto_wrap(9)),
-            Jump::Break(None) => Box::new("break".to_string()),
-            Jump::Continue => Box::new("continue".to_string()),
-            Jump::Return(Some(expr)) => prefix("return ", expr.to_auto_wrap(9)),
-            Jump::Return(None) => Box::new("return".to_string()),
-        }
-    }
-}
 impl<T: PrettyPrintType> Jump<T> {
     fn precedence(&self) -> u8 {
         match self {
@@ -410,6 +409,19 @@ pub struct Unary<T: PrettyPrintType> {
     pub kind: UnaryType,
     pub expr: Box<Expr<T>>,
 }
+impl<T: PrettyPrintType> Unary<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let extra_space = match &self.kind {
+            UnaryType::Not => BoxDoc::space(),
+            _ => BoxDoc::nil(),
+        };
+        BoxDoc::concat([
+            BoxDoc::text(self.kind.as_static_str()),
+            extra_space,
+            self.expr.to_auto_wrap(2),
+        ])
+    }
+}
 impl<T: PrettyPrintType> TraverseType for Unary<T> {
     type Type = T;
 
@@ -422,16 +434,6 @@ impl<T: PrettyPrintType> TraverseType for Unary<T> {
         self.expr.traverse_type(data, for_type, for_scheme)
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Unary<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let expr = self.expr.to_auto_wrap(2);
-        let extra_space = match &self.kind {
-            UnaryType::Not => " ",
-            _ => "",
-        };
-        line([Box::new(format!("{}{extra_space}", &self.kind)), expr])
-    }
-}
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum UnaryType {
     Minus,
@@ -439,15 +441,19 @@ pub enum UnaryType {
     Not,
     Move,
 }
-impl Display for UnaryType {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        let s = match self {
+impl UnaryType {
+    fn as_static_str(self) -> &'static str {
+        match self {
             UnaryType::Minus => "-",
             UnaryType::Ref => "&",
             UnaryType::Not => "not",
             UnaryType::Move => ">",
-        };
-        s.fmt(fmt)
+        }
+    }
+}
+impl Display for UnaryType {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        self.as_static_str().fmt(fmt)
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -455,6 +461,14 @@ pub struct Binary<T: PrettyPrintType> {
     pub kind: BinaryType,
     pub left: Box<Expr<T>>,
     pub right: Box<Expr<T>>,
+}
+impl<T: PrettyPrintType> Binary<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let precedence = self.kind.precedence();
+        let left = self.left.to_auto_wrap(precedence);
+        let right = self.right.to_auto_wrap(precedence);
+        intersperse_with_space([left, BoxDoc::text(self.kind.as_static_str()), right])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Binary<T> {
     type Type = T;
@@ -468,14 +482,6 @@ impl<T: PrettyPrintType> TraverseType for Binary<T> {
         self.left.traverse_type(data, for_type, for_scheme)?;
         self.right.traverse_type(data, for_type, for_scheme)?;
         Ok(())
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for Binary<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let precedence = self.kind.precedence();
-        let left = self.left.to_auto_wrap(precedence);
-        let right = self.right.to_auto_wrap(precedence);
-        line([left, Box::new(format!(" {} ", &self.kind)), right])
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -497,7 +503,7 @@ pub enum BinaryType {
     Concatenate,
 }
 impl BinaryType {
-    fn precedence(&self) -> u8 {
+    fn precedence(self) -> u8 {
         match self {
             Self::Multiply | Self::Div | Self::FloorDiv | Self::Mod => 3,
             Self::Add | Self::Sub | Self::Concatenate => 4,
@@ -511,10 +517,8 @@ impl BinaryType {
             Self::Or => 7,
         }
     }
-}
-impl Display for BinaryType {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        let s = match self {
+    fn as_static_str(self) -> &'static str {
+        match self {
             BinaryType::Add => "+",
             BinaryType::Sub => "-",
             BinaryType::Multiply => "*",
@@ -530,14 +534,26 @@ impl Display for BinaryType {
             BinaryType::Less => "<",
             BinaryType::LessEqual => "<=",
             BinaryType::Concatenate => "++",
-        };
-        s.fmt(fmt)
+        }
+    }
+}
+impl Display for BinaryType {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        self.as_static_str().fmt(fmt)
     }
 }
 #[derive(Debug, PartialEq, Clone)]
 pub struct Index<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub index: Box<Expr<T>>,
+}
+impl<T: PrettyPrintType> Index<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        BoxDoc::concat([
+            self.expr.to_auto_wrap(1),
+            bracket("[", "]", self.index.to_doc()),
+        ])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Index<T> {
     type Type = T;
@@ -553,18 +569,19 @@ impl<T: PrettyPrintType> TraverseType for Index<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Index<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
-            self.expr.to_auto_wrap(1),
-            bracket("[", "]", self.index.to_pretty_print()),
-        ])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Element<T: PrettyPrintType> {
     pub expr: Expr<T>,
     pub kind: ElementKind,
+}
+impl<T: PrettyPrintType> Element<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let expr = self.expr.to_doc();
+        match self.kind {
+            ElementKind::Element => expr,
+            ElementKind::Splat => BoxDoc::concat([BoxDoc::text("*"), expr]),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Element<T> {
     type Type = T;
@@ -576,15 +593,6 @@ impl<T: PrettyPrintType> TraverseType for Element<T> {
         for_scheme: fn(&mut <Self::Type as PrettyPrintType>::FunScheme, &mut U) -> Result<(), E>,
     ) -> Result<(), E> {
         self.expr.traverse_type(data, for_type, for_scheme)
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for Element<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let expr = self.expr.to_pretty_print();
-        match self.kind {
-            ElementKind::Element => expr,
-            ElementKind::Splat => prefix("*", expr),
-        }
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -611,6 +619,23 @@ impl<T: PrettyPrintType> Collection<Field<T>, T> {
         }
     }
 }
+impl<T, U> Collection<T, U>
+where
+    U: PrettyPrintType,
+{
+    pub fn to_doc<'a>(&'a self, mapper: impl for<'b> Fn(&'b T) -> BoxDoc<'b>) -> BoxDoc<'a> {
+        match self {
+            Self::Collection(tuple) => {
+                let iter = tuple
+                    .iter()
+                    .map(mapper)
+                    .map(|field| BoxDoc::concat([field, BoxDoc::text(",")]));
+                bracket("(", ")", intersperse_with_line(iter))
+            }
+            Self::WithSplat(tuple) => tuple.to_doc(mapper),
+        }
+    }
+}
 impl<T: TraverseType> TraverseType for Collection<T, T::Type> {
     type Type = T::Type;
 
@@ -631,29 +656,29 @@ impl<T: TraverseType> TraverseType for Collection<T, T::Type> {
         Ok(())
     }
 }
-impl<T, U> PrettyPrint for Collection<T, U>
-where
-    T: PrettyPrint,
-    U: PrettyPrintType,
-{
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match self {
-            Self::Collection(tuple) => {
-                let iter = tuple
-                    .iter()
-                    .map(T::to_pretty_print)
-                    .map(|field| postfix(", ", field));
-                bracket("(", ")", sequence(iter))
-            }
-            Self::WithSplat(tuple) => tuple.to_pretty_print(),
-        }
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct WithSplat<T, U: PrettyPrintType> {
     pub left: Box<[T]>,
     pub splat: Box<Expr<U>>,
     pub right: Box<[T]>,
+}
+impl<T, U> WithSplat<T, U>
+where
+    U: PrettyPrintType,
+{
+    pub fn to_doc<'a>(&'a self, mapper: impl for<'b> Fn(&'b T) -> BoxDoc<'b>) -> BoxDoc<'a> {
+        let iter = self
+            .left
+            .iter()
+            .map(&mapper)
+            .chain(once(BoxDoc::concat([
+                BoxDoc::text("*"),
+                self.splat.to_doc(),
+            ])))
+            .chain(self.right.iter().map(&mapper))
+            .map(|field| BoxDoc::concat([field, BoxDoc::text(",")]));
+        bracket("(", ")", intersperse_with_line(iter))
+    }
 }
 impl<T: TraverseType> TraverseType for WithSplat<T, T::Type> {
     type Type = T::Type;
@@ -674,28 +699,19 @@ impl<T: TraverseType> TraverseType for WithSplat<T, T::Type> {
         Ok(())
     }
 }
-impl<T, U> PrettyPrint for WithSplat<T, U>
-where
-    T: PrettyPrint,
-    U: PrettyPrintType,
-{
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let iter = self
-            .left
-            .iter()
-            .map(T::to_pretty_print)
-            .chain(once(
-                prefix("*", self.splat.to_pretty_print()) as Box<dyn PrettyPrintTree>
-            ))
-            .chain(self.right.iter().map(T::to_pretty_print))
-            .map(|field| postfix(", ", field));
-        bracket("(", ")", sequence(iter))
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Field<T: PrettyPrintType> {
     pub name: Atom,
     pub expr: Expr<T>,
+}
+impl<T: PrettyPrintType> Field<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        intersperse_with_space([
+            BoxDoc::text(&self.name as &str),
+            BoxDoc::text("="),
+            self.expr.to_doc(),
+        ])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Field<T> {
     type Type = T;
@@ -709,14 +725,6 @@ impl<T: PrettyPrintType> TraverseType for Field<T> {
         self.expr.traverse_type(data, for_type, for_scheme)
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Field<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
-            Box::new(format!("{} = ", self.name)),
-            self.expr.to_pretty_print(),
-        ])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub enum ControlFlow<T: PrettyPrintType> {
     Block(Block<T>),
@@ -725,6 +733,20 @@ pub enum ControlFlow<T: PrettyPrintType> {
     While(While<T>),
     Loop(Block<T>),
     Match(Match<T>),
+}
+impl<T: PrettyPrintType> ControlFlow<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        match self {
+            ControlFlow::Block(block) => block.to_doc(),
+            ControlFlow::If(if_statement) => if_statement.to_doc(),
+            ControlFlow::For(for_statement) => for_statement.to_doc(),
+            ControlFlow::While(while_statement) => while_statement.to_doc(),
+            ControlFlow::Loop(loop_statement) => {
+                intersperse_with_space([BoxDoc::text("loop"), loop_statement.to_doc()])
+            }
+            ControlFlow::Match(match_statement) => match_statement.to_doc(),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for ControlFlow<T> {
     type Type = T;
@@ -754,25 +776,28 @@ impl<T: PrettyPrintType> TraverseType for ControlFlow<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for ControlFlow<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match self {
-            ControlFlow::Block(block) => block.to_pretty_print(),
-            ControlFlow::If(if_statement) => if_statement.to_pretty_print(),
-            ControlFlow::For(for_statement) => for_statement.to_pretty_print(),
-            ControlFlow::While(while_statement) => while_statement.to_pretty_print(),
-            ControlFlow::Loop(loop_statement) => line([
-                Box::new("loop ".to_string()),
-                loop_statement.to_pretty_print(),
-            ]),
-            ControlFlow::Match(match_statement) => match_statement.to_pretty_print(),
-        }
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Block<T: PrettyPrintType> {
     pub statement: Box<[Statement<T>]>,
     pub expr: Option<Box<Expr<T>>>,
+}
+impl<T: PrettyPrintType> Block<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        if self.statement.is_empty() {
+            match &self.expr {
+                Some(expr) => bracket("{", "}", expr.to_doc()),
+                None => BoxDoc::text("{}"),
+            }
+        } else {
+            let iter = self
+                .statement
+                .iter()
+                .map(Statement::to_doc)
+                .map(|statement| BoxDoc::concat([statement, BoxDoc::text(";")]))
+                .chain(self.expr.iter().map(Box::as_ref).map(Expr::to_doc));
+            bracket("{", "}", intersperse_with_line(iter))
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Block<T> {
     type Type = T;
@@ -793,34 +818,29 @@ impl<T: PrettyPrintType> TraverseType for Block<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Block<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        if self.statement.is_empty() {
-            match &self.expr {
-                Some(expr) => bracket("{ ", " }", expr.to_pretty_print()),
-                None => Box::new("{}".to_string()),
-            }
-        } else {
-            let iter = self
-                .statement
-                .iter()
-                .map(PrettyPrint::to_pretty_print)
-                .map(|statement| postfix(";", statement))
-                .chain(
-                    self.expr
-                        .iter()
-                        .map(Box::as_ref)
-                        .map(PrettyPrint::to_pretty_print),
-                );
-            bracket("{", "}", multiline_sequence(iter))
-        }
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct If<T: PrettyPrintType> {
     pub condition: Box<Expr<T>>,
     pub body: Block<T>,
     pub else_part: Option<Box<ControlFlow<T>>>,
+}
+impl<T: PrettyPrintType> If<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        match &self.else_part {
+            Some(else_part) => intersperse_with_space([
+                BoxDoc::text("if"),
+                self.condition.to_doc(),
+                self.body.to_doc(),
+                BoxDoc::text("else"),
+                else_part.to_doc(),
+            ]),
+            None => intersperse_with_space([
+                BoxDoc::text("if"),
+                self.condition.to_doc(),
+                self.body.to_doc(),
+            ]),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for If<T> {
     type Type = T;
@@ -840,31 +860,22 @@ impl<T: PrettyPrintType> TraverseType for If<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for If<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match &self.else_part {
-            Some(else_part) => line([
-                Box::new("if ".to_string()),
-                self.condition.to_pretty_print(),
-                Box::new(" ".to_string()),
-                self.body.to_pretty_print(),
-                Box::new(" else ".to_string()),
-                else_part.to_pretty_print(),
-            ]),
-            None => line([
-                Box::new("if ".to_string()),
-                self.condition.to_pretty_print(),
-                Box::new(" ".to_string()),
-                self.body.to_pretty_print(),
-            ]),
-        }
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct For<T: PrettyPrintType> {
     pub pattern: Pattern<T>,
     pub expr: Box<Expr<T>>,
     pub body: Block<T>,
+}
+impl<T: PrettyPrintType> For<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        intersperse_with_space([
+            BoxDoc::text("for"),
+            self.pattern.to_doc(),
+            BoxDoc::text("in"),
+            self.expr.to_doc(),
+            self.body.to_doc(),
+        ])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for For<T> {
     type Type = T;
@@ -881,22 +892,19 @@ impl<T: PrettyPrintType> TraverseType for For<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for For<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
-            Box::new("for ".to_string()),
-            self.pattern.to_pretty_print(),
-            Box::new(" in ".to_string()),
-            self.expr.to_pretty_print(),
-            Box::new(" ".to_string()),
-            self.body.to_pretty_print(),
-        ])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct While<T: PrettyPrintType> {
     pub condition: Box<Expr<T>>,
     pub body: Block<T>,
+}
+impl<T: PrettyPrintType> While<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        intersperse_with_space([
+            BoxDoc::text("while"),
+            self.condition.to_doc(),
+            self.body.to_doc(),
+        ])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for While<T> {
     type Type = T;
@@ -912,20 +920,25 @@ impl<T: PrettyPrintType> TraverseType for While<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for While<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
-            Box::new("while ".to_string()),
-            self.condition.to_pretty_print(),
-            Box::new(" ".to_string()),
-            self.body.to_pretty_print(),
-        ])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Match<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub arm: Box<[MatchArm<T>]>,
+}
+impl<T: PrettyPrintType> Match<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let body = if self.arm.is_empty() {
+            BoxDoc::text("{}")
+        } else {
+            let iter = self
+                .arm
+                .iter()
+                .map(MatchArm::to_doc)
+                .map(|arm| BoxDoc::concat([arm, BoxDoc::text(",")]));
+            bracket("{ ", " }", intersperse_with_line(iter))
+        };
+        intersperse_with_space([BoxDoc::text("match"), self.expr.to_doc(), body])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Match<T> {
     type Type = T;
@@ -943,30 +956,19 @@ impl<T: PrettyPrintType> TraverseType for Match<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Match<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let body = if self.arm.is_empty() {
-            Box::new("{}".to_string())
-        } else {
-            let iter = self
-                .arm
-                .iter()
-                .map(PrettyPrint::to_pretty_print)
-                .map(|arm| postfix(",", arm));
-            bracket("{ ", " }", multiline_sequence(iter))
-        };
-        line([
-            Box::new("match ".to_string()),
-            self.expr.to_pretty_print(),
-            Box::new(" ".to_string()),
-            body,
-        ])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct MatchArm<T: PrettyPrintType> {
     pub pattern: Pattern<T>,
     pub expr: Expr<T>,
+}
+impl<T: PrettyPrintType> MatchArm<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        intersperse_with_space([
+            self.pattern.to_doc(),
+            BoxDoc::text("=>"),
+            self.expr.to_doc(),
+        ])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for MatchArm<T> {
     type Type = T;
@@ -982,19 +984,19 @@ impl<T: PrettyPrintType> TraverseType for MatchArm<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for MatchArm<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
-            self.pattern.to_pretty_print(),
-            Box::new(" => ".to_string()),
-            self.expr.to_pretty_print(),
-        ])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Assign<T: PrettyPrintType> {
     pub place: PlaceExpr<T>,
     pub expr: Expr<T>,
+}
+impl<T: PrettyPrintType> Assign<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        intersperse_with_space([
+            self.place.to_doc(),
+            BoxDoc::text("<-"),
+            self.expr.to_auto_wrap(8),
+        ])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Assign<T> {
     type Type = T;
@@ -1008,15 +1010,6 @@ impl<T: PrettyPrintType> TraverseType for Assign<T> {
         self.place.traverse_type(data, for_type, for_scheme)?;
         self.expr.traverse_type(data, for_type, for_scheme)?;
         Ok(())
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for Assign<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
-            self.place.to_pretty_print(),
-            Box::new(" <- ".to_string()),
-            self.expr.to_auto_wrap(8),
-        ])
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -1040,12 +1033,11 @@ impl<T: PrettyPrintType> FieldAccess<T> {
     pub fn field_name(&self) -> Option<Atom> {
         Some(self.name.clone())
     }
-}
-impl<T: PrettyPrintType> PrettyPrint for FieldAccess<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([
+    pub fn to_doc(&self) -> BoxDoc {
+        BoxDoc::concat([
             self.expr.to_auto_wrap(1),
-            Box::new(format!(".{}", &self.name)),
+            BoxDoc::text("."),
+            BoxDoc::text(&self.name as &str),
         ])
     }
 }
@@ -1053,6 +1045,11 @@ impl<T: PrettyPrintType> PrettyPrint for FieldAccess<T> {
 pub struct Slice<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub range: Range<T>,
+}
+impl<T: PrettyPrintType> Slice<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        BoxDoc::concat([self.expr.to_auto_wrap(1), self.range.to_doc()])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Slice<T> {
     type Type = T;
@@ -1068,15 +1065,15 @@ impl<T: PrettyPrintType> TraverseType for Slice<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Slice<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([self.expr.to_auto_wrap(1), self.range.to_pretty_print()])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Call<T: PrettyPrintType> {
     pub expr: Box<Expr<T>>,
     pub arg: Arg<T>,
+}
+impl<T: PrettyPrintType> Call<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        BoxDoc::concat([self.expr.to_auto_wrap(1), self.arg.to_doc()])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Call<T> {
     type Type = T;
@@ -1092,17 +1089,24 @@ impl<T: PrettyPrintType> TraverseType for Call<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Call<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        line([self.expr.to_auto_wrap(1), self.arg.to_pretty_print()])
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub enum Arg<T: PrettyPrintType> {
     Unit,
     Splat(Box<Expr<T>>),
     Record(Collection<Field<T>, T>),
     Tuple(Collection<Expr<T>, T>),
+}
+impl<T: PrettyPrintType> Arg<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        match self {
+            Arg::Unit => BoxDoc::text("()"),
+            Arg::Splat(expr) => {
+                bracket("(", ")", BoxDoc::concat([BoxDoc::text("*"), expr.to_doc()]))
+            }
+            Arg::Record(record) => record.to_doc(Field::to_doc),
+            Arg::Tuple(tuple) => tuple.to_doc(Expr::to_doc),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Arg<T> {
     type Type = T;
@@ -1122,20 +1126,29 @@ impl<T: PrettyPrintType> TraverseType for Arg<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Arg<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match self {
-            Arg::Unit => Box::new("()".to_string()),
-            Arg::Splat(expr) => bracket("(", ")", prefix("*", expr.to_pretty_print())),
-            Arg::Record(record) => record.to_pretty_print(),
-            Arg::Tuple(tuple) => tuple.to_pretty_print(),
-        }
-    }
-}
 #[derive(Debug, PartialEq, Clone)]
 pub struct Tag<T: PrettyPrintType> {
     pub tag: Atom,
     pub expr: Option<Box<Expr<T>>>,
+}
+impl<T: PrettyPrintType> Tag<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let expr = match &self.expr {
+            Some(expr) => {
+                let expr = expr.to_doc();
+                if T::TYPED {
+                    expr
+                } else {
+                    bracket("(", ")", expr)
+                }
+            }
+            None => BoxDoc::nil(),
+        };
+        intersperse_with_space([
+            BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(&self.tag as &str)]),
+            expr,
+        ])
+    }
 }
 impl<T: PrettyPrintType> TraverseType for Tag<T> {
     type Type = T;
@@ -1150,17 +1163,6 @@ impl<T: PrettyPrintType> TraverseType for Tag<T> {
             .as_mut()
             .map(|expr| expr.traverse_type(data, for_type, for_scheme))
             .unwrap_or(Ok(()))
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for Tag<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match &self.expr {
-            Some(expr) => {
-                let pretty_print_tree = expr.to_auto_wrap(2);
-                line([Box::new(format!("@{} ", &self.tag)), pretty_print_tree])
-            }
-            None => Box::new(format!("@{}", &self.tag)),
-        }
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -1190,6 +1192,41 @@ pub struct Range<T: PrettyPrintType> {
     pub left: Option<Bound<T>>,
     pub right: Option<Bound<T>>,
 }
+impl<T: PrettyPrintType> Range<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let range = match (&self.left, &self.right) {
+            (None, None) => BoxDoc::text(".."),
+            (None, Some(range)) => {
+                let expr = range.expr.to_doc();
+                let op = match range.kind {
+                    BoundType::Inclusive => "..",
+                    BoundType::Exclusive => ".<",
+                };
+                intersperse_with_space([BoxDoc::text(op), expr])
+            }
+            (Some(range), None) => {
+                let expr = range.expr.to_doc();
+                let op = match range.kind {
+                    BoundType::Inclusive => "..",
+                    BoundType::Exclusive => "<.",
+                };
+                intersperse_with_space([expr, BoxDoc::text(op)])
+            }
+            (Some(left), Some(right)) => {
+                let op = match (left.kind, right.kind) {
+                    (BoundType::Inclusive, BoundType::Inclusive) => "..",
+                    (BoundType::Inclusive, BoundType::Exclusive) => ".<",
+                    (BoundType::Exclusive, BoundType::Inclusive) => "<.",
+                    (BoundType::Exclusive, BoundType::Exclusive) => "<<",
+                };
+                let left = left.expr.to_doc();
+                let right = right.expr.to_doc();
+                intersperse_with_space([left, BoxDoc::text(op), right])
+            }
+        };
+        bracket("[", "]", range)
+    }
+}
 impl<T: PrettyPrintType> TraverseType for Range<T> {
     type Type = T;
 
@@ -1208,40 +1245,5 @@ impl<T: PrettyPrintType> TraverseType for Range<T> {
             .map(|bound| bound.traverse_type(data, for_type, for_scheme))
             .unwrap_or(Ok(()))?;
         Ok(())
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for Range<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let range = match (&self.left, &self.right) {
-            (None, None) => Box::new("..".to_string()) as Box<dyn PrettyPrintTree>,
-            (None, Some(range)) => {
-                let expr = range.expr.to_pretty_print();
-                let op = match range.kind {
-                    BoundType::Inclusive => "..",
-                    BoundType::Exclusive => ".<",
-                };
-                prefix(op, expr)
-            }
-            (Some(range), None) => {
-                let expr = range.expr.to_pretty_print();
-                let op = match range.kind {
-                    BoundType::Inclusive => "..",
-                    BoundType::Exclusive => "<.",
-                };
-                postfix(op, expr)
-            }
-            (Some(left), Some(right)) => {
-                let op = match (left.kind, right.kind) {
-                    (BoundType::Inclusive, BoundType::Inclusive) => "..",
-                    (BoundType::Inclusive, BoundType::Exclusive) => ".<",
-                    (BoundType::Exclusive, BoundType::Inclusive) => "<.",
-                    (BoundType::Exclusive, BoundType::Exclusive) => "<<",
-                };
-                let left = left.expr.to_pretty_print();
-                let right = right.expr.to_pretty_print();
-                line([left, Box::new(op.to_string()), right])
-            }
-        };
-        bracket("[", "]", range)
     }
 }

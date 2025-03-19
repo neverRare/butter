@@ -1,8 +1,6 @@
 use crate::ty::cons::Cons;
-use hir::{
-    Atom, PrettyPrintFunScheme, PrettyPrintType, keyword,
-    pretty_print::{PrettyPrint, PrettyPrintTree},
-};
+use hir::{Atom, PrettyPrintFunScheme, PrettyPrintType, keyword};
+use pretty::BoxDoc;
 use std::{
     collections::{HashMap, HashSet},
     fmt::{self, Display, Formatter},
@@ -21,15 +19,19 @@ impl Var {
     pub(super) fn new_bare(name: Atom) -> Self {
         Self { name, id: 0 }
     }
-}
-impl Display for Var {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        match (self.name.as_ref(), self.id) {
-            ("", 0) => write!(fmt, "#")?,
-            (var, 0) => write!(fmt, "{var}")?,
-            (var, id) => write!(fmt, "{var}#{id}")?,
-        }
-        Ok(())
+    pub fn to_doc(&self) -> BoxDoc {
+        let var_str = &self.name;
+        let var = if var_str.is_empty() {
+            BoxDoc::nil()
+        } else {
+            BoxDoc::text(var_str as &str)
+        };
+        let id = if self.id == 0 {
+            BoxDoc::nil()
+        } else {
+            BoxDoc::as_string(self.id)
+        };
+        BoxDoc::concat([var, BoxDoc::text("#"), id])
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]
@@ -78,11 +80,11 @@ pub enum Type {
     Var(Var),
     Cons(Cons),
 }
-impl PrettyPrint for Type {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+impl Type {
+    pub fn to_doc(&self) -> BoxDoc {
         match self {
-            Self::Var(var) => Box::new(var.to_string()),
-            Self::Cons(cons) => cons.to_pretty_print(),
+            Self::Var(var) => var.to_doc(),
+            Self::Cons(cons) => cons.to_doc(),
         }
     }
 }
@@ -90,8 +92,8 @@ impl PrettyPrintType for Type {
     const TYPED: bool = true;
     type FunScheme = Scheme;
 
-    fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>> {
-        Some(PrettyPrint::to_pretty_print(self))
+    fn to_doc(&self) -> Option<BoxDoc> {
+        Some(Type::to_doc(self))
     }
 }
 impl FreeVars for Type {
@@ -194,12 +196,12 @@ pub enum MutType {
     Imm,
     Mut,
 }
-impl Display for MutType {
-    fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
-        match &self {
-            Self::Var(var) => write!(fmt, "{}", var),
-            Self::Imm => write!(fmt, "imm"),
-            Self::Mut => write!(fmt, "mut"),
+impl MutType {
+    pub fn to_doc(&self) -> BoxDoc {
+        match self {
+            MutType::Var(var) => var.to_doc(),
+            MutType::Imm => BoxDoc::text("imm"),
+            MutType::Mut => BoxDoc::text("mut"),
         }
     }
 }
@@ -297,10 +299,10 @@ pub struct Scheme {
     pub ty: Type,
 }
 impl PrettyPrintFunScheme for Scheme {
-    fn to_pretty_print_generics(&self) -> Box<[Box<dyn PrettyPrintTree>]> {
+    fn to_doc(&self) -> Box<[BoxDoc]> {
         self.for_all
             .iter()
-            .map(|var| Box::new(var.var.to_string()) as Box<dyn PrettyPrintTree>)
+            .map(|var| var.var.to_doc())
             .collect::<Vec<_>>()
             .into()
     }

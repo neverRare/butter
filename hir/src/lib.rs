@@ -2,12 +2,10 @@
 #![deny(clippy::correctness)]
 #![forbid(unsafe_code)]
 
-use pretty_print::PrettyPrintTree;
 use std::{collections::HashSet, fmt::Debug, hash::Hash};
 
 pub mod expr;
 pub mod pattern;
-pub mod pretty_print;
 pub mod statement;
 
 #[doc(hidden)]
@@ -16,24 +14,25 @@ pub mod hir_string_cache {
 }
 
 pub use hir_string_cache::Atom;
+use pretty::BoxDoc;
 
 pub trait PrettyPrintType {
     const TYPED: bool;
     type FunScheme: PrettyPrintFunScheme + Debug + PartialEq + Eq + Clone;
-    fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>>;
+    fn to_doc(&self) -> Option<BoxDoc>;
 }
 pub trait PrettyPrintFunScheme {
-    fn to_pretty_print_generics(&self) -> Box<[Box<dyn PrettyPrintTree>]>;
+    fn to_doc(&self) -> Box<[BoxDoc]>;
 }
 impl PrettyPrintType for () {
     const TYPED: bool = false;
     type FunScheme = ();
-    fn to_pretty_print(&self) -> Option<Box<dyn PrettyPrintTree>> {
+    fn to_doc(&self) -> Option<BoxDoc> {
         None
     }
 }
 impl PrettyPrintFunScheme for () {
-    fn to_pretty_print_generics(&self) -> Box<[Box<dyn PrettyPrintTree>]> {
+    fn to_doc(&self) -> Box<[BoxDoc]> {
         vec![].into()
     }
 }
@@ -62,6 +61,20 @@ impl<T: TraverseType> TraverseType for Option<T> {
         }
         Ok(())
     }
+}
+pub fn bracket<'a>(left: &'a str, right: &'a str, content: BoxDoc<'a>) -> BoxDoc<'a> {
+    BoxDoc::concat([
+        BoxDoc::text(left),
+        BoxDoc::concat([BoxDoc::line(), content]).nest(4),
+        BoxDoc::line(),
+        BoxDoc::text(right),
+    ])
+}
+pub fn intersperse_with_space<'a>(contents: impl IntoIterator<Item = BoxDoc<'a>>) -> BoxDoc<'a> {
+    BoxDoc::intersperse(contents, BoxDoc::space())
+}
+pub fn intersperse_with_line<'a>(contents: impl IntoIterator<Item = BoxDoc<'a>>) -> BoxDoc<'a> {
+    BoxDoc::intersperse(contents, BoxDoc::line())
 }
 fn all_unique<I>(iter: I) -> bool
 where

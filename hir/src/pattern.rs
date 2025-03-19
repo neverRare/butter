@@ -1,7 +1,7 @@
 use crate::{
-    Atom, PrettyPrintType, TraverseType,
-    pretty_print::{PrettyPrint, PrettyPrintTree, bracket, line, postfix, prefix, sequence},
+    Atom, PrettyPrintType, TraverseType, bracket, intersperse_with_line, intersperse_with_space,
 };
+use pretty::BoxDoc;
 use std::{
     collections::HashMap,
     fmt::{self, Display, Formatter},
@@ -18,6 +18,15 @@ impl<T> Pattern<T> {
         self.pattern.field_name()
     }
 }
+impl<T: PrettyPrintType> Pattern<T> {
+    pub fn to_doc(&self) -> BoxDoc where {
+        let pattern = self.pattern.to_doc();
+        match self.ty.to_doc() {
+            Some(ty) => intersperse_with_space([pattern, BoxDoc::text(":"), ty]),
+            None => pattern,
+        }
+    }
+}
 impl<T: PrettyPrintType> TraverseType for Pattern<T> {
     type Type = T;
 
@@ -32,15 +41,6 @@ impl<T: PrettyPrintType> TraverseType for Pattern<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for Pattern<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let pattern = self.pattern.to_pretty_print();
-        match self.ty.to_pretty_print() {
-            Some(ty) => line([pattern, Box::new(" : ".to_string()), ty]),
-            None => pattern,
-        }
-    }
-}
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum PatternKind<T> {
     UInt(u64),
@@ -53,6 +53,47 @@ pub enum PatternKind<T> {
     Array(ListPattern<T>),
     Tag(TaggedPattern<T>),
     Ref(Box<Pattern<T>>),
+}
+impl<T: PrettyPrintType> PatternKind<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        match self {
+            Self::UInt(uint) => BoxDoc::as_string(uint),
+            Self::Int(int) => BoxDoc::as_string(int),
+            Self::Discard => BoxDoc::text("_"),
+            Self::Var(var) => var.to_doc(),
+            Self::Record(record) => {
+                let fields =
+                    intersperse_with_line(
+                        record
+                            .fields
+                            .iter()
+                            .map(|(key, pattern)| {
+                                intersperse_with_space([
+                                    BoxDoc::text(key as &str),
+                                    BoxDoc::text("="),
+                                    pattern.to_doc(),
+                                ])
+                            })
+                            .chain(record.rest.iter().map(|pattern| {
+                                BoxDoc::concat([BoxDoc::text("*"), pattern.to_doc()])
+                            }))
+                            .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")])),
+                    );
+                bracket("(", ")", fields)
+            }
+            Self::Tuple(tuple) => bracket("(", ")", tuple.to_doc()),
+            Self::Param(param) => {
+                let iter = param
+                    .iter()
+                    .map(TypedVar::to_doc)
+                    .map(|var| BoxDoc::concat([var, BoxDoc::text(",")]));
+                bracket("(", ")", intersperse_with_line(iter))
+            }
+            Self::Array(arr) => bracket("(", ")", arr.to_doc()),
+            Self::Tag(tag) => tag.to_doc(),
+            Self::Ref(pattern) => BoxDoc::concat([BoxDoc::text("&"), pattern.to_doc()]),
+        }
+    }
 }
 impl<T: PrettyPrintType> TraverseType for PatternKind<T> {
     type Type = T;
@@ -90,46 +131,6 @@ impl<T> PatternKind<T> {
         }
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for PatternKind<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree>
-    where
-        T: PrettyPrintType,
-    {
-        match self {
-            Self::UInt(uint) => Box::new(uint.to_string()),
-            Self::Int(int) => Box::new(int.to_string()),
-            Self::Discard => Box::new("_".to_string()),
-            Self::Var(var) => Box::new(var.to_string()),
-            Self::Record(record) => {
-                let iter = record
-                    .fields
-                    .iter()
-                    .map(|(key, pattern)| {
-                        line([Box::new(format!("{key} = ")), pattern.to_pretty_print()])
-                    })
-                    .chain(
-                        record
-                            .rest
-                            .iter()
-                            .map(|pattern| prefix("*", pattern.to_pretty_print())),
-                    )
-                    .map(|pattern| postfix(", ", pattern));
-                bracket("(", ")", sequence(iter))
-            }
-            Self::Tuple(tuple) => bracket("(", ")", tuple.to_pretty_print()),
-            Self::Param(param) => {
-                let iter = param
-                    .iter()
-                    .map(TypedVar::to_pretty_print)
-                    .map(|var| postfix(", ", var));
-                bracket("(", ")", sequence(iter))
-            }
-            Self::Array(arr) => bracket("(", ")", arr.to_pretty_print()),
-            Self::Tag(tag) => tag.to_pretty_print(),
-            Self::Ref(pattern) => line([Box::new("&".to_string()), pattern.to_pretty_print()]),
-        }
-    }
-}
 impl PatternKind<()> {
     pub fn into_untyped(self) -> Pattern<()> {
         Pattern {
@@ -143,6 +144,22 @@ pub struct Var {
     pub ident: Atom,
     pub mutable: bool,
     pub bind_to_ref: bool,
+}
+impl Var {
+    pub fn to_doc(&self) -> BoxDoc {
+        let mutable = if self.mutable {
+            BoxDoc::text("mut")
+        } else {
+            BoxDoc::nil()
+        };
+        let bind_to_ref = if self.mutable {
+            BoxDoc::text("&<")
+        } else {
+            BoxDoc::nil()
+        };
+        let ident = BoxDoc::text(&self.ident as &str);
+        intersperse_with_space([mutable, BoxDoc::concat([bind_to_ref, ident])])
+    }
 }
 impl Var {
     pub fn into_untyped(self) -> TypedVar<()> {
@@ -162,6 +179,15 @@ pub struct TypedVar<T> {
     pub var: Var,
     pub ty: T,
 }
+impl<T: PrettyPrintType> TypedVar<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let var = self.var.to_doc();
+        match self.ty.to_doc() {
+            Some(ty) => intersperse_with_space([var, BoxDoc::text(":"), ty]),
+            None => var,
+        }
+    }
+}
 impl<T: PrettyPrintType> TraverseType for TypedVar<T> {
     type Type = T;
 
@@ -173,18 +199,6 @@ impl<T: PrettyPrintType> TraverseType for TypedVar<T> {
     ) -> Result<(), E> {
         for_type(&mut self.ty, data)?;
         Ok(())
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for TypedVar<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        let mut s = self.var.to_string();
-        match self.ty.to_pretty_print() {
-            Some(ty) => {
-                s.push_str(": ");
-                line([Box::new(s), ty])
-            }
-            None => Box::new(s),
-        }
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -212,27 +226,28 @@ impl<T: PrettyPrintType> TraverseType for ListPattern<T> {
         Ok(())
     }
 }
-impl<T: PrettyPrintType> PrettyPrint for ListPattern<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
+impl<T: PrettyPrintType> ListPattern<T> {
+    pub fn to_doc(&self) -> BoxDoc {
         match self {
             ListPattern::List(list) => {
                 let iter = list
                     .iter()
-                    .map(Pattern::to_pretty_print)
-                    .map(|pattern| postfix(", ", pattern));
-                sequence(iter)
+                    .map(Pattern::to_doc)
+                    .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]));
+                intersperse_with_line(iter)
             }
             ListPattern::ListWithRest(list) => {
                 let iter = list
                     .left
                     .iter()
-                    .map(Pattern::to_pretty_print)
-                    .chain(once(
-                        prefix("*", list.rest.to_pretty_print()) as Box<dyn PrettyPrintTree>
-                    ))
-                    .chain(list.right.iter().map(Pattern::to_pretty_print))
-                    .map(|pattern| postfix(", ", pattern));
-                sequence(iter)
+                    .map(Pattern::to_doc)
+                    .chain(once(BoxDoc::concat([
+                        BoxDoc::text("*"),
+                        list.rest.to_doc(),
+                    ])))
+                    .chain(list.right.iter().map(Pattern::to_doc))
+                    .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]));
+                intersperse_with_line(iter)
             }
         }
     }
@@ -291,6 +306,25 @@ pub struct TaggedPattern<T> {
     pub tag: Atom,
     pub pattern: Option<Box<Pattern<T>>>,
 }
+impl<T: PrettyPrintType> TaggedPattern<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let pattern = match &self.pattern {
+            Some(pattern) => {
+                let expr = pattern.to_doc();
+                if T::TYPED {
+                    expr
+                } else {
+                    bracket("(", ")", expr)
+                }
+            }
+            None => BoxDoc::nil(),
+        };
+        intersperse_with_space([
+            BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(&self.tag as &str)]),
+            pattern,
+        ])
+    }
+}
 impl<T: PrettyPrintType> TraverseType for TaggedPattern<T> {
     type Type = T;
 
@@ -304,21 +338,5 @@ impl<T: PrettyPrintType> TraverseType for TaggedPattern<T> {
             .as_mut()
             .map(|pattern| pattern.traverse_type(data, for_type, for_scheme))
             .unwrap_or(Ok(()))
-    }
-}
-impl<T: PrettyPrintType> PrettyPrint for TaggedPattern<T> {
-    fn to_pretty_print(&self) -> Box<dyn PrettyPrintTree> {
-        match &self.pattern {
-            Some(pattern) => {
-                let pattern = pattern.to_pretty_print();
-                let pattern = if T::TYPED {
-                    pattern
-                } else {
-                    bracket("(", ")", pattern)
-                };
-                line([Box::new(format!("@{} ", &self.tag)), pattern])
-            }
-            None => line([Box::new(format!("@{}", &self.tag))]),
-        }
     }
 }
