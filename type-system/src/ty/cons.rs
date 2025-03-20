@@ -119,7 +119,7 @@ impl Cons {
                     union.fields.iter().map(|(name, ty)| {
                         intersperse_with_space([
                             BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(name as &str)]),
-                            ty.to_doc(),
+                            ty.wrap_when_union(),
                         ])
                     }),
                     BoxDoc::concat([BoxDoc::line(), BoxDoc::text("|"), BoxDoc::space()]),
@@ -136,6 +136,14 @@ impl Cons {
                     None => variants,
                 }
             }
+        }
+    }
+    pub fn wrap_when_union(&self) -> BoxDoc {
+        let doc = self.to_doc();
+        if matches!(self, Cons::Union(_)) {
+            bracket("(", ")", doc)
+        } else {
+            doc
         }
     }
 }

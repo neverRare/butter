@@ -86,6 +86,12 @@ impl Type {
             Self::Cons(cons) => cons.to_doc(),
         }
     }
+    pub fn wrap_when_union(&self) -> BoxDoc {
+        match self {
+            Type::Var(var) => var.to_doc(),
+            Type::Cons(cons) => cons.wrap_when_union(),
+        }
+    }
 }
 impl PrettyPrintType for Type {
     const TYPED: bool = true;
