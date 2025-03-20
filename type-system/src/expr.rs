@@ -407,9 +407,8 @@ fn partial_infer_field_list(
     var_state: &mut VarState,
     env: &Env,
 ) -> Result<Box<[Field<Type>]>, TypeError> {
-    let record: Vec<_> = expr.into();
-    let mut typed = Vec::with_capacity(record.len());
-    for field in record {
+    let mut typed = Vec::with_capacity(expr.len());
+    for field in expr {
         let expr = field.expr.infer(subs, var_state, env)?;
         ty.insert(field.name.clone(), expr.ty);
         typed.push(Field {
@@ -497,7 +496,6 @@ fn infer_tuple(
     var_state: &mut VarState,
     env: &Env,
 ) -> Result<(Vec<Type>, Vec<Expr<Type>>), TypeError> {
-    let tuple: Vec<_> = tuple.into();
     let len = tuple.len();
     let tuple = tuple.into_iter().try_fold(
         (Vec::with_capacity(len), Vec::with_capacity(len)),
@@ -915,12 +913,10 @@ impl Inferable for Box<[Assign<()>]> {
         var_state: &mut VarState,
         env: &Env,
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
-        let assigns: Vec<_> = self.into();
-        let assigns = assigns
+        let assigns = self
             .into_iter()
             .map(|assign| assign.infer(subs, var_state, env).map(|typed| typed.value))
-            .collect::<Result<Vec<_>, _>>()?
-            .into();
+            .collect::<Result<_, _>>()?;
         Ok(Typed {
             ty: unit(),
             value: assigns,
@@ -1045,9 +1041,8 @@ impl Inferable for Block<()> {
     ) -> Result<Typed<Self::TypedSelf>, TypeError> {
         let mut typed_statement = Vec::with_capacity(self.statement.len());
         let mut env = env.clone();
-        let statement: Vec<_> = self.statement.into();
         let mut more_subs = Subs::new();
-        for statement in statement {
+        for statement in self.statement {
             let typed = infer_statement(&mut more_subs, &mut env, var_state, statement)?;
             typed_statement.push(typed);
         }

@@ -399,13 +399,10 @@ pub enum OrderedAnd<T> {
 impl OrderedAnd<(Atom, Type)> {
     fn into_keyed(self) -> Keyed {
         match self {
-            Self::NonRow(record) => {
-                let record: Vec<_> = record.into();
-                Keyed {
-                    fields: record.into_iter().collect(),
-                    rest: None,
-                }
-            }
+            Self::NonRow(record) => Keyed {
+                fields: record.into_iter().collect(),
+                rest: None,
+            },
             Self::Row(left, rest, right) => Keyed {
                 fields: left.into_iter().chain(right.into_iter()).collect(),
                 rest: Some(rest),
@@ -415,9 +412,7 @@ impl OrderedAnd<(Atom, Type)> {
     fn into_ordered(self) -> OrderedAnd<Type> {
         match self {
             Self::NonRow(tuple) => {
-                let tuple: Vec<_> = tuple.into();
-                let tuple: Vec<_> = tuple.into_iter().map(|(_, ty)| ty).collect();
-                OrderedAnd::NonRow(tuple.into())
+                OrderedAnd::NonRow(tuple.into_iter().map(|(_, ty)| ty).collect())
             }
             Self::Row(left, rest, right) => OrderedAnd::Row(
                 left.into_iter().map(|(_, ty)| ty).collect(),
@@ -483,7 +478,6 @@ impl<T> OrderedAnd<T> {
                                 *right = more_right;
                             }
                             Self::NonRow(new_tuple) => {
-                                let new_tuple: Vec<_> = new_tuple.into();
                                 let (left, right) = {
                                     match replace(self, Self::NonRow(vec![].into())) {
                                         Self::Row(left, _, right) => (left, right),
@@ -521,19 +515,16 @@ impl<T> OrderedAnd<T> {
                 if tup1.len() != tup2.len() {
                     return Err(TypeError::MismatchArity);
                 }
-                let tup1: Vec<_> = tup1.into();
-                let tup2: Vec<_> = tup2.into();
                 for (ty1, ty2) in tup1.into_iter().zip(tup2.into_iter()) {
                     ty1.unify_with(ty2, subs, var_state)?;
                 }
             }
             (Self::NonRow(tup), Self::Row(left, rest, right))
             | (Self::Row(left, rest, right), Self::NonRow(tup)) => {
-                let tup: Vec<_> = tup.into();
                 if left.len() + right.len() > tup.len() {
                     return Err(TypeError::MismatchArity);
                 }
-                let mut left2 = tup;
+                let mut left2: Vec<_> = tup.into();
                 let mut rest2 = left2.split_off(left.len());
                 let right2 = rest2.split_off(rest2.len() - right.len());
                 for (ty1, ty2) in left.into_iter().zip(left2.into_iter()) {
@@ -561,7 +552,7 @@ where
     a.keys()
         .filter(|key| b.contains_key(key))
         .cloned()
-        .collect::<Vec<_>>()
+        .collect::<Box<[_]>>()
         .into_iter()
         .map(|key| {
             let a = a.remove(&key).unwrap();

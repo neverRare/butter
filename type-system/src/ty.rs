@@ -307,11 +307,7 @@ pub struct Scheme {
 }
 impl PrettyPrintFunScheme for Scheme {
     fn to_doc(&self) -> Box<[BoxDoc]> {
-        self.for_all
-            .iter()
-            .map(|var| var.var.to_doc())
-            .collect::<Vec<_>>()
-            .into()
+        self.for_all.iter().map(|var| var.var.to_doc()).collect()
     }
 }
 impl FreeVars for Scheme {
