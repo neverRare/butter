@@ -65,16 +65,17 @@ impl<T: TraverseType> TraverseType for Option<T> {
 pub fn bracket<'a>(left: &'a str, right: &'a str, content: BoxDoc<'a>) -> BoxDoc<'a> {
     BoxDoc::concat([
         BoxDoc::text(left),
-        BoxDoc::concat([BoxDoc::line(), content]).nest(4),
-        BoxDoc::line(),
+        BoxDoc::concat([BoxDoc::line_(), content]).group().nest(4),
+        BoxDoc::line_(),
         BoxDoc::text(right),
     ])
+    .group()
 }
 pub fn intersperse_with_space<'a>(contents: impl IntoIterator<Item = BoxDoc<'a>>) -> BoxDoc<'a> {
-    BoxDoc::intersperse(contents, BoxDoc::space())
+    BoxDoc::intersperse(contents, BoxDoc::space()).group()
 }
 pub fn intersperse_with_line<'a>(contents: impl IntoIterator<Item = BoxDoc<'a>>) -> BoxDoc<'a> {
-    BoxDoc::intersperse(contents, BoxDoc::line())
+    BoxDoc::intersperse(contents, BoxDoc::line()).group()
 }
 fn all_unique<I>(iter: I) -> bool
 where

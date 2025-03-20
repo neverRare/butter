@@ -26,7 +26,7 @@ impl Cons {
         match self {
             Self::Num => BoxDoc::text("Num"),
             Self::Ref(mut_type, ty) => intersperse_with_space([
-                BoxDoc::concat([BoxDoc::text("&:"), mut_type.to_doc()]),
+                BoxDoc::concat([BoxDoc::text("&:"), mut_type.to_doc()]).group(),
                 ty.to_doc(),
             ]),
             Self::Array(ty) => bracket("[", "]", ty.to_doc()),
@@ -46,14 +46,16 @@ impl Cons {
                             ]),
                             BoxDoc::text(","),
                         ])
+                        .group()
                     }));
-                    BoxDoc::concat([BoxDoc::text("ordered"), bracket("(", ")", fields)])
+                    BoxDoc::concat([BoxDoc::text("ordered"), bracket("(", ")", fields)]).group()
                 }
             }
             Self::RecordTuple(OrderedAnd::Row(left, row, right)) => {
-                let row = BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]);
+                let row =
+                    BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]).group();
                 let [left, right] = [left, right].map(|rec_tup| {
-                    intersperse_with_line(rec_tup.iter().map(|(name, ty)| {
+                    rec_tup.iter().map(|(name, ty)| {
                         BoxDoc::concat([
                             intersperse_with_space([
                                 BoxDoc::text(name as &str),
@@ -62,15 +64,21 @@ impl Cons {
                             ]),
                             BoxDoc::text(","),
                         ])
-                    }))
+                        .group()
+                    })
                 });
                 BoxDoc::concat([
                     BoxDoc::text("ordered"),
-                    bracket("(", ")", intersperse_with_line([left, row, right])),
+                    bracket(
+                        "(",
+                        ")",
+                        intersperse_with_line(left.chain([row]).chain(right)),
+                    ),
                 ])
+                .group()
             }
             Self::Record(rec) => {
-                let fields = intersperse_with_line(rec.fields.iter().map(|(name, ty)| {
+                let fields = rec.fields.iter().map(|(name, ty)| {
                     BoxDoc::concat([
                         intersperse_with_space([
                             BoxDoc::text(name as &str),
@@ -79,15 +87,17 @@ impl Cons {
                         ]),
                         BoxDoc::text(","),
                     ])
-                }));
+                    .group()
+                });
                 match &rec.rest {
                     Some(row) => {
                         let row =
-                            BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]);
-                        bracket("(", ")", intersperse_with_line([fields, row]))
+                            BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")])
+                                .group();
+                        bracket("(", ")", intersperse_with_line(fields.chain([row])))
                     }
                     None if rec.fields.is_empty() => BoxDoc::text("()"),
-                    None => bracket("(", ")", fields),
+                    None => bracket("(", ")", intersperse_with_line(fields)),
                 }
             }
             Self::Tuple(OrderedAnd::NonRow(tup)) => {
@@ -99,41 +109,46 @@ impl Cons {
                         ")",
                         intersperse_with_line(
                             tup.iter()
-                                .map(|ty| BoxDoc::concat([ty.to_doc(), BoxDoc::text(",")])),
+                                .map(|ty| BoxDoc::concat([ty.to_doc(), BoxDoc::text(",")]).group()),
                         ),
                     )
                 }
             }
             Self::Tuple(OrderedAnd::Row(left, row, right)) => {
-                let row = BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]);
+                let row =
+                    BoxDoc::concat([BoxDoc::text("*"), row.to_doc(), BoxDoc::text(",")]).group();
                 let [left, right] = [left, right].map(|tup| {
-                    intersperse_with_line(
-                        tup.iter()
-                            .map(|ty| BoxDoc::concat([ty.to_doc(), BoxDoc::text(",")])),
-                    )
+                    tup.iter()
+                        .map(|ty| BoxDoc::concat([ty.to_doc(), BoxDoc::text(",")]).group())
                 });
-                bracket("(", ")", intersperse_with_line([left, row, right]))
+                bracket(
+                    "(",
+                    ")",
+                    intersperse_with_line(left.chain([row]).chain(right)),
+                )
             }
             Self::Union(union) => {
-                let variants = BoxDoc::intersperse(
-                    union.fields.iter().map(|(name, ty)| {
-                        intersperse_with_space([
-                            BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(name as &str)]),
-                            ty.wrap_when_union(),
-                        ])
-                    }),
-                    BoxDoc::concat([BoxDoc::line(), BoxDoc::text("|"), BoxDoc::space()]),
-                );
+                let variants = union.fields.iter().map(|(name, ty)| {
+                    intersperse_with_space([
+                        BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(name as &str)]).group(),
+                        ty.wrap_when_union(),
+                    ])
+                });
                 match &union.rest {
                     Some(row) => {
                         let row = row.to_doc();
                         BoxDoc::intersperse(
-                            [variants, row],
-                            BoxDoc::concat([BoxDoc::line(), BoxDoc::text("|"), BoxDoc::space()]),
+                            variants.chain([row]),
+                            BoxDoc::concat([BoxDoc::line(), BoxDoc::text("|"), BoxDoc::space()])
+                                .group(),
                         )
                     }
-                    None if union.fields.is_empty() => BoxDoc::nil(),
-                    None => variants,
+                    None if union.fields.is_empty() => BoxDoc::text("never"),
+                    None => BoxDoc::intersperse(
+                        variants,
+                        BoxDoc::concat([BoxDoc::line(), BoxDoc::text("|"), BoxDoc::space()])
+                            .group(),
+                    ),
                 }
             }
         }

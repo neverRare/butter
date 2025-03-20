@@ -157,13 +157,14 @@ impl<T: PrettyPrintType> ExprKind<T> {
             ExprKind::Literal(literal) => BoxDoc::as_string(literal),
             ExprKind::Tag(tag) => tag.to_doc(),
             ExprKind::Assign(assign) if assign.len() == 1 => assign[0].to_doc(),
+            // TODO: remove trailing comma
             ExprKind::Assign(assign) => intersperse_with_space([
                 intersperse_with_space(
                     assign
                         .iter()
                         .map(|assign| &assign.place)
                         .map(PlaceExpr::to_doc)
-                        .map(|place| BoxDoc::concat([place, BoxDoc::text(",")])),
+                        .map(|place| BoxDoc::concat([place, BoxDoc::text(",")]).group()),
                 ),
                 BoxDoc::text("<-"),
                 intersperse_with_space(
@@ -171,21 +172,23 @@ impl<T: PrettyPrintType> ExprKind<T> {
                         .iter()
                         .map(|assign| &assign.expr)
                         .map(Expr::to_doc)
-                        .map(|expr| BoxDoc::concat([expr, BoxDoc::text(",")])),
+                        .map(|expr| BoxDoc::concat([expr, BoxDoc::text(",")]).group()),
                 ),
             ]),
             ExprKind::Array(array) => {
                 let iter = array
                     .iter()
                     .map(Element::to_doc)
-                    .map(|element| BoxDoc::concat([element, BoxDoc::text(",")]));
+                    .map(|element| BoxDoc::concat([element, BoxDoc::text(",")]).group());
                 bracket("[", "]", intersperse_with_line(iter))
             }
             ExprKind::ArrayRange(array) => array.to_doc(),
             ExprKind::Unit => BoxDoc::text("()"),
-            ExprKind::Splat(expr) => {
-                bracket("(", ")", BoxDoc::concat([BoxDoc::text("*"), expr.to_doc()]))
-            }
+            ExprKind::Splat(expr) => bracket(
+                "(",
+                ")",
+                BoxDoc::concat([BoxDoc::text("*"), expr.to_doc()]).group(),
+            ),
             ExprKind::Record(record) => record.to_doc(Field::to_doc),
             ExprKind::Tuple(tuple) => tuple.to_doc(Expr::to_doc),
             ExprKind::Unary(unary) => unary.to_doc(),
@@ -259,8 +262,12 @@ impl<T: PrettyPrintType> PlaceExpr<T> {
             PlaceExpr::FieldAccess(field_access) => field_access.to_doc(),
             PlaceExpr::Index(index) => index.to_doc(),
             PlaceExpr::Slice(slice) => slice.to_doc(),
-            PlaceExpr::Deref(expr) => BoxDoc::concat([expr.to_auto_wrap(1), BoxDoc::text("^")]),
-            PlaceExpr::Len(expr) => BoxDoc::concat([expr.to_auto_wrap(1), BoxDoc::text(".len")]),
+            PlaceExpr::Deref(expr) => {
+                BoxDoc::concat([expr.to_auto_wrap(1), BoxDoc::text("^")]).group()
+            }
+            PlaceExpr::Len(expr) => {
+                BoxDoc::concat([expr.to_auto_wrap(1), BoxDoc::text(".len")]).group()
+            }
         }
     }
 }
@@ -328,7 +335,7 @@ pub struct Fun<T: PrettyPrintType> {
 }
 impl<T: PrettyPrintType> Fun<T> {
     pub fn to_doc(&self) -> BoxDoc {
-        intersperse_with_line([
+        intersperse_with_space([
             self.param.to_doc(),
             BoxDoc::text("=>"),
             self.body.to_auto_wrap(9),
@@ -418,6 +425,7 @@ impl<T: PrettyPrintType> Unary<T> {
             extra_space,
             self.expr.to_auto_wrap(2),
         ])
+        .group()
     }
 }
 impl<T: PrettyPrintType> TraverseType for Unary<T> {
@@ -551,6 +559,7 @@ impl<T: PrettyPrintType> Index<T> {
             self.expr.to_auto_wrap(1),
             bracket("[", "]", self.index.to_doc()),
         ])
+        .group()
     }
 }
 impl<T: PrettyPrintType> TraverseType for Index<T> {
@@ -577,7 +586,7 @@ impl<T: PrettyPrintType> Element<T> {
         let expr = self.expr.to_doc();
         match self.kind {
             ElementKind::Element => expr,
-            ElementKind::Splat => BoxDoc::concat([BoxDoc::text("*"), expr]),
+            ElementKind::Splat => BoxDoc::concat([BoxDoc::text("*"), expr]).group(),
         }
     }
 }
@@ -623,14 +632,14 @@ where
 {
     pub fn to_doc<'a>(&'a self, mapper: impl for<'b> Fn(&'b T) -> BoxDoc<'b>) -> BoxDoc<'a> {
         match self {
-            Self::Collection(tuple) => {
-                let iter = tuple
+            Self::Collection(collection) => {
+                let iter = collection
                     .iter()
                     .map(mapper)
-                    .map(|field| BoxDoc::concat([field, BoxDoc::text(",")]));
+                    .map(|field| BoxDoc::concat([field, BoxDoc::text(",")]).group());
                 bracket("(", ")", intersperse_with_line(iter))
             }
-            Self::WithSplat(tuple) => tuple.to_doc(mapper),
+            Self::WithSplat(collection) => collection.to_doc(mapper),
         }
     }
 }
@@ -669,9 +678,9 @@ where
             self.left
                 .iter()
                 .map(&mapper)
-                .chain([BoxDoc::concat([BoxDoc::text("*"), self.splat.to_doc()])])
+                .chain([BoxDoc::concat([BoxDoc::text("*"), self.splat.to_doc()]).group()])
                 .chain(self.right.iter().map(&mapper))
-                .map(|field| BoxDoc::concat([field, BoxDoc::text(",")])),
+                .map(|field| BoxDoc::concat([field, BoxDoc::text(",")]).group()),
         );
         bracket("(", ")", fields)
     }
@@ -790,7 +799,7 @@ impl<T: PrettyPrintType> Block<T> {
                     self.statement
                         .iter()
                         .map(Statement::to_doc)
-                        .map(|statement| BoxDoc::concat([statement, BoxDoc::text(";")])),
+                        .map(|statement| BoxDoc::concat([statement, BoxDoc::text(";")]).group()),
                 ),
                 intersperse_with_line(self.expr.iter().map(Box::as_ref).map(Expr::to_doc)),
             ]);
@@ -933,8 +942,8 @@ impl<T: PrettyPrintType> Match<T> {
                 .arm
                 .iter()
                 .map(MatchArm::to_doc)
-                .map(|arm| BoxDoc::concat([arm, BoxDoc::text(",")]));
-            bracket("{ ", " }", intersperse_with_line(iter))
+                .map(|arm| BoxDoc::concat([arm, BoxDoc::text(",")]).group());
+            bracket("{", "}", intersperse_with_line(iter))
         };
         intersperse_with_space([BoxDoc::text("match"), self.expr.to_doc(), body])
     }
@@ -1038,6 +1047,7 @@ impl<T: PrettyPrintType> FieldAccess<T> {
             BoxDoc::text("."),
             BoxDoc::text(&self.name as &str),
         ])
+        .group()
     }
 }
 #[derive(Debug, PartialEq, Clone)]
@@ -1047,7 +1057,7 @@ pub struct Slice<T: PrettyPrintType> {
 }
 impl<T: PrettyPrintType> Slice<T> {
     pub fn to_doc(&self) -> BoxDoc {
-        BoxDoc::concat([self.expr.to_auto_wrap(1), self.range.to_doc()])
+        BoxDoc::concat([self.expr.to_auto_wrap(1), self.range.to_doc()]).group()
     }
 }
 impl<T: PrettyPrintType> TraverseType for Slice<T> {
@@ -1071,7 +1081,7 @@ pub struct Call<T: PrettyPrintType> {
 }
 impl<T: PrettyPrintType> Call<T> {
     pub fn to_doc(&self) -> BoxDoc {
-        BoxDoc::concat([self.expr.to_auto_wrap(1), self.arg.to_doc()])
+        BoxDoc::concat([self.expr.to_auto_wrap(1), self.arg.to_doc()]).group()
     }
 }
 impl<T: PrettyPrintType> TraverseType for Call<T> {
@@ -1099,9 +1109,11 @@ impl<T: PrettyPrintType> Arg<T> {
     pub fn to_doc(&self) -> BoxDoc {
         match self {
             Arg::Unit => BoxDoc::text("()"),
-            Arg::Splat(expr) => {
-                bracket("(", ")", BoxDoc::concat([BoxDoc::text("*"), expr.to_doc()]))
-            }
+            Arg::Splat(expr) => bracket(
+                "(",
+                ")",
+                BoxDoc::concat([BoxDoc::text("*"), expr.to_doc()]).group(),
+            ),
             Arg::Record(record) => record.to_doc(Field::to_doc),
             Arg::Tuple(tuple) => tuple.to_doc(Expr::to_doc),
         }
@@ -1132,21 +1144,19 @@ pub struct Tag<T: PrettyPrintType> {
 }
 impl<T: PrettyPrintType> Tag<T> {
     pub fn to_doc(&self) -> BoxDoc {
-        let expr = match &self.expr {
-            Some(expr) => {
-                let expr = expr.to_doc();
-                if T::TYPED {
-                    expr
-                } else {
-                    bracket("(", ")", expr)
-                }
+        let expr = self.expr.as_ref().map(|expr| {
+            let expr = expr.to_doc();
+            if T::TYPED {
+                expr
+            } else {
+                bracket("(", ")", expr)
             }
-            None => BoxDoc::nil(),
-        };
-        intersperse_with_space([
-            BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(&self.tag as &str)]),
-            expr,
-        ])
+        });
+        intersperse_with_space(
+            [BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(&self.tag as &str)]).group()]
+                .into_iter()
+                .chain(expr),
+        )
     }
 }
 impl<T: PrettyPrintType> TraverseType for Tag<T> {

@@ -30,7 +30,7 @@ impl Var {
         } else {
             BoxDoc::as_string(self.id)
         };
-        BoxDoc::concat([var, BoxDoc::text("#"), id])
+        BoxDoc::concat([var, BoxDoc::text("#"), id]).group()
     }
 }
 #[derive(Debug, PartialEq, Eq, Clone, Default)]

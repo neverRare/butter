@@ -100,11 +100,12 @@ impl<T: PrettyPrintType> FunDeclare<T> {
                         intersperse_with_line(
                             generics
                                 .into_iter()
-                                .map(|var| BoxDoc::concat([var, BoxDoc::text(",")])),
+                                .map(|var| BoxDoc::concat([var, BoxDoc::text(",")]).group()),
                         ),
                     ),
                     BoxDoc::text(":"),
-                ]),
+                ])
+                .group(),
                 fun,
             ])
         }

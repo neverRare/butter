@@ -60,37 +60,18 @@ impl<T: PrettyPrintType> PatternKind<T> {
             Self::Int(int) => BoxDoc::as_string(int),
             Self::Discard => BoxDoc::text("_"),
             Self::Var(var) => var.to_doc(),
-            Self::Record(record) => {
-                let fields =
-                    intersperse_with_line(
-                        record
-                            .fields
-                            .iter()
-                            .map(|(key, pattern)| {
-                                intersperse_with_space([
-                                    BoxDoc::text(key as &str),
-                                    BoxDoc::text("="),
-                                    pattern.to_doc(),
-                                ])
-                            })
-                            .chain(record.rest.iter().map(|pattern| {
-                                BoxDoc::concat([BoxDoc::text("*"), pattern.to_doc()])
-                            }))
-                            .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")])),
-                    );
-                bracket("(", ")", fields)
-            }
+            Self::Record(record) => record.to_doc(),
             Self::Tuple(tuple) => bracket("(", ")", tuple.to_doc()),
             Self::Param(param) => {
                 let iter = param
                     .iter()
                     .map(TypedVar::to_doc)
-                    .map(|var| BoxDoc::concat([var, BoxDoc::text(",")]));
+                    .map(|var| BoxDoc::concat([var, BoxDoc::text(",")]).group());
                 bracket("(", ")", intersperse_with_line(iter))
             }
-            Self::Array(arr) => bracket("(", ")", arr.to_doc()),
+            Self::Array(arr) => bracket("[", "]", arr.to_doc()),
             Self::Tag(tag) => tag.to_doc(),
-            Self::Ref(pattern) => BoxDoc::concat([BoxDoc::text("&"), pattern.to_doc()]),
+            Self::Ref(pattern) => BoxDoc::concat([BoxDoc::text("&"), pattern.to_doc()]).group(),
         }
     }
 }
@@ -147,9 +128,9 @@ pub struct Var {
 impl Var {
     pub fn to_doc(&self) -> BoxDoc {
         let mutable = if self.mutable {
-            BoxDoc::text("mut")
+            Some(BoxDoc::text("mut"))
         } else {
-            BoxDoc::nil()
+            None
         };
         let bind_to_ref = if self.mutable {
             BoxDoc::text("&<")
@@ -157,7 +138,11 @@ impl Var {
             BoxDoc::nil()
         };
         let ident = BoxDoc::text(&self.ident as &str);
-        intersperse_with_space([mutable, BoxDoc::concat([bind_to_ref, ident])])
+        intersperse_with_space(
+            mutable
+                .into_iter()
+                .chain([BoxDoc::concat([bind_to_ref, ident]).group()]),
+        )
     }
 }
 impl Var {
@@ -232,19 +217,10 @@ impl<T: PrettyPrintType> ListPattern<T> {
                 let iter = list
                     .iter()
                     .map(Pattern::to_doc)
-                    .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]));
+                    .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]).group());
                 intersperse_with_line(iter)
             }
-            ListPattern::ListWithRest(list) => {
-                let iter = list
-                    .left
-                    .iter()
-                    .map(Pattern::to_doc)
-                    .chain([BoxDoc::concat([BoxDoc::text("*"), list.rest.to_doc()])])
-                    .chain(list.right.iter().map(Pattern::to_doc))
-                    .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]));
-                intersperse_with_line(iter)
-            }
+            ListPattern::ListWithRest(list) => list.to_doc(),
         }
     }
 }
@@ -253,6 +229,18 @@ pub struct ListWithRest<T> {
     pub left: Box<[Pattern<T>]>,
     pub rest: Box<Pattern<T>>,
     pub right: Box<[Pattern<T>]>,
+}
+impl<T: PrettyPrintType> ListWithRest<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let iter = self
+            .left
+            .iter()
+            .map(Pattern::to_doc)
+            .chain([BoxDoc::concat([BoxDoc::text("*"), self.rest.to_doc()]).group()])
+            .chain(self.right.iter().map(Pattern::to_doc))
+            .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]).group());
+        intersperse_with_line(iter)
+    }
 }
 impl<T: PrettyPrintType> TraverseType for ListWithRest<T> {
     type Type = T;
@@ -277,6 +265,27 @@ impl<T: PrettyPrintType> TraverseType for ListWithRest<T> {
 pub struct RecordPattern<T> {
     pub fields: HashMap<Atom, Pattern<T>>,
     pub rest: Option<Box<Pattern<T>>>,
+}
+impl<T: PrettyPrintType> RecordPattern<T> {
+    pub fn to_doc(&self) -> BoxDoc {
+        let fields =
+            intersperse_with_line(
+                self.fields
+                    .iter()
+                    .map(|(key, pattern)| {
+                        intersperse_with_space([
+                            BoxDoc::text(key as &str),
+                            BoxDoc::text("="),
+                            pattern.to_doc(),
+                        ])
+                    })
+                    .chain(self.rest.iter().map(|pattern| {
+                        BoxDoc::concat([BoxDoc::text("*"), pattern.to_doc()]).group()
+                    }))
+                    .map(|pattern| BoxDoc::concat([pattern, BoxDoc::text(",")]).group()),
+            );
+        bracket("(", ")", fields)
+    }
 }
 impl<T: PrettyPrintType> TraverseType for RecordPattern<T> {
     type Type = T;
@@ -303,22 +312,21 @@ pub struct TaggedPattern<T> {
     pub pattern: Option<Box<Pattern<T>>>,
 }
 impl<T: PrettyPrintType> TaggedPattern<T> {
+    // TODO: This is a duplicate of `Tag::to_doc``. Deduplicate it.
     pub fn to_doc(&self) -> BoxDoc {
-        let pattern = match &self.pattern {
-            Some(pattern) => {
-                let expr = pattern.to_doc();
-                if T::TYPED {
-                    expr
-                } else {
-                    bracket("(", ")", expr)
-                }
+        let pattern = self.pattern.as_ref().map(|pattern| {
+            let pattern = pattern.to_doc();
+            if T::TYPED {
+                pattern
+            } else {
+                bracket("(", ")", pattern)
             }
-            None => BoxDoc::nil(),
-        };
-        intersperse_with_space([
-            BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(&self.tag as &str)]),
-            pattern,
-        ])
+        });
+        intersperse_with_space(
+            [BoxDoc::concat([BoxDoc::text("@"), BoxDoc::text(&self.tag as &str)]).group()]
+                .into_iter()
+                .chain(pattern),
+        )
     }
 }
 impl<T: PrettyPrintType> TraverseType for TaggedPattern<T> {
