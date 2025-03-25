@@ -242,17 +242,6 @@ Iterator comprehension
 #[val for @val val in array]
 ```
 
-## Reverse range
-
-Only useful for iterators.
-
-```
-.>.
->>.
-.>>
->>>
-```
-
 ## Module system
 
 ```butter
