@@ -132,15 +132,13 @@ Instead of `upto`, `at` keyword may be used.
 ## Breakable block
 
 ```butter
-num = breakable {
+num = with break {
     if foo == 10 {
         break 10;
     }
     20
 };
 ```
-
-There might be better syntax.
 
 ## Multiline comment
 
@@ -171,17 +169,7 @@ This can be nested, but the content must be lexable. This means it can be nested
 
 ## Dict and Set
 
-```butter
--- option 1
-map = #(10 = 20, 20 = 40);
-set = #[10, 20, 30];
-
--- option 2
-map = dict(10 = 20, 20 = 40);
-set = set[10, 20, 30];
-```
-
-Maybe dedicated syntax is unneeded. Access and manipulation may be provided just by std functions.
+Will be provided by std library.
 
 ## Type alias
 
@@ -333,30 +321,24 @@ foo <- 10;
 
 ## Shareable mutable container
 
-An escape hatch for "no shared mutable" rule. There might be a better keyword other than `cell`.
-
 ```butter
-share foo = cell 10;
+share foo = cell(10);
 share bar = foo;
 ```
 
-Casting to reference, `cell_inner` would be a weak keyword.
-
 ```butter
-mut num = &bar.cell_inner;
+mut num = extract_cell(&foo);
 num^ <- num^ + 1;
 assert(foo.cell_inner == 11);
 ```
 
-This could simply be an std item e.g. `Cell` and `extract_cell`
-
 ## Never
 
-It should never be reachable enforced by refinement type.
+It should never be reachable enforced by refinement type. Provided by std library.
 
 ```butter
 -- this could be in std
-expect(condition) => if condition {} else { never };
+expect(condition) => if condition {} else { never() };
 
 prime_factor(num) => {
     expect(num % 1 == 0);
@@ -369,12 +351,10 @@ prime_factor(num) => {
                 return [i] ++ prime_factor(num / i);
             }
         }
-        never
+        never()
     }
 }
 ```
-
-This could instead be a std feature instead e.g. `never()`
 
 ## If match, while match
 
@@ -402,7 +382,7 @@ map_tagged(val, tag, fn) => match val {
     val => val,
 }
 
-map_tagged(val, `val`, (val) => val + 3);
+map_tagged(val, $`val`, (val) => val + 3);
 ```
 
 ## Traits
@@ -466,10 +446,8 @@ pub newtype Extended:(a)(@neg_inf | @fin a | @inf);
 ## Auto-implement traits
 
 ```
-auto impl Eq(Point);
+impl auto Eq(Point);
 ```
-
-There might be better syntax.
 
 ## Private fields
 

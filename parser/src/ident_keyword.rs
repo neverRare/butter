@@ -41,6 +41,7 @@ where
         | keyword!("alias")
         | keyword!("and")
         | keyword!("as")
+        | keyword!("auto")
         | keyword!("break")
         | keyword!("continue")
         | keyword!("else")
@@ -64,7 +65,8 @@ where
         | keyword!("trait")
         | keyword!("undef")
         | keyword!("where")
-        | keyword!("while") => Err(<StreamErrorFor<I>>::unexpected_static_message("keyword")),
+        | keyword!("while")
+        | keyword!("with") => Err(<StreamErrorFor<I>>::unexpected_static_message("keyword")),
         ident => Ok(ident),
     })
 }

@@ -41,6 +41,7 @@ These are keywords that only have special meaning in some context.
 
 - `alias`
 - `as`
+- `auto`
 - `impl`
 - `mod`
 - `newtype`
@@ -48,6 +49,7 @@ These are keywords that only have special meaning in some context.
 - `trait`
 - `undef`
 - `where`
+- `with`
 
 ## Punctuation reference
 
