@@ -114,6 +114,7 @@ These are keywords that only have special meaning in some context.
 |     `%`     | Modulo                               |
 |     `&`     | Reference                            |
 |    `&<`     | Bind to reference                    |
+|    `&>`     | Rewrap to reference                  |
 |     `>`     | Greater than, Move                   |
 |     `<`     | Less than                            |
 |    `>=`     | Greater than or equal                |

@@ -169,6 +169,20 @@ deref(val) => {
 }
 ```
 
+Syntactic sugar TODO: better explanation
+
+```
+deref(val) => {
+    &>(val = val) = val;
+    val;
+}
+-- similar to
+deref(val) => {
+    &(val = &<val) = val;
+    val;
+}
+```
+
 ## Or Pattern
 
 TODO: explanation
