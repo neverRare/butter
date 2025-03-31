@@ -31,6 +31,13 @@ TODO: explanation
 r"raw strings don't have escape notation"
 ```
 
+You can surround it with hashes, each side must have exactly the same count of hashes.
+
+```butter
+r#"raw strings don't have escape notation"#
+r###"raw strings don't have escape notation"###
+```
+
 ## Multiline strings
 
 TODO: explanation
