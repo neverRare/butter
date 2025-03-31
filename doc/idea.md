@@ -225,7 +225,7 @@ prime_factor(num) => {
 }
 ```
 
-## Identifier as compile-time value
+## Compile-time variable holding identifier
 
 ```butter
 map_tagged(val, tag, fn) => match val {
@@ -254,7 +254,11 @@ impl Eq([a]) {
         @true
     }
 }
+```
 
+Implementing traits on tuple.
+
+```butter
 impl Eq(()) {
     equal(a, b) => true;
 }
@@ -271,7 +275,7 @@ impl Eq((a, *rest)) {
 }
 ```
 
-Implementing traits on records
+Implementing traits on records with meta-programming using [compile-time variable holding identifier](#compile-time-variable-holding-identifier)
 
 ```butter
 impl Eq(());
@@ -284,6 +288,28 @@ impl Eq(($i : a, *rest)) {
         &>($i = a, *a_rest) = a;
         &>($i = b, *b_rest) = b;
         a == b && a_rest == b_rest;
+    }
+}
+```
+
+On tagged union, again with meta-programming.
+
+```butter
+impl Eq(Never);
+impl Eq(($i : a, *rest)) {
+    equal(a, b) => never();
+}
+
+:($i, a, rest):
+where Eq(a):
+where Eq(rest):
+impl Eq(@$i a | rest) {
+    equal(a, b) => {
+        match (a, b) {
+            (&>@$i a, &>@$i b) => a == b;
+            (&>@$i _, _) | (_, &>@$i _) => @false;
+            (a, b) => a == b;
+        }
     }
 }
 ```
