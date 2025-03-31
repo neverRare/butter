@@ -255,8 +255,8 @@ where Eq(a):
 where Eq(rest):
 impl Eq((a, *rest)) {
     equal(a, b) => {
-        (a, *a_rest) = a;
-        (b, *b_rest) = b;
+        &(&<a, *&<a_rest) = a;
+        &(&<b, *&<b_rest) = b;
         a == b && a_rest == b_rest;
     }
 }
@@ -272,8 +272,8 @@ where Eq(a):
 where Eq(rest):
 impl Eq(($i : a, *rest)) {
     equal(a, b) => {
-        ($i = a, *a_rest) = a;
-        ($i = b, *b_rest) = b;
+        &($i = &<a, *&<a_rest) = a;
+        &($i = &<b, *&<b_rest) = b;
         a == b && a_rest == b_rest;
     }
 }
