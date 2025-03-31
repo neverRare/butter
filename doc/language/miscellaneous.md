@@ -31,7 +31,7 @@ print_line("this code is ignored, nothing would be printed");
 
 ## Raw identifier
 
-This allows you to use keywords and spaces in your variable. It is processed like a regular string literal.
+This allows you to use keywords as variables or add spaces and symbols normally disallowed in variables. It is processed like a regular string literal.
 
 ```butter
 i"loop" = 10;
