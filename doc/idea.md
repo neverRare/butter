@@ -179,13 +179,6 @@ add(a, b) => a + b;
 result = 40 |> add(?, 2);
 ```
 
-## Uninitialized value
-
-```butter
-foo = undef;
-foo <- 10;
-```
-
 ## Shareable mutable container
 
 Provided by std library.

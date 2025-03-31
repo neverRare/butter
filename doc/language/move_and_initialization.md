@@ -31,3 +31,12 @@ baz <- >bar^; -- moves the value `10` to baz
 bar^ <- 20;  -- reinitialize the underlying place of bar
 -- bar's lifetime just ends here
 ```
+
+## Uninitialized value
+
+TODO: explanation
+
+```butter
+foo = undef;
+foo <- 10;
+```

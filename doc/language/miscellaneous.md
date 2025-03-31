@@ -49,6 +49,7 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 
 - `_`
 - `and`
+- `as`
 - `break`
 - `continue`
 - `else`
@@ -64,7 +65,9 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `or`
 - `return`
 - `share`
+- `undef`
 - `while`
+- `with`
 
 ## Contextual keyword reference
 
@@ -75,16 +78,13 @@ These are keywords that only have special meaning in some context.
 ## Reserved keywords
 
 - `alias`
-- `as`
 - `auto`
 - `impl`
 - `mod`
 - `newtype`
 - `pub`
 - `trait`
-- `undef`
 - `where`
-- `with`
 
 ## Punctuation reference
 
