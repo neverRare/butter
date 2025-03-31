@@ -247,6 +247,36 @@ impl Eq([a]) {
         @true
     }
 }
+
+impl Eq(());
+
+:(a, rest):
+where Eq(a):
+where Eq(rest):
+impl Eq((a, *rest)) {
+    equal(a, b) => {
+        (a, *a_rest) = a;
+        (b, *b_rest) = b;
+        a == b && a_rest == b_rest;
+    }
+}
+```
+
+Implementing traits on records
+
+```
+impl Eq(());
+
+:($i, a, rest):
+where Eq(a):
+where Eq(rest):
+impl Eq(($i : a, *rest)) {
+    equal(a, b) => {
+        ($i = a, *a_rest) = a;
+        ($i = b, *b_rest) = b;
+        a == b && a_rest == b_rest;
+    }
+}
 ```
 
 ## Existential types
@@ -288,6 +318,18 @@ pub newtype Extended:(a)(@neg_inf | @fin a | @inf);
 ```
 
 ## Auto-implement traits
+
+```
+:($i, a):
+where Eq(a):
+impl Eq($i(*a)) {
+    eq(a, b) => {
+        $i(*a) = a;
+        $i(*b) = b;
+        a == b
+    }
+}
+```
 
 ```
 impl auto Eq(Point);
