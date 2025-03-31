@@ -198,7 +198,7 @@ share bar = foo;
 ```butter
 mut num = extract_cell(&foo);
 num^ <- num^ + 1;
-assert(foo.cell_inner == 11);
+assert(extract_cell(&foo) == 11);
 ```
 
 ## Never
