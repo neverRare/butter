@@ -215,7 +215,7 @@ prime_factor(num) => {
     if num == 1 {
         []
     } else {
-        for i in [2 .. num] {
+        for i in #[2 .. num] {
             if num % i == 0 {
                 return [i] ++ prime_factor(num / i);
             }
@@ -233,7 +233,7 @@ map_tagged(val, tag, fn) => match val {
     val => val,
 }
 
-map_tagged(val, $"val", (val) => val + 3);
+map_tagged(val, "val", (val) => val + 3);
 ```
 
 ## Traits
@@ -241,53 +241,57 @@ map_tagged(val, $"val", (val) => val + 3);
 ```butter
 :(a):
 trait Eq(a) {
-    equal(a : &a, b : &b) -> Bool;
+    equal(left : &a, right : &b) -> Bool;
 }
 :(a):
 where Eq(a):
 impl Eq([a]) {
-    equal(a, b) => {
-        if a^.len /= b^.len { return @false; }
-        for i in [0 .< a^.len] {
-            if a^[i] /= b^[i] { return @false; }
+    equal(left, right) => {
+        if left^.len /= right^.len { return @false; }
+        for i in #[0 .< left^.len] {
+            if left^[i] /= right^[i] { return @false; }
         }
         @true
     }
 }
 ```
 
-Implementing traits on tuple.
+Implementing traits on tuple
 
 ```butter
 impl Eq(()) {
-    equal(a, b) => true;
+    equal(left, right) => true;
 }
 
 :(a, rest):
 where Eq(a):
 where Eq(rest):
 impl Eq((a, *rest)) {
-    equal(a, b) => {
-        &>(a, *a_rest) = a;
-        &>(b, *b_rest) = b;
-        a == b && a_rest == b_rest;
+    equal(left, right) => {
+        &>(left, *left_rest) = left;
+        &>(right, *right_rest) = right;
+        left == right && left_rest == right_rest;
     }
 }
 ```
 
 Implementing traits on records with meta-programming using [compile-time variable holding identifier](#compile-time-variable-holding-identifier)
 
-```butter
-impl Eq(());
+TODO: is the order of fields relevant?
 
-:($i, a, rest):
+```butter
+impl Eq(()) {
+    equal(left, right) => true;
+}
+
+:(name, a, rest):
 where Eq(a):
 where Eq(rest):
-impl Eq(($i : a, *rest)) {
-    equal(a, b) => {
-        &>($i = a, *a_rest) = a;
-        &>($i = b, *b_rest) = b;
-        a == b && a_rest == b_rest;
+impl Eq(($name : a, *rest)) {
+    equal(left, right) => {
+        &>($name = left, *left_rest) = left;
+        &>($name = right, *right_rest) = right;
+        left == right_rest && left_rest == right_rest;
     }
 }
 ```
@@ -295,20 +299,19 @@ impl Eq(($i : a, *rest)) {
 On tagged union, again with meta-programming.
 
 ```butter
-impl Eq(Never);
-impl Eq(($i : a, *rest)) {
-    equal(a, b) => never();
+impl Eq(Never) {
+    equal(left, right) => never();
 }
 
-:($i, a, rest):
+:(tag, a, rest):
 where Eq(a):
 where Eq(rest):
-impl Eq(@$i a | rest) {
-    equal(a, b) => {
-        match (a, b) {
-            (&>@$i a, &>@$i b) => a == b;
-            (&>@$i _, _) | (_, &>@$i _) => @false;
-            (a, b) => a == b;
+impl Eq(@$tag a | rest) {
+    equal(left, right) => {
+        match (left, right) {
+            (&>@$tag left, &>@$tag right) => left == right;
+            (&>@$tag _, _) | (_, &>@$tag _) => @false;
+            (left, right) => left == right;
         }
     }
 }
@@ -339,7 +342,7 @@ pub newtype Point(
 point = Point(x = 10, y = 20);
 ```
 
-They won't have trait implementation by default and have it's own refined types.
+It won't have trait implementation by default and have it's own refined types.
 
 Generics:
 
@@ -352,16 +355,28 @@ pub newtype Extended(@neg_inf | @fin a | @inf);
 pub newtype Extended:(a)(@neg_inf | @fin a | @inf);
 ```
 
-## Auto-implement traits
+To achieve nominal typing, instances are simply regular record or tuple but it holds a value on the special field `__nominal`. The type of this value is also a special type acting like a unit but has nominal typing. This special type is accessible from `Type.NominalUnit` where `Type` is the name of the type.
 
 ```butter
-:($i, a):
-where Eq(a):
-impl Eq($i(*a)) {
-    eq(a, b) => {
-        &>(*a) = a;
-        &>(*b) = b;
-        a == b
+point = Point(x = 10, y = 20);
+
+-- is similar to
+
+point = (__nominal: Point.NominalUnit(), x = 10, y = 20);
+```
+
+The special field and type should only be relevant when implementing auto trait implementation.
+
+`__nominal` is not a typical field. Tuples can have it. `__nominal` is a keyword and is different from `i"__nominal"`.
+
+## Auto-implement traits
+
+Usually, this will rely on trait implementation on regular tuples and records, making use of the special nominal field if necessary.
+
+```butter
+auto Eq(a) {
+    impl Eq(a.NominalUnit) {
+        equal(left, right) => true;
     }
 }
 ```
@@ -385,6 +400,12 @@ point = Point(x = 10, #y = 20, #z = 30);
 
 -- access
 y = point.#y;
+
+-- pattern matching will require explicit record type name
+Point(#y) = point;
+
+-- this is an error
+(#y) = point;
 ```
 
 Anonymous record types have all fields public. Private fields are only applicable for `newtype`. Private fields can have visibility overridden by using `pub`.
