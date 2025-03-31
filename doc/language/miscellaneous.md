@@ -34,7 +34,7 @@ print_line("this code is ignored, nothing would be printed");
 This allows you to use keywords as variables or add spaces and symbols normally disallowed in variables. It is processed like a regular string literal.
 
 ```butter
-i"loop" = 10;
+n"loop" = 10;
 ```
 
 You can use raw string on raw identifier as well.

@@ -367,7 +367,7 @@ point = (__nominal: Point.NominalUnit(), x = 10, y = 20);
 
 The special field and type should only be relevant when implementing auto trait implementation.
 
-`__nominal` is not a typical field. Tuples can have it. `__nominal` is a keyword and is different from `i"__nominal"`.
+`__nominal` is not a typical field. Tuples can have it. `__nominal` is a keyword and is different from `n"__nominal"`.
 
 ## Auto-implement traits
 
