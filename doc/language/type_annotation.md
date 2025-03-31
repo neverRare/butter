@@ -30,6 +30,12 @@ We can define generics by using `:():`.
 concatenate(left : [a], right : [a]) -> [a] => left ++ right;
 ```
 
+Or like this with just `:()`.
+
+```butter
+concatenate:(a)(left : [a], right : [a]) -> [a] => left ++ right;
+```
+
 TODO: explain what generics do
 
 ## Wildcard
