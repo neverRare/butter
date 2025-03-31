@@ -37,7 +37,7 @@ TODO: explanation
 
 These are automatically dedented.
 
-```
+```butter
 value =
     """
     multiline

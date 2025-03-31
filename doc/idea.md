@@ -28,7 +28,7 @@ print_line(f"value is \(pretty_print(value))");
 
 Padding, alignment etc.
 
-```
+```butter
 name = pad_end(name, 20);
 value = pad_start(value, 5);
 print_line(f"\(name) \(value)");
@@ -105,7 +105,7 @@ alias Iter(a) = impl(b) b where Iterator(b).Item = a;
 
 Iterator comprehension
 
-```
+```butter
 #[val; for val in array]
 
 -- if guards
@@ -264,7 +264,7 @@ impl Eq((a, *rest)) {
 
 Implementing traits on records
 
-```
+```butter
 impl Eq(());
 
 :($i, a, rest):
@@ -319,7 +319,7 @@ pub newtype Extended:(a)(@neg_inf | @fin a | @inf);
 
 ## Auto-implement traits
 
-```
+```butter
 :($i, a):
 where Eq(a):
 impl Eq($i(*a)) {
@@ -331,7 +331,7 @@ impl Eq($i(*a)) {
 }
 ```
 
-```
+```butter
 impl auto Eq(Point);
 ```
 

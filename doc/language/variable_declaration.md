@@ -57,7 +57,7 @@ pi = math.pi;
 
 Import many.
 
-```
+```butter
 = math.(pi, sqrt);
 ```
 

@@ -20,7 +20,7 @@ car = (
 
 If you want to overwrite existing fields from the splatted record, prefix it with `^`.
 
-```
+```butter
 car = (
     *car,
     price = 100,
