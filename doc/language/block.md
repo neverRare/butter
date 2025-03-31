@@ -18,3 +18,16 @@ len = {
     foo.len
 };
 ```
+
+## Breakable block
+
+TODO: explanation
+
+```butter
+num = with break {
+    if foo == 10 {
+        break 10;
+    }
+    20
+};
+```

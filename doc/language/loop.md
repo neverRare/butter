@@ -77,3 +77,13 @@ for num in [1 .. 10] {
     filtered_num <- filtered_num ++ [num];
 }
 ```
+
+## While match
+
+TODO: explanation
+
+```butter
+while val =: @val val {
+    -- ...
+}
+```

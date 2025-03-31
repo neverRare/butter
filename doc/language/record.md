@@ -18,6 +18,16 @@ car = (
 );
 ```
 
+If you want to overwrite existing fields from the splatted record, prefix it with `^`.
+
+```
+car = (
+    *car,
+    price = 100,
+    ^brand = "an even nicer brand",
+);
+```
+
 You can use field punning syntax if the value is stored in a variable with the same name as desired field.
 
 ```butter

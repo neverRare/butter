@@ -45,3 +45,13 @@ message = if input.len == 0 {
 };
 print_line(message);
 ```
+
+## If match
+
+TODO: explanation
+
+```butter
+if val =: @val val {
+    -- ...
+}
+```

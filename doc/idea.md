@@ -9,12 +9,6 @@ Currently, string and char literal are just syntactic sugar for array of bytes a
 - Validity of such type shall be enforced by refinement types. Unsure for this, might be a challenge or simply impossible.
 - Another type for Unicode bytes and scalar values.
 
-## Raw string
-
-```butter
-r"raw strings don't have escape notation"
-```
-
 ## String interpolation
 
 Doesn't evaluates to string but maybe to something like `Iter(Str)` for efficiency.
@@ -40,16 +34,6 @@ value = pad_start(value, 5);
 print_line(f"\(name) \(value)");
 ```
 
-## Multiline strings
-
-```
-value =
-    """
-    multiline
-    string
-    """;
-```
-
 Multiline strings are automatically dedented.
 
 ## Match parameter
@@ -58,48 +42,6 @@ Multiline strings are automatically dedented.
 map_option(match val, mapper) => {
     @val val => @val mapper(val),
     @none => @none,
-}
-```
-
-## Or Pattern
-
-```butter
-match num {
-    1 | 2 | 3 => ...,
-    _ => ...,
-}
-```
-
-## Range Pattern
-
-```butter
-match num {
-    1 .. 3 => ...,
-    _ => ...,
-}
-```
-
-## As Var Pattern
-
-```butter
-match num {
-    1 .. 3 as num => ...,
-    _ => ...,
-}
--- or
-match num {
-    num as 1 .. 3 => ...,
-    _ => ...,
-}
-```
-
-## Equal to pattern
-
-Also known as pin pattern or pin operator.
-
-```butter
-match foo {
-    == bar => print_line("it's equal to bar!"),
 }
 ```
 
@@ -131,44 +73,6 @@ while @true {
 
 Instead of `upto`, `at` keyword may be used.
 
-## Breakable block
-
-```butter
-num = with break {
-    if foo == 10 {
-        break 10;
-    }
-    20
-};
-```
-
-## Multiline comment
-
-```butter
-/-
-multiline
-comment
--/
-```
-
-The content will be parsed as markdown. This means multiline comments may be nested as long as it is contained within codeblocks. Primarily intended for textual comments and documentation comments.
-
-## Ignore codeblock
-
-```butter
-{-
-print_line("this code is ignored, nothing would be printed");
--}
-```
-
-This can be nested, but the content must be lexable. This means it can be nested. Intended for disabling span of codes.
-
-## Raw identifier
-
-```butter
-i"loop" = parser(...);
-```
-
 ## Dict and Set
 
 Will be provided by std library.
@@ -177,27 +81,6 @@ Will be provided by std library.
 
 ```butter
 alias Option(a) = @val a | @none;
-```
-
-## Left to right var declaration
-
-```butter
-num = 10;
-10 =: num;
-```
-
-Unpacking complex values
-
-```butter
-account =: (
-    = name,
-    = email,
-    birth_date = (
-        = day,
-        = month,
-        = year,
-    ),
-);
 ```
 
 ## Iterators
@@ -257,20 +140,6 @@ pi = math.pi;
 (= pi) = math;
 -- or with left to right declaration
 math =: (= pi);
-```
-
-## Declaration shorthand
-
-```butter
-= math.pi;
--- the same as
-pi = math.pi;
-```
-
-Import many.
-
-```
-= math.(pi, sqrt);
 ```
 
 ## Bind everything pattern
@@ -354,24 +223,6 @@ prime_factor(num) => {
         never()
     }
 }
-```
-
-## If match, while match
-
-```butter
-if val =: @val val {
-    -- ...
-} else {
-    -- ...
-}
-```
-
-## Match else
-
-Useful for unwrapping.
-
-```butter
-@val val = val else { panic() };
 ```
 
 ## Identifier as compile-time value
@@ -467,12 +318,3 @@ y = point.#y;
 ```
 
 Anonymous record types have all fields public. Private fields are only applicable for `newtype`. Private fields can have visibility overridden by using `pub`.
-
-## Overwrite field
-
-```
-car = (color = "red", brand = "a shiny brand");
-another_car = (*>car, ^color = "blue");
-```
-
-This rewrites the existing field.

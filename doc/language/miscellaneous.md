@@ -1,11 +1,46 @@
 # Miscellaneous
 
-## Comment
+## Line comment
 
-Comments are used to add few notes or description to Butter code, they are ignored by the compiler.
+TODO: explanation
 
 ```butter
 -- this is a comment
+```
+
+## Multiline comment
+
+Primarily intended for textual comments and documentation comments. The contents must be a well formed markdown document.
+
+```butter
+/-
+multiline
+comment
+-/
+```
+
+## Ignore codeblock
+
+Primarily intended for disabling span of codes. The contents must be lexable. This means it can be nested.
+
+```butter
+{-
+print_line("this code is ignored, nothing would be printed");
+-}
+```
+
+## Raw identifier
+
+This allows you to use keywords and spaces in your variable. It is processed like a regular string literal.
+
+```butter
+i"loop" = 10;
+```
+
+You can use raw string on raw identifier as well.
+
+```butter
+ri"windows\path" = 20;
 ```
 
 ## Keyword reference

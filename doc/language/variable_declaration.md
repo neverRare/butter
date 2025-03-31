@@ -21,3 +21,50 @@ assert(foo == 20);
 foo = foo == 20;
 assert(foo == @true);
 ```
+
+## Left to right var declaration
+
+TODO: explanation
+
+```butter
+num = 10;
+10 =: num;
+```
+
+Unpacking complex values
+
+```butter
+account =: (
+    = name,
+    = email,
+    birth_date = (
+        = day,
+        = month,
+        = year,
+    ),
+);
+```
+
+## Declaration shorthand
+
+TODO: explanation
+
+```butter
+= math.pi;
+-- the same as
+pi = math.pi;
+```
+
+Import many.
+
+```
+= math.(pi, sqrt);
+```
+
+## Match else
+
+Useful for unwrapping.
+
+```butter
+@val val = val else { panic() };
+```

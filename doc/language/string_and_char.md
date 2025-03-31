@@ -22,3 +22,25 @@ letter = 'a';
 | `\v`     | Vertical tab                                           |
 | `\0`     | Null                                                   |
 | `\xXX`   | UTF-8 code unit, where `XX` is the code in hexadecimal |
+
+## Raw string
+
+TODO: explanation
+
+```butter
+r"raw strings don't have escape notation"
+```
+
+## Multiline strings
+
+TODO: explanation
+
+These are automatically dedented.
+
+```
+value =
+    """
+    multiline
+    string
+    """;
+```
