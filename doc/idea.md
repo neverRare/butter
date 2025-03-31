@@ -142,6 +142,13 @@ pi = math.pi;
 math =: (= pi);
 ```
 
+Special names
+
+- `self`
+- `super`
+- `lib`
+- `global`
+
 ## Bind everything pattern
 
 Only usable for modules, not records.

@@ -79,10 +79,14 @@ These are keywords that only have special meaning in some context.
 
 - `alias`
 - `auto`
+- `global`
 - `impl`
+- `lib`
 - `mod`
 - `newtype`
 - `pub`
+- `self`
+- `super`
 - `trait`
 - `where`
 
