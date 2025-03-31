@@ -255,7 +255,9 @@ impl Eq([a]) {
     }
 }
 
-impl Eq(());
+impl Eq(()) {
+    equal(a, b) => true;
+}
 
 :(a, rest):
 where Eq(a):
