@@ -331,8 +331,8 @@ pub newtype Extended:(a)(@neg_inf | @fin a | @inf);
 where Eq(a):
 impl Eq($i(*a)) {
     eq(a, b) => {
-        $i(*a) = a;
-        $i(*b) = b;
+        &>(*a) = a;
+        &>(*b) = b;
         a == b
     }
 }
