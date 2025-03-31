@@ -12,13 +12,15 @@ Currently, string and char literal are just syntactic sugar for array of bytes a
 ## Raw string
 
 ```butter
-#"raw strings don't have escape notation"#
+r"raw strings don't have escape notation"
 ```
 
 ## String interpolation
 
+Doesn't evaluates to string but maybe to something like `Iter(Str)` for efficiency.
+
 ```butter
-print_line("value is \(value)");
+print_line(f"value is \(value)");
 ```
 
 Debug printing, pretty printing, padding, alignment, etc. shall use normal functions instead of special syntaxes.
@@ -26,8 +28,8 @@ Debug printing, pretty printing, padding, alignment, etc. shall use normal funct
 Debug printing and pretty printing
 
 ```butter
-print_line("value is \(debug(value))");
-print_line("value is \(pretty_print(value))");
+print_line(f"value is \(debug(value))");
+print_line(f"value is \(pretty_print(value))");
 ```
 
 Padding, alignment etc.
@@ -35,7 +37,7 @@ Padding, alignment etc.
 ```
 name = pad_end(name, 20);
 value = pad_start(value, 5);
-print_line("\(name) \(value)");
+print_line(f"\(name) \(value)");
 ```
 
 ## Multiline strings
@@ -164,7 +166,7 @@ This can be nested, but the content must be lexable. This means it can be nested
 ## Raw identifier
 
 ```butter
-`loop` = parser(...);
+i"loop" = parser(...);
 ```
 
 ## Dict and Set
@@ -221,13 +223,13 @@ alias Iter(a) = impl(b) b where Iterator(b).Item = a;
 Iterator comprehension
 
 ```
-#[val for val in array]
+#[val; for val in array]
 
 -- if guards
-#[val for val in array if val > 0]
+#[val; for val in array; if val > 0]
 
 -- skip when pattern matching fails
-#[val for @val val in array]
+#[val; for @val val in array]
 ```
 
 ## Module system
@@ -283,10 +285,6 @@ With declaration shorthand.
 
 ```butter
 = math.*;
-
--- or
-
-= math.(*);
 ```
 
 ## Visibility system
@@ -320,6 +318,8 @@ foo <- 10;
 ```
 
 ## Shareable mutable container
+
+Provided by std library.
 
 ```butter
 share foo = cell(10);
@@ -382,7 +382,7 @@ map_tagged(val, tag, fn) => match val {
     val => val,
 }
 
-map_tagged(val, $`val`, (val) => val + 3);
+map_tagged(val, $"val", (val) => val + 3);
 ```
 
 ## Traits
