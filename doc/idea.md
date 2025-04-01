@@ -402,10 +402,10 @@ point = Point(x = 10, #y = 20, #z = 30);
 y = point.#y;
 
 -- pattern matching will require explicit record type name
-Point(#y) = point;
+Point(= #y) = point;
 
 -- this is an error
-(#y) = point;
+(= #y) = point;
 ```
 
 Anonymous record types have all fields public. Private fields are only applicable for `newtype`. Private fields can have visibility overridden by using `pub`.
