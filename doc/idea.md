@@ -355,19 +355,19 @@ pub newtype Extended(@neg_inf | @fin a | @inf);
 pub newtype Extended:(a)(@neg_inf | @fin a | @inf);
 ```
 
-To achieve nominal typing, instances are simply regular record or tuple but it holds a value on the special field `__nominal`. The type of this value is also a special type acting like a unit but has nominal typing. This special type is accessible from `Type.NominalUnit` where `Type` is the name of the type.
+To achieve nominal typing, instances are simply regular record or tuple but it holds a value on the special field `__nominal__`. The type of this value is also a special type acting like a unit but has nominal typing. This special type is accessible from `Type.NominalUnit` where `Type` is the name of the type.
 
 ```butter
 point = Point(x = 10, y = 20);
 
 -- is similar to
 
-point = (__nominal: Point.NominalUnit(), x = 10, y = 20);
+point = (__nominal__: Point.NominalUnit(), x = 10, y = 20);
 ```
 
 The special field and type should only be relevant when implementing auto trait implementation.
 
-`__nominal` is not a typical field. Tuples can have it. `__nominal` is a keyword and is different from `n"__nominal"`.
+`__nominal__` is not a typical field. Tuples can have it. `__nominal__` is a keyword and is different from `n"__nominal__"`.
 
 ## Auto-implement traits
 

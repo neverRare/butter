@@ -69,7 +69,7 @@ These are keywords with special meaning, it cannot be used as variable name, fun
 - `while`
 - `with`
 
-Every keywords starting with `__` are reserved intended for internal, special, or magical uses.
+Every keywords starting with `__` and ending with `__` are reserved intended for internal, special, or magical uses.
 
 ## Contextual keyword reference
 
