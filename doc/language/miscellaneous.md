@@ -40,7 +40,7 @@ n"loop" = 10;
 You can use raw string on raw identifier as well.
 
 ```butter
-ri"windows\path" = 20;
+rn"windows\path" = 20;
 ```
 
 ## Keyword reference
