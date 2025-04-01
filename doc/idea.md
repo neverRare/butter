@@ -277,7 +277,7 @@ impl Eq((a, *rest)) {
 
 Implementing traits on records with meta-programming using [compile-time variable holding identifier](#compile-time-variable-holding-identifier)
 
-TODO: is the order of fields relevant?
+TODO: ordering of fields, HOW?
 
 ```butter
 impl Eq(()) {
