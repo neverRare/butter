@@ -173,7 +173,7 @@ Syntactic sugar TODO: better explanation
 
 ```
 deref(val) => {
-    &>(val = val) = val;
+    &>(= val) = val;
     val;
 }
 -- similar to
