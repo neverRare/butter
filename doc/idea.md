@@ -362,7 +362,7 @@ point = Point(x = 10, y = 20);
 
 -- is similar to
 
-point = (__nominal__: Point.NominalUnit(), x = 10, y = 20);
+point = (__nominal__ = Point.NominalUnit(), x = 10, y = 20);
 ```
 
 The special field and type should only be relevant when implementing auto trait implementation.
