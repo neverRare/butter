@@ -1,5 +1,3 @@
-# Currently in hiatus
-
 # ![Butter](butter_text_only.svg)
 
 [Documents](./doc/README.md) | [Contributing Guidelines](./CONTRIBUTING.md)
@@ -30,18 +28,13 @@ Butter is a personal and experimental language that seeks balance for these aspe
 
 **Note:** Being an experimental language, these are all subject to change
 
-<!--
-- Concise: The language constructs should be simple and have a feel of scripting language.
--->
-
+- ~~Concise: The language constructs should be simple and have a feel of scripting language.~~
 - Unambiguous: There should be little-to-no ambiguity syntax-wise nor semantic-wise.
 - High-level: Low-level concepts that are hard to understand should be abstracted.
 - Efficient: The added runtime code for compiled programs should be minimal both in size and runtime impact.
 - Safe: Detectable errors should be caught on compile-time.
 
 I also to want to experiment with novel features deemed necessary for these goals such refinement types.
-
-Being my personal project, designs and features are ultimately up for my decision and taste. Some features can help with some aspect while also hurt other, this is where I weigh in the pros and cons. Of course, this doesn't mean I won't listen to suggestions, I can be naive on these decisions, I'll be happy to hear your thoughts about Butter's design by opening an issue.
 
 ## Road map
 
