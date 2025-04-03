@@ -140,16 +140,43 @@ These are keywords that only have special meaning in some context.
 
 Butter defines the following operator precedence from strongest to weakest.
 
-- `.` element access or slice `[...]` function call `(...)` `^`
-- unary `-` `+` `&` `@...` `>` `not`
-- `*` `/` `//` `%`
-- `+` `-` `++`
-- `==` `/=` `<` `>` `<=` `>=`
-- `and`
-- `or`
-- `<-`
-- `return` `break` `(...) =>`
-- Type annotation `: ...`
+TODO: explanation about the table
+
+<table>
+    <tbody>
+        <tr>
+            <td colspan="4">`.` element access or slice `[...]` function call `(...)` `^`</td>
+        </tr>
+        <tr>
+            <td colspan="4">unary `-` `+` `&` `@...` `>` `not`</td>
+        </tr>
+        <tr>
+            <td>`*` `/` `//` `%`</td>
+            <td rowspan="2">`++`</td>
+            <td rowspan="4">`|>`</td>
+            <td rowspan="4">function as infix `` `...` ``</td>
+        </tr>
+        <tr>
+            <td>`+` `-`</td>
+        </tr>
+        <tr>
+            <td colspan="2">`==` `/=` `<` `>` `<=` `>=`</td>
+        </tr>
+        <tr>
+            <td>`and`</td>
+            <td>`or`</td>
+        </tr>
+        <tr>
+            <td colspan="4">`<-`</td>
+        </tr>
+        <tr>
+            <td colspan="4">`return` `break` `(...) =>`</td>
+        </tr>
+        <tr>
+            <td colspan="4">Type annotation `: ...`</td>
+        </tr>
+    </tbody>
+</table>
 
 These determines how chain of operations are parsed. You can think of precedence as "binding power": `1 + 3 * 2` is parsed as `1 + (3 * 2)` instead of `(1 + 3) * 2` because `*` binds stronger than `+`, if the latter case is preferred, use [group].
 

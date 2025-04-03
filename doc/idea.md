@@ -409,3 +409,9 @@ Point(= #y) = point;
 ```
 
 Anonymous record types have all fields public. Private fields are only applicable for `newtype`. Private fields can have visibility overridden by using `pub`.
+
+## Function as infix operator
+
+```butter
+val = a `op` b;
+```
