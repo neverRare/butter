@@ -176,7 +176,7 @@ TODO: explanation about the table
       <td><code>or</code></td>
     </tr>
     <tr>
-      <td colspan="4"><code><-</code></td>
+      <td colspan="4"><code>&lt;-</code></td>
     </tr>
     <tr>
       <td colspan="4">
