@@ -143,39 +143,50 @@ Butter defines the following operator precedence from strongest to weakest.
 TODO: explanation about the table
 
 <table>
-    <tbody>
-        <tr>
-            <td colspan="4">`.` element access or slice `[...]` function call `(...)` `^`</td>
-        </tr>
-        <tr>
-            <td colspan="4">unary `-` `+` `&` `@...` `>` `not`</td>
-        </tr>
-        <tr>
-            <td>`*` `/` `//` `%`</td>
-            <td rowspan="2">`++`</td>
-            <td rowspan="4">`|>`</td>
-            <td rowspan="4">function as infix `` `...` ``</td>
-        </tr>
-        <tr>
-            <td>`+` `-`</td>
-        </tr>
-        <tr>
-            <td colspan="2">`==` `/=` `<` `>` `<=` `>=`</td>
-        </tr>
-        <tr>
-            <td>`and`</td>
-            <td>`or`</td>
-        </tr>
-        <tr>
-            <td colspan="4">`<-`</td>
-        </tr>
-        <tr>
-            <td colspan="4">`return` `break` `(...) =>`</td>
-        </tr>
-        <tr>
-            <td colspan="4">Type annotation `: ...`</td>
-        </tr>
-    </tbody>
+  <tbody>
+    <tr>
+      <td colspan="4">
+        <code>.</code> element access or slice <code>[...]</code> function
+        call <code>(...)</code> <code>^</code>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="4">
+        unary <code>-</code> <code>+</code> <code>&amp;</code>
+        <code>@...</code> <code>&gt;</code> <code>not</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>*</code> <code>/</code> <code>//</code> <code>%</code></td>
+      <td rowspan="2"><code>++</code></td>
+      <td rowspan="4"><code>|&gt;</code></td>
+      <td rowspan="4">function as infix <code>`...`</code></td>
+    </tr>
+    <tr>
+      <td><code>+</code> <code>-</code></td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <code>==</code> <code>/=</code> <code>&lt;</code> <code>&gt;</code>
+        <code>&lt;=</code> <code>&gt;=</code>
+      </td>
+    </tr>
+    <tr>
+      <td><code>and</code></td>
+      <td><code>or</code></td>
+    </tr>
+    <tr>
+      <td colspan="4"><code><-</code></td>
+    </tr>
+    <tr>
+      <td colspan="4">
+        <code>return</code> <code>break</code> <code>(...) =></code>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="4">Type annotation <code>: ...</code></td>
+    </tr>
+  </tbody>
 </table>
 
 These determines how chain of operations are parsed. You can think of precedence as "binding power": `1 + 3 * 2` is parsed as `1 + (3 * 2)` instead of `(1 + 3) * 2` because `*` binds stronger than `+`, if the latter case is preferred, use [group].
