@@ -180,7 +180,7 @@ TODO: explanation about the table
     </tr>
     <tr>
       <td colspan="4">
-        <code>return</code> <code>break</code> <code>(...) =></code>
+        <code>return</code> <code>break</code> <code>(...) =&gt;</code>
       </td>
     </tr>
     <tr>
