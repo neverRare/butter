@@ -99,6 +99,7 @@ These are keywords that only have special meaning in some context.
 |     `;`     | Statements terminator                   |
 |     `,`     | Separator of various kind               |
 |     `=`     | Declaration, field                      |
+|    `=:`     | Left to right declaration               |
 |    `==`     | Equal                                   |
 |    `/=`     | Not equal                               |
 |     `.`     | Field access                            |
