@@ -94,38 +94,37 @@ These are keywords that only have special meaning in some context.
 
 ## Punctuation reference
 
-| Punctuation | Purpose                              |
-| :---------: | ------------------------------------ |
-|     `;`     | Statements terminator                |
-|     `,`     | Separator of various kind            |
-|     `=`     | Declaration, field                   |
-|    `==`     | Equal                                |
-|    `/=`     | Not equal                            |
-|     `.`     | Field access                         |
-|     `^`     | Dereference                          |
-|    `..`     | Inclusive range                      |
-|    `.<`     | Inclusive-exclusive range            |
-|    `<.`     | Exclusive-inclusive range            |
-|    `<<`     | Exclusive range                      |
-|     `+`     | Addition, share                      |
-|    `++`     | Concatenation                        |
-|     `-`     | Subtraction                          |
-|     `*`     | Multiplication, splat, rest          |
-|     `/`     | Unary Minus, division, lifetime      |
-|    `//`     | Floor division                       |
-|     `%`     | Modulo                               |
-|     `&`     | Reference                            |
-|    `&<`     | Bind to reference                    |
-|    `&>`     | Rewrap to reference                  |
-|     `>`     | Greater than, Move                   |
-|     `<`     | Less than                            |
-|    `>=`     | Greater than or equal                |
-|    `<=`     | Less than or equal                   |
-|    `<-`     | Assignment                           |
-|    `=>`     | Function, match arm                  |
-|     `@`     | Tag                                  |
-|     `:`     | Type annotation, mutability modifier |
-|    `->`     | Return type annotation               |
+| Punctuation | Purpose                                 |
+| :---------: | --------------------------------------- |
+|     `;`     | Statements terminator                   |
+|     `,`     | Separator of various kind               |
+|     `=`     | Declaration, field                      |
+|    `==`     | Equal                                   |
+|    `/=`     | Not equal                               |
+|     `.`     | Field access                            |
+|     `^`     | Dereference                             |
+|    `..`     | Inclusive range                         |
+|    `.<`     | Inclusive-exclusive range               |
+|    `<.`     | Exclusive-inclusive range               |
+|    `<<`     | Exclusive range                         |
+|     `+`     | Addition, share                         |
+|    `++`     | Concatenation                           |
+|     `-`     | Subtraction                             |
+|     `*`     | Multiplication, splat, rest             |
+|     `/`     | Unary Minus, division, lifetime         |
+|    `//`     | Floor division                          |
+|     `%`     | Modulo                                  |
+|     `&`     | Reference                               |
+|    `&<`     | Bind to reference                       |
+|     `>`     | Greater than, Move, Rebind to reference |
+|     `<`     | Less than                               |
+|    `>=`     | Greater than or equal                   |
+|    `<=`     | Less than or equal                      |
+|    `<-`     | Assignment                              |
+|    `=>`     | Function, match arm                     |
+|     `@`     | Tag                                     |
+|     `:`     | Type annotation, mutability modifier    |
+|    `->`     | Return type annotation                  |
 
 ## Delimiter reference
 
