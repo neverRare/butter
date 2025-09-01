@@ -9,7 +9,7 @@ pretty = "0.12.4"
 string_cache = "0.8.9"
 
 [build-dependencies]
-string_cache_codegen = "0.5.4"
+string_cache_codegen = "0.6.0"
 
 [package.metadata.cargo-machete]
 ignored = ["string_cache"]
