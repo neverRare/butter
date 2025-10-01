@@ -6,4 +6,4 @@ edition = "2024"
 
 [dependencies]
 hir = { path = "../hir" }
-pretty = "0.12.4"
+pretty = "0.12.5"
